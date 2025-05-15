@@ -9,7 +9,7 @@ PB_GEN_DIR = $(PB_ROOT)/.generated
 BENDER_ROOT ?= $(PB_ROOT)/.bender
 
 # Configuration files
-FLOO_CFG  ?= $(PB_ROOT)/cfg/picobello_noc.yml
+FLOO_CFG  ?= $(PB_ROOT)/cfg/richie_noc_worst_case.yml
 SN_CFG	  ?= $(PB_ROOT)/cfg/snitch_cluster.json
 PLIC_CFG  ?= $(PB_ROOT)/cfg/rv_plic.cfg.hjson
 SLINK_CFG ?= $(PB_ROOT)/cfg/serial_link.hjson
@@ -35,6 +35,7 @@ BENDER_LOCK = $(PB_ROOT)/Bender.lock
 
 COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t floogen_pkg
 SIM_TARGS += -t simulation -t test -t idma_test
+FPGA_TARGS += -t fpga
 
 ############
 # Cheshire #
@@ -144,10 +145,16 @@ include $(PB_ROOT)/sw/sw.mk
 # Simulation #
 ##############
 
-TB_DUT = tb_picobello_top
+TB_DUT ?= tb_picobello_fpga
 
 include $(PB_ROOT)/target/sim/vsim/vsim.mk
 include $(PB_ROOT)/target/sim/traces.mk
+
+########
+# FPGA #
+########
+
+include $(PB_ROOT)/target/fpga/fpga.mk
 
 ########
 # Misc #
