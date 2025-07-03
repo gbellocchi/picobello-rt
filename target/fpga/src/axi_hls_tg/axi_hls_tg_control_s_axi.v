@@ -6,7 +6,7 @@
 `timescale 1ns/1ps
 module axi_hls_tg_control_s_axi
 #(parameter
-    C_S_AXI_ADDR_WIDTH = 7,
+    C_S_AXI_ADDR_WIDTH = 6,
     C_S_AXI_DATA_WIDTH = 32
 )(
     input  wire                          ACLK,
@@ -32,9 +32,9 @@ module axi_hls_tg_control_s_axi
     output wire                          interrupt,
     output wire [63:0]                   wide_port_offset,
     output wire [63:0]                   narrow_port_offset,
-    output wire [63:0]                   traffic_dim,
-    output wire [63:0]                   compute_dim,
-    output wire [63:0]                   traffic_id,
+    output wire [31:0]                   traffic_dim,
+    output wire [31:0]                   compute_dim,
+    output wire [31:0]                   traffic_id,
     output wire                          ap_start,
     input  wire                          ap_done,
     input  wire                          ap_ready,
@@ -72,42 +72,33 @@ module axi_hls_tg_control_s_axi
 // 0x24 : reserved
 // 0x28 : Data signal of traffic_dim
 //        bit 31~0 - traffic_dim[31:0] (Read/Write)
-// 0x2c : Data signal of traffic_dim
-//        bit 31~0 - traffic_dim[63:32] (Read/Write)
-// 0x30 : reserved
-// 0x34 : Data signal of compute_dim
+// 0x2c : reserved
+// 0x30 : Data signal of compute_dim
 //        bit 31~0 - compute_dim[31:0] (Read/Write)
-// 0x38 : Data signal of compute_dim
-//        bit 31~0 - compute_dim[63:32] (Read/Write)
-// 0x3c : reserved
-// 0x40 : Data signal of traffic_id
+// 0x34 : reserved
+// 0x38 : Data signal of traffic_id
 //        bit 31~0 - traffic_id[31:0] (Read/Write)
-// 0x44 : Data signal of traffic_id
-//        bit 31~0 - traffic_id[63:32] (Read/Write)
-// 0x48 : reserved
+// 0x3c : reserved
 // (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
 
 //------------------------Parameter----------------------
 localparam
-    ADDR_AP_CTRL                   = 7'h00,
-    ADDR_GIE                       = 7'h04,
-    ADDR_IER                       = 7'h08,
-    ADDR_ISR                       = 7'h0c,
-    ADDR_WIDE_PORT_OFFSET_DATA_0   = 7'h10,
-    ADDR_WIDE_PORT_OFFSET_DATA_1   = 7'h14,
-    ADDR_WIDE_PORT_OFFSET_CTRL     = 7'h18,
-    ADDR_NARROW_PORT_OFFSET_DATA_0 = 7'h1c,
-    ADDR_NARROW_PORT_OFFSET_DATA_1 = 7'h20,
-    ADDR_NARROW_PORT_OFFSET_CTRL   = 7'h24,
-    ADDR_TRAFFIC_DIM_DATA_0        = 7'h28,
-    ADDR_TRAFFIC_DIM_DATA_1        = 7'h2c,
-    ADDR_TRAFFIC_DIM_CTRL          = 7'h30,
-    ADDR_COMPUTE_DIM_DATA_0        = 7'h34,
-    ADDR_COMPUTE_DIM_DATA_1        = 7'h38,
-    ADDR_COMPUTE_DIM_CTRL          = 7'h3c,
-    ADDR_TRAFFIC_ID_DATA_0         = 7'h40,
-    ADDR_TRAFFIC_ID_DATA_1         = 7'h44,
-    ADDR_TRAFFIC_ID_CTRL           = 7'h48,
+    ADDR_AP_CTRL                   = 6'h00,
+    ADDR_GIE                       = 6'h04,
+    ADDR_IER                       = 6'h08,
+    ADDR_ISR                       = 6'h0c,
+    ADDR_WIDE_PORT_OFFSET_DATA_0   = 6'h10,
+    ADDR_WIDE_PORT_OFFSET_DATA_1   = 6'h14,
+    ADDR_WIDE_PORT_OFFSET_CTRL     = 6'h18,
+    ADDR_NARROW_PORT_OFFSET_DATA_0 = 6'h1c,
+    ADDR_NARROW_PORT_OFFSET_DATA_1 = 6'h20,
+    ADDR_NARROW_PORT_OFFSET_CTRL   = 6'h24,
+    ADDR_TRAFFIC_DIM_DATA_0        = 6'h28,
+    ADDR_TRAFFIC_DIM_CTRL          = 6'h2c,
+    ADDR_COMPUTE_DIM_DATA_0        = 6'h30,
+    ADDR_COMPUTE_DIM_CTRL          = 6'h34,
+    ADDR_TRAFFIC_ID_DATA_0         = 6'h38,
+    ADDR_TRAFFIC_ID_CTRL           = 6'h3c,
     WRIDLE                         = 2'd0,
     WRDATA                         = 2'd1,
     WRRESP                         = 2'd2,
@@ -115,7 +106,7 @@ localparam
     RDIDLE                         = 2'd0,
     RDDATA                         = 2'd1,
     RDRESET                        = 2'd2,
-    ADDR_BITS                = 7;
+    ADDR_BITS                = 6;
 
 //------------------------Local signal-------------------
     reg  [1:0]                    wstate = WRRESET;
@@ -146,9 +137,9 @@ localparam
     reg  [1:0]                    int_isr = 2'b0;
     reg  [63:0]                   int_wide_port_offset = 'b0;
     reg  [63:0]                   int_narrow_port_offset = 'b0;
-    reg  [63:0]                   int_traffic_dim = 'b0;
-    reg  [63:0]                   int_compute_dim = 'b0;
-    reg  [63:0]                   int_traffic_id = 'b0;
+    reg  [31:0]                   int_traffic_dim = 'b0;
+    reg  [31:0]                   int_compute_dim = 'b0;
+    reg  [31:0]                   int_traffic_id = 'b0;
 
 //------------------------Instantiation------------------
 
@@ -273,20 +264,11 @@ always @(posedge ACLK) begin
                 ADDR_TRAFFIC_DIM_DATA_0: begin
                     rdata <= int_traffic_dim[31:0];
                 end
-                ADDR_TRAFFIC_DIM_DATA_1: begin
-                    rdata <= int_traffic_dim[63:32];
-                end
                 ADDR_COMPUTE_DIM_DATA_0: begin
                     rdata <= int_compute_dim[31:0];
                 end
-                ADDR_COMPUTE_DIM_DATA_1: begin
-                    rdata <= int_compute_dim[63:32];
-                end
                 ADDR_TRAFFIC_ID_DATA_0: begin
                     rdata <= int_traffic_id[31:0];
-                end
-                ADDR_TRAFFIC_ID_DATA_1: begin
-                    rdata <= int_traffic_id[63:32];
                 end
             endcase
         end
@@ -487,16 +469,6 @@ always @(posedge ACLK) begin
     end
 end
 
-// int_traffic_dim[63:32]
-always @(posedge ACLK) begin
-    if (ARESET)
-        int_traffic_dim[63:32] <= 0;
-    else if (ACLK_EN) begin
-        if (w_hs && waddr == ADDR_TRAFFIC_DIM_DATA_1)
-            int_traffic_dim[63:32] <= (WDATA[31:0] & wmask) | (int_traffic_dim[63:32] & ~wmask);
-    end
-end
-
 // int_compute_dim[31:0]
 always @(posedge ACLK) begin
     if (ARESET)
@@ -507,16 +479,6 @@ always @(posedge ACLK) begin
     end
 end
 
-// int_compute_dim[63:32]
-always @(posedge ACLK) begin
-    if (ARESET)
-        int_compute_dim[63:32] <= 0;
-    else if (ACLK_EN) begin
-        if (w_hs && waddr == ADDR_COMPUTE_DIM_DATA_1)
-            int_compute_dim[63:32] <= (WDATA[31:0] & wmask) | (int_compute_dim[63:32] & ~wmask);
-    end
-end
-
 // int_traffic_id[31:0]
 always @(posedge ACLK) begin
     if (ARESET)
@@ -524,16 +486,6 @@ always @(posedge ACLK) begin
     else if (ACLK_EN) begin
         if (w_hs && waddr == ADDR_TRAFFIC_ID_DATA_0)
             int_traffic_id[31:0] <= (WDATA[31:0] & wmask) | (int_traffic_id[31:0] & ~wmask);
-    end
-end
-
-// int_traffic_id[63:32]
-always @(posedge ACLK) begin
-    if (ARESET)
-        int_traffic_id[63:32] <= 0;
-    else if (ACLK_EN) begin
-        if (w_hs && waddr == ADDR_TRAFFIC_ID_DATA_1)
-            int_traffic_id[63:32] <= (WDATA[31:0] & wmask) | (int_traffic_id[63:32] & ~wmask);
     end
 end
 

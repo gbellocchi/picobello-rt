@@ -113,7 +113,7 @@ output   m_axi_wide_port_RREADY;
 input  [63:0] m_axi_wide_port_RDATA;
 input   m_axi_wide_port_RLAST;
 input  [0:0] m_axi_wide_port_RID;
-input  [8:0] m_axi_wide_port_RFIFONUM;
+input  [12:0] m_axi_wide_port_RFIFONUM;
 input  [0:0] m_axi_wide_port_RUSER;
 input  [1:0] m_axi_wide_port_RRESP;
 input   m_axi_wide_port_BVALID;
@@ -140,7 +140,7 @@ reg    ap_idle_pp0;
 reg    ap_block_state1_pp0_stage0_iter0;
 wire    ap_block_state2_pp0_stage0_iter1;
 reg    ap_block_pp0_stage0_subdone;
-wire   [0:0] exitcond61_fu_101_p2;
+wire   [0:0] exitcond64_fu_101_p2;
 reg    ap_condition_exit_pp0_iter0_stage0;
 wire    ap_loop_exit_ready;
 reg    ap_ready_int;
@@ -227,7 +227,7 @@ end
 
 always @ (posedge ap_clk) begin
     if (((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        if (((exitcond61_fu_101_p2 == 1'd0) & (ap_start_int == 1'b1))) begin
+        if (((exitcond64_fu_101_p2 == 1'd0) & (ap_start_int == 1'b1))) begin
             loop_index_i_fu_48 <= p_cast2_fu_95_p2;
         end else if ((ap_loop_init == 1'b1)) begin
             loop_index_i_fu_48 <= 8'd0;
@@ -243,7 +243,7 @@ always @ (posedge ap_clk) begin
 end
 
 always @ (*) begin
-    if (((exitcond61_fu_101_p2 == 1'd1) & (1'b0 == ap_block_pp0_stage0_subdone) & (ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+    if (((exitcond64_fu_101_p2 == 1'd1) & (1'b0 == ap_block_pp0_stage0_subdone) & (ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b1;
     end else begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b0;
@@ -357,7 +357,7 @@ assign ap_enable_reg_pp0_iter0 = ap_start_int;
 
 assign ap_loop_exit_ready = ap_condition_exit_pp0_iter0_stage0;
 
-assign exitcond61_fu_101_p2 = ((ap_sig_allocacmp_loop_index_i_load == 8'd255) ? 1'b1 : 1'b0);
+assign exitcond64_fu_101_p2 = ((ap_sig_allocacmp_loop_index_i_load == 8'd255) ? 1'b1 : 1'b0);
 
 assign loop_index_i_cast6_fu_112_p1 = loop_index_i_load_reg_123;
 

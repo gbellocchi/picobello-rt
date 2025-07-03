@@ -21,7 +21,7 @@ module axi_hls_tg_axi_hls_tg_Pipeline_compute1 (
         narrow_buffer_V_address1,
         narrow_buffer_V_ce1,
         narrow_buffer_V_q1,
-        traffic_id
+        conv_i_i21
 );
 
 parameter    ap_ST_fsm_pp0_stage0 = 1'd1;
@@ -39,7 +39,7 @@ output  [63:0] narrow_buffer_V_d0;
 output  [7:0] narrow_buffer_V_address1;
 output   narrow_buffer_V_ce1;
 input  [63:0] narrow_buffer_V_q1;
-input  [63:0] traffic_id;
+input  [31:0] conv_i_i21;
 
 reg ap_idle;
 reg narrow_buffer_V_ce0;
@@ -56,19 +56,21 @@ wire    ap_block_state1_pp0_stage0_iter0;
 wire    ap_block_state2_pp0_stage0_iter1;
 wire    ap_block_state3_pp0_stage0_iter2;
 wire    ap_block_pp0_stage0_subdone;
-wire   [0:0] icmp_ln1027_fu_67_p2;
+wire   [0:0] icmp_ln1027_fu_71_p2;
 reg    ap_condition_exit_pp0_iter0_stage0;
 wire    ap_loop_exit_ready;
 reg    ap_ready_int;
+wire   [63:0] conv_i_i21_cast_fu_59_p1;
+reg   [63:0] conv_i_i21_cast_reg_105;
 wire    ap_block_pp0_stage0_11001;
-reg   [7:0] narrow_buffer_V_addr_reg_110;
-reg   [7:0] narrow_buffer_V_addr_reg_110_pp0_iter1_reg;
-wire   [63:0] add_ln840_fu_89_p2;
-reg   [63:0] add_ln840_reg_116;
-wire   [63:0] i_7_cast_fu_79_p1;
+reg   [7:0] narrow_buffer_V_addr_reg_114;
+reg   [7:0] narrow_buffer_V_addr_reg_114_pp0_iter1_reg;
+wire   [63:0] add_ln840_fu_93_p2;
+reg   [63:0] add_ln840_reg_120;
+wire   [63:0] i_7_cast_fu_83_p1;
 wire    ap_block_pp0_stage0;
 reg   [8:0] i_fu_32;
-wire   [8:0] add_ln76_fu_73_p2;
+wire   [8:0] add_ln76_fu_77_p2;
 wire    ap_loop_init;
 reg   [8:0] ap_sig_allocacmp_i_2;
 reg    ap_done_reg;
@@ -147,8 +149,8 @@ end
 
 always @ (posedge ap_clk) begin
     if (((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        if (((icmp_ln1027_fu_67_p2 == 1'd0) & (ap_enable_reg_pp0_iter0 == 1'b1))) begin
-            i_fu_32 <= add_ln76_fu_73_p2;
+        if (((icmp_ln1027_fu_71_p2 == 1'd0) & (ap_enable_reg_pp0_iter0 == 1'b1))) begin
+            i_fu_32 <= add_ln76_fu_77_p2;
         end else if ((ap_loop_init == 1'b1)) begin
             i_fu_32 <= 9'd0;
         end
@@ -157,20 +159,21 @@ end
 
 always @ (posedge ap_clk) begin
     if (((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        add_ln840_reg_116 <= add_ln840_fu_89_p2;
+        add_ln840_reg_120 <= add_ln840_fu_93_p2;
         ap_loop_exit_ready_pp0_iter1_reg <= ap_loop_exit_ready;
-        narrow_buffer_V_addr_reg_110_pp0_iter1_reg <= narrow_buffer_V_addr_reg_110;
+        conv_i_i21_cast_reg_105[31 : 0] <= conv_i_i21_cast_fu_59_p1[31 : 0];
+        narrow_buffer_V_addr_reg_114_pp0_iter1_reg <= narrow_buffer_V_addr_reg_114;
     end
 end
 
 always @ (posedge ap_clk) begin
-    if (((icmp_ln1027_fu_67_p2 == 1'd0) & (1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        narrow_buffer_V_addr_reg_110 <= i_7_cast_fu_79_p1;
+    if (((icmp_ln1027_fu_71_p2 == 1'd0) & (1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+        narrow_buffer_V_addr_reg_114 <= i_7_cast_fu_83_p1;
     end
 end
 
 always @ (*) begin
-    if (((icmp_ln1027_fu_67_p2 == 1'd1) & (1'b0 == ap_block_pp0_stage0_subdone) & (ap_enable_reg_pp0_iter0 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+    if (((icmp_ln1027_fu_71_p2 == 1'd1) & (1'b0 == ap_block_pp0_stage0_subdone) & (ap_enable_reg_pp0_iter0 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b1;
     end else begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b0;
@@ -252,9 +255,9 @@ always @ (*) begin
     endcase
 end
 
-assign add_ln76_fu_73_p2 = (ap_sig_allocacmp_i_2 + 9'd1);
+assign add_ln76_fu_77_p2 = (ap_sig_allocacmp_i_2 + 9'd1);
 
-assign add_ln840_fu_89_p2 = (narrow_buffer_V_q1 + traffic_id);
+assign add_ln840_fu_93_p2 = (narrow_buffer_V_q1 + conv_i_i21_cast_reg_105);
 
 assign ap_CS_fsm_pp0_stage0 = ap_CS_fsm[32'd0];
 
@@ -276,14 +279,20 @@ assign ap_enable_reg_pp0_iter0 = ap_start_int;
 
 assign ap_loop_exit_ready = ap_condition_exit_pp0_iter0_stage0;
 
-assign i_7_cast_fu_79_p1 = ap_sig_allocacmp_i_2;
+assign conv_i_i21_cast_fu_59_p1 = conv_i_i21;
 
-assign icmp_ln1027_fu_67_p2 = ((ap_sig_allocacmp_i_2 == 9'd256) ? 1'b1 : 1'b0);
+assign i_7_cast_fu_83_p1 = ap_sig_allocacmp_i_2;
 
-assign narrow_buffer_V_address0 = narrow_buffer_V_addr_reg_110_pp0_iter1_reg;
+assign icmp_ln1027_fu_71_p2 = ((ap_sig_allocacmp_i_2 == 9'd256) ? 1'b1 : 1'b0);
 
-assign narrow_buffer_V_address1 = i_7_cast_fu_79_p1;
+assign narrow_buffer_V_address0 = narrow_buffer_V_addr_reg_114_pp0_iter1_reg;
 
-assign narrow_buffer_V_d0 = add_ln840_reg_116;
+assign narrow_buffer_V_address1 = i_7_cast_fu_83_p1;
+
+assign narrow_buffer_V_d0 = add_ln840_reg_120;
+
+always @ (posedge ap_clk) begin
+    conv_i_i21_cast_reg_105[63:32] <= 32'b00000000000000000000000000000000;
+end
 
 endmodule //axi_hls_tg_axi_hls_tg_Pipeline_compute1
