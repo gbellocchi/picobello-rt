@@ -26,18 +26,28 @@ module tb_picobello_fpga;
   logic clk;
   logic rst_n;
 
+  // Timer counter
+  typedef struct packed {
+    logic          write_counter_i; // [Input] Counter overwrite control
+    logic [32-1:0] counter_value_i; // [Input] Counter value to set
+    logic          reset_count_i; // [Input] Counter reset control
+    logic          enable_count_i; // [Input] Counter enable control - to increase the counter value
+    logic [32-1:0] compare_value_i; // [Input] Comparator value - to compare with the counter value
+    // logic [32-1:0] counter_value_o; // [Output] Counter value
+    // logic          target_reached_o; // [Output] Comparator value flag
+  } timer_cfg_t;
+
+  logic [32-1:0] counter_value_o; // [Output] Counter value
+  logic          target_reached_o; // [Output] Comparator value flag
+
+  timer_cfg_t tb_timer_cfg;
+
   // DUT
   fpga_picobello_top #(
     // Parameters
     .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),  
     .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),    
     .NumTrafficGenerators     (fpga_picobello_pkg::NumTrafficGenerators),
-    .HostAxiAddrWidth         (fpga_picobello_pkg::HostAxiAddrWidth),
-    .HostAxiDataWidth         (fpga_picobello_pkg::HostAxiDataWidth),
-    .HostAxiUserWidth         (fpga_picobello_pkg::HostAxiUserWidth),
-    .HostAxiIdWidth           (fpga_picobello_pkg::HostAxiIdWidth),
-    .HostAxiLiteAddrWidth     (fpga_picobello_pkg::HostAxiLiteAddrWidth),
-    .HostAxiLiteDataWidth     (fpga_picobello_pkg::HostAxiLiteDataWidth),
     // AXI4 channel types
     .axi_host_req_t           (fpga_picobello_pkg::axi_host_req_t),
     .axi_host_rsp_t           (fpga_picobello_pkg::axi_host_rsp_t),
@@ -70,6 +80,49 @@ module tb_picobello_fpga;
     .rst_no           (rst_n)
   );
 
+  timer_unit_counter counter_i (
+    .clk_i            (clk),
+    .rst_ni           (rst_n),
+    .write_counter_i  (tb_timer_cfg.write_counter_i),
+    .counter_value_i  (tb_timer_cfg.counter_value_i),
+    .reset_count_i    (tb_timer_cfg.reset_count_i),
+    .enable_count_i   (tb_timer_cfg.enable_count_i),
+    .compare_value_i  (tb_timer_cfg.compare_value_i),
+    .counter_value_o  (counter_value_o),
+    .target_reached_o (target_reached_o)
+  );
+
+  // Initialize timer
+  task automatic picobello_init_timer(
+    output timer_cfg_t timer_cfg
+  );
+    timer_cfg.reset_count_i = 1'b1;
+    @(posedge clk);
+    timer_cfg.reset_count_i = 1'b0;
+  endtask
+
+  // Start timer
+  task automatic picobello_start_timer(
+    output timer_cfg_t timer_cfg
+  );
+    timer_cfg.write_counter_i = 1'b0;
+    timer_cfg.counter_value_i = 32'b0;
+    timer_cfg.reset_count_i = 1'b0;
+    timer_cfg.enable_count_i = 1'b1;
+    timer_cfg.compare_value_i = 32'b0;
+  endtask
+
+  // Stop timer
+  task automatic picobello_stop_timer(
+    output timer_cfg_t timer_cfg
+  );
+    timer_cfg.write_counter_i = 1'b0;
+    timer_cfg.counter_value_i = 32'b0;
+    timer_cfg.reset_count_i = 1'b0;
+    timer_cfg.enable_count_i = 1'b0;
+    timer_cfg.compare_value_i = 32'b0;
+  endtask
+
   // Write to Picobello through the AXI4 host interface
   task automatic picobello_write(
     input fpga_picobello_pkg::axi_host_addr_t write_addr, 
@@ -80,7 +133,7 @@ module tb_picobello_fpga;
     tb_axi_host_req_i.aw.id = '0;
     tb_axi_host_req_i.aw.addr = write_addr;
     tb_axi_host_req_i.aw.len = '0;
-    tb_axi_host_req_i.aw.size = $clog2(HostAxiDataWidth/8);
+    tb_axi_host_req_i.aw.size = $clog2(AxiCfgHost.DataWidth/8);
     tb_axi_host_req_i.aw.burst = axi_pkg::BURST_INCR;
     tb_axi_host_req_i.aw.lock = 1'b0;
     tb_axi_host_req_i.aw.cache = '0;
@@ -120,7 +173,7 @@ module tb_picobello_fpga;
     tb_axi_host_req_i.ar.id = '0;
     tb_axi_host_req_i.ar.addr = read_addr;
     tb_axi_host_req_i.ar.len = '0;
-    tb_axi_host_req_i.ar.size = $clog2(HostAxiDataWidth/8);
+    tb_axi_host_req_i.ar.size = $clog2(AxiCfgHost.DataWidth/8);
     tb_axi_host_req_i.ar.burst = axi_pkg::BURST_INCR;
     tb_axi_host_req_i.ar.lock = 1'b0;
     tb_axi_host_req_i.ar.cache = '0;
@@ -269,10 +322,15 @@ module tb_picobello_fpga;
   initial begin
     tb_axi_host_req_i = '{default: '0};
     tb_tg_cfg = '{default: '0};
+    tb_timer_cfg = '{default: '0};
 
     // Wait for reset
     wait(rst_n);
-    @(posedge clk);
+    @(posedge clk); #5;
+
+    // Initialize timer
+    picobello_init_timer(tb_timer_cfg);
+    wait(!tb_timer_cfg.reset_count_i); // Wait for reset to be deasserted
 
     //////////////////////////////////
     // Test: ClusterX0Y0 <-> L2Spm0 //
@@ -291,22 +349,21 @@ module tb_picobello_fpga;
     tb_tg_cfg.TrafficGenComputeDim      = 32'h0000_0100;
     tb_tg_cfg.TrafficGenIdx             = 32'h0000_0001;
 
-    // // Initialize Picobello memory
-    // picobello_init_mem_tiles();
-
     // Program traffic generator
     picobello_tg_cfg(tb_tg_cfg);
+
+    // Start and read timer
+    picobello_start_timer(tb_timer_cfg);
 
     // Run traffic generator
     picobello_tg_start(tb_tg_cfg);
 
-    #5us;
-
     // Wait for termination
     picobello_tg_polling(tb_tg_cfg);
 
-    // // Check for correctness
-    // picobello_tg_validation(tb_tg_cfg, tb_tg_cfg.TrafficGenIdx);    
+    // Stop and read timer
+    picobello_stop_timer(tb_timer_cfg);
+    $display ("[%0tns] - Timer value: %d", $time, counter_value_o);   
 
     ////////////////////////
     // Test: Run Them All //

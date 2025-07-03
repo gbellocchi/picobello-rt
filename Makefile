@@ -145,7 +145,7 @@ include $(PB_ROOT)/sw/sw.mk
 # Simulation #
 ##############
 
-TB_DUT ?= tb_picobello_top
+TB_DUT ?= tb_picobello_fpga
 
 include $(PB_ROOT)/target/sim/vsim/vsim.mk
 include $(PB_ROOT)/target/sim/traces.mk
