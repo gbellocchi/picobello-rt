@@ -96,6 +96,7 @@ sources:
       - target/fpga/src/axi_hls_tg_wrapper.sv
       # Level 3
       - target/fpga/src/tg_tile.sv
+      - target/fpga/src/tg_realm_tile.sv
       - target/fpga/src/fpga_host_tile.sv
       # Level 4
       - target/fpga/src/fpga_picobello_top.sv
