@@ -68,14 +68,6 @@ module fpga_picobello_top_wrapper
     .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),   
     .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),   
     .NumTrafficGenerators     (fpga_picobello_pkg::NumTrafficGenerators),
-    // Host AXI4 parameters
-    .HostAxiAddrWidth         (fpga_picobello_pkg::HostAxiAddrWidth),
-    .HostAxiDataWidth         (fpga_picobello_pkg::HostAxiDataWidth),
-    .HostAxiUserWidth         (fpga_picobello_pkg::HostAxiUserWidth),
-    .HostAxiIdWidth           (fpga_picobello_pkg::HostAxiIdWidth),
-    // Host AXI4-Lite parameters
-    .HostAxiLiteAddrWidth     (fpga_picobello_pkg::HostAxiLiteAddrWidth),
-    .HostAxiLiteDataWidth     (fpga_picobello_pkg::HostAxiLiteDataWidth),
     // AXI4 channel types
     .axi_host_req_t           (fpga_picobello_pkg::axi_host_req_t),
     .axi_host_rsp_t           (fpga_picobello_pkg::axi_host_rsp_t),

@@ -17,14 +17,6 @@ module fpga_picobello_top
   parameter int unsigned NumFpgaDummyTiles = 2,
   // Number of traffic generators
   parameter int unsigned NumTrafficGenerators = NumClusters + 1,
-  // AXI4 parameters
-  parameter int unsigned HostAxiAddrWidth = 64,
-  parameter int unsigned HostAxiDataWidth = 64,
-  parameter int unsigned HostAxiUserWidth = 1,
-  parameter int unsigned HostAxiIdWidth = 1,
-  // AXI4-Lite parameters
-  parameter int unsigned HostAxiLiteAddrWidth = 32,
-  parameter int unsigned HostAxiLiteDataWidth = 32,
   // AXI4 channel types
   parameter type axi_host_req_t = logic,
   parameter type axi_host_rsp_t = logic,
@@ -67,16 +59,13 @@ module fpga_picobello_top
     localparam id_t ClusterId = Sam[ClusterSamIdx].idx;
     localparam int X = int'(ClusterId.x);
     localparam int Y = int'(ClusterId.y);
+    localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
-    traffic_gen_tile #(
-      .AxiLiteAddrWidth (HostAxiLiteAddrWidth),
-      .AxiLiteDataWidth (HostAxiLiteDataWidth),
-      .axi_lite_req_t   (axi_lite_host_req_t),
-      .axi_lite_rsp_t   (axi_lite_host_rsp_t)
-    ) i_cluster_tg_tile (
+    tg_tile i_cluster_tg_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i      (test_mode_i),
+      .tg_base_addr_i     (ClusterBaseAddr),
       .id_i               (ClusterId),
       .floo_req_o         (floo_req_out[X][Y]),
       .floo_rsp_i         (floo_rsp_in[X][Y]),
@@ -116,16 +105,13 @@ module fpga_picobello_top
   //////////////////
 
   localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
+  localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
 
-  traffic_gen_tile #(
-    .AxiLiteAddrWidth (HostAxiLiteAddrWidth),
-    .AxiLiteDataWidth (HostAxiLiteDataWidth),
-    .axi_lite_req_t   (axi_lite_host_req_t),
-    .axi_lite_rsp_t   (axi_lite_host_rsp_t)
-  ) i_fhg_spu_tile (
+  tg_tile i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),
+    .tg_base_addr_i     (FhgSpuAddr),
     .id_i               (FhgSpuId),
     .floo_req_o         (floo_req_out[FhgSpuId.x][FhgSpuId.y]),
     .floo_rsp_i         (floo_rsp_in[FhgSpuId.x][FhgSpuId.y]),
@@ -167,7 +153,7 @@ module fpga_picobello_top
   // Dummy tile //
   ////////////////
 
-  for (genvar d = 0; d < NumFpgaDummyTiles; d++) begin : gen_dummytiles
+  for (genvar d = 0; d < NumDummyTiles; d++) begin : gen_dummytiles
     localparam id_t DummyTileId = DummyIdx[d];
     localparam int DummyTileX = int'(DummyIdx[d].x);
     localparam int DummyTileY = int'(DummyIdx[d].y);
