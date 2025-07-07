@@ -1,0 +1,16 @@
+# Copyright 2020 ETH Zurich, University of Bologna
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+package:
+  name: axi2mem
+
+dependencies:
+  axi:                    { git: "https://github.com/pulp-platform/common_cells.git", rev: gbellocchi/richie-axi }
+  common_cells:           { git: "https://github.com/pulp-platform/common_cells.git", version: 1.32.0 }
+  riscv:                  { git: "https://github.com/AlSaqr-platform/riscv_nn", rev: hero }
+  cv32e40p:               { git: "https://github.com/pulp-platform/cv32e40p.git", rev: "astral-v1.0"}
+
+sources:
+  - axi2mem_wrap.sv
+  - axi2mem.sv

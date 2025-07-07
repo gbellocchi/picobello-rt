@@ -9,7 +9,7 @@ PB_GEN_DIR = $(PB_ROOT)/.generated
 BENDER_ROOT ?= $(PB_ROOT)/.bender
 
 # Configuration files
-FLOO_CFG  ?= $(PB_ROOT)/cfg/richie_noc_worst_case.yml
+FLOO_CFG  ?= $(PB_ROOT)/cfg/rt_16cl_1h.yml
 SN_CFG	  ?= $(PB_ROOT)/cfg/snitch_cluster.json
 PLIC_CFG  ?= $(PB_ROOT)/cfg/rv_plic.cfg.hjson
 SLINK_CFG ?= $(PB_ROOT)/cfg/serial_link.hjson
@@ -35,7 +35,7 @@ BENDER_LOCK = $(PB_ROOT)/Bender.lock
 
 COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t floogen_pkg
 SIM_TARGS += -t simulation -t test -t idma_test
-FPGA_TARGS += -t fpga
+FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_use_fpga_scm
 
 ############
 # Cheshire #

@@ -1,0 +1,125 @@
+# Copyright 2025 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+name: picobello
+description: "picobello noc configuration for fpga verification"
+network_type: "narrow-wide"
+
+routing:
+  route_algo: "XY"
+  use_id_table: true
+
+protocols:
+  - name: "narrow_in"
+    type: "narrow"
+    protocol: "AXI4"
+    data_width: 128
+    addr_width: 64
+    id_width: 5
+    user_width: 3
+  - name: "narrow_out"
+    type: "narrow"
+    protocol: "AXI4"
+    data_width: 128
+    addr_width: 64
+    id_width: 2
+    user_width: 3
+  - name: "wide_in"
+    type: "wide"
+    protocol: "AXI4"
+    data_width: 128
+    addr_width: 64
+    id_width: 1
+    user_width: 1
+  - name: "wide_out"
+    type: "wide"
+    protocol: "AXI4"
+    data_width: 128
+    addr_width: 64
+    id_width: 1
+    user_width: 1
+
+endpoints:
+  - name: "cluster"
+    array: [1, 16]
+    addr_range:
+      base: 0xC000_0000
+      size: 0x0004_0000
+    mgr_port_protocol:
+      - "narrow_in"
+      - "wide_in"
+    sbr_port_protocol:
+      - "narrow_out"
+      - "wide_out"
+  - name: "cheshire"
+    addr_range:
+      - start: 0xA000_0000
+        size: 0x2000_0000
+        desc: "internal"
+      - start: 0x8000_0000
+        size: 0x1000_0000
+        desc: "external"
+    mgr_port_protocol:
+      - "narrow_in"
+    sbr_port_protocol:
+      - "narrow_out"
+      - "wide_out"
+  - name: "fhg_spu"
+    addr_range:
+      - start: 0xE000_0000
+        size: 0x0004_0000
+    mgr_port_protocol:
+      - "narrow_in"
+      - "wide_in"
+    sbr_port_protocol:
+      - "narrow_out"
+      - "wide_out"
+  - name: "l2_spm"
+    array: [32]
+    addr_range:
+      base: 0xD000_0000
+      size: 0x0010_0000
+    sbr_port_protocol:
+      - "narrow_out"
+      - "wide_out"
+  
+routers:
+  - name: "router"
+    array: [8, 16]
+    degree: 5
+
+connections:
+  - src: "cluster"
+    dst: "router"
+    src_range:
+    - [0, 0]
+    - [0, 15]
+    dst_range:
+    - [3, 3]
+    - [0, 15]
+    dst_dir: "Eject"
+  - src: "cheshire"
+    dst: "router"
+    dst_idx: [7, 3]
+    dst_dir: "Eject"
+  - src: "fhg_spu"
+    dst: "router"
+    dst_idx: [7, 0]
+    dst_dir: "Eject"
+  - src: "l2_spm"
+    dst: "router"
+    src_range:
+      - [0, 15]
+    dst_range:
+      - [0, 0]
+      - [0, 15]
+    dst_dir: "Eject"
+  - src: "l2_spm"
+    dst: "router"
+    src_range:
+      - [16, 31]
+    dst_range:
+      - [6, 6]
+      - [0, 15]
+    dst_dir: "Eject"

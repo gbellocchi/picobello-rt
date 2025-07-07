@@ -7,7 +7,7 @@
 
 `timescale 1 ns / 1 ps 
 
-module axi_hls_tg_axi_hls_tg_Pipeline_6 (
+module axi_hls_tg_axi_hls_tg_Pipeline_2 (
         ap_clk,
         ap_rst,
         ap_start,
@@ -63,7 +63,8 @@ module axi_hls_tg_axi_hls_tg_Pipeline_6 (
         p_cast_cast,
         wide_buffer_V_address0,
         wide_buffer_V_ce0,
-        wide_buffer_V_q0
+        wide_buffer_V_we0,
+        wide_buffer_V_d0
 );
 
 parameter    ap_ST_fsm_pp0_stage0 = 1'd1;
@@ -89,8 +90,8 @@ output  [3:0] m_axi_wide_port_AWREGION;
 output  [0:0] m_axi_wide_port_AWUSER;
 output   m_axi_wide_port_WVALID;
 input   m_axi_wide_port_WREADY;
-output  [63:0] m_axi_wide_port_WDATA;
-output  [7:0] m_axi_wide_port_WSTRB;
+output  [127:0] m_axi_wide_port_WDATA;
+output  [15:0] m_axi_wide_port_WSTRB;
 output   m_axi_wide_port_WLAST;
 output  [0:0] m_axi_wide_port_WID;
 output  [0:0] m_axi_wide_port_WUSER;
@@ -109,7 +110,7 @@ output  [3:0] m_axi_wide_port_ARREGION;
 output  [0:0] m_axi_wide_port_ARUSER;
 input   m_axi_wide_port_RVALID;
 output   m_axi_wide_port_RREADY;
-input  [63:0] m_axi_wide_port_RDATA;
+input  [127:0] m_axi_wide_port_RDATA;
 input   m_axi_wide_port_RLAST;
 input  [0:0] m_axi_wide_port_RID;
 input  [12:0] m_axi_wide_port_RFIFONUM;
@@ -120,44 +121,43 @@ output   m_axi_wide_port_BREADY;
 input  [1:0] m_axi_wide_port_BRESP;
 input  [0:0] m_axi_wide_port_BID;
 input  [0:0] m_axi_wide_port_BUSER;
-input  [60:0] p_cast_cast;
+input  [59:0] p_cast_cast;
 output  [7:0] wide_buffer_V_address0;
 output   wide_buffer_V_ce0;
-input  [63:0] wide_buffer_V_q0;
+output   wide_buffer_V_we0;
+output  [127:0] wide_buffer_V_d0;
 
 reg ap_idle;
-reg m_axi_wide_port_WVALID;
+reg m_axi_wide_port_RREADY;
 reg wide_buffer_V_ce0;
+reg wide_buffer_V_we0;
 
 (* fsm_encoding = "none" *) reg   [0:0] ap_CS_fsm;
 wire    ap_CS_fsm_pp0_stage0;
 wire    ap_enable_reg_pp0_iter0;
 reg    ap_enable_reg_pp0_iter1;
-reg    ap_enable_reg_pp0_iter2;
 reg    ap_idle_pp0;
-wire    ap_block_state1_pp0_stage0_iter0;
+reg    ap_block_state1_pp0_stage0_iter0;
 wire    ap_block_state2_pp0_stage0_iter1;
-wire    ap_block_state3_pp0_stage0_iter2;
 reg    ap_block_pp0_stage0_subdone;
-wire   [0:0] exitcond_fu_102_p2;
+wire   [0:0] exitcond64_fu_101_p2;
 reg    ap_condition_exit_pp0_iter0_stage0;
 wire    ap_loop_exit_ready;
 reg    ap_ready_int;
-reg    wide_port_blk_n_W;
+reg    wide_port_blk_n_R;
 wire    ap_block_pp0_stage0;
+reg   [7:0] loop_index_i_load_reg_123;
 reg    ap_block_pp0_stage0_11001;
-reg   [63:0] wide_buffer_V_load_reg_140;
-wire   [63:0] loop_index_i41_cast8_fu_91_p1;
-wire    ap_block_pp0_stage0_01001;
-reg   [7:0] loop_index_i41_fu_48;
-wire   [7:0] p_cast4_fu_96_p2;
+reg   [127:0] wide_port_addr_read_reg_128;
+wire   [63:0] loop_index_i_cast6_fu_112_p1;
+reg   [7:0] loop_index_i_fu_48;
+wire   [7:0] p_cast2_fu_95_p2;
 wire    ap_loop_init;
-reg   [7:0] ap_sig_allocacmp_loop_index_i41_load;
+reg   [7:0] ap_sig_allocacmp_loop_index_i_load;
 reg    ap_done_reg;
 wire    ap_continue_int;
 reg    ap_done_int;
 reg    ap_loop_exit_ready_pp0_iter1_reg;
-reg    ap_loop_exit_ready_pp0_iter2_reg;
 reg   [0:0] ap_NS_fsm;
 wire    ap_enable_pp0;
 wire    ap_start_int;
@@ -167,7 +167,6 @@ wire    ap_ce_reg;
 initial begin
 #0 ap_CS_fsm = 1'd1;
 #0 ap_enable_reg_pp0_iter1 = 1'b0;
-#0 ap_enable_reg_pp0_iter2 = 1'b0;
 #0 ap_done_reg = 1'b0;
 end
 
@@ -200,7 +199,7 @@ always @ (posedge ap_clk) begin
     end else begin
         if ((ap_continue_int == 1'b1)) begin
             ap_done_reg <= 1'b0;
-        end else if (((1'b0 == ap_block_pp0_stage0_subdone) & (ap_loop_exit_ready_pp0_iter2_reg == 1'b1))) begin
+        end else if (((1'b0 == ap_block_pp0_stage0_subdone) & (1'b1 == ap_CS_fsm_pp0_stage0) & (ap_loop_exit_ready_pp0_iter1_reg == 1'b1))) begin
             ap_done_reg <= 1'b1;
         end
     end
@@ -217,42 +216,34 @@ always @ (posedge ap_clk) begin
 end
 
 always @ (posedge ap_clk) begin
-    if (ap_rst == 1'b1) begin
-        ap_enable_reg_pp0_iter2 <= 1'b0;
-    end else begin
-        if ((1'b0 == ap_block_pp0_stage0_subdone)) begin
-            ap_enable_reg_pp0_iter2 <= ap_enable_reg_pp0_iter1;
+    if ((1'b1 == ap_CS_fsm_pp0_stage0)) begin
+        if (((ap_loop_exit_ready == 1'b0) & (1'b0 == ap_block_pp0_stage0_subdone))) begin
+            ap_loop_exit_ready_pp0_iter1_reg <= 1'b0;
+        end else if ((1'b0 == ap_block_pp0_stage0_11001)) begin
+            ap_loop_exit_ready_pp0_iter1_reg <= ap_loop_exit_ready;
         end
     end
 end
 
 always @ (posedge ap_clk) begin
-    if (((1'b0 == ap_block_pp0_stage0_subdone) & (ap_loop_exit_ready_pp0_iter1_reg == 1'b0))) begin
-        ap_loop_exit_ready_pp0_iter2_reg <= 1'b0;
-    end else if (((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        ap_loop_exit_ready_pp0_iter2_reg <= ap_loop_exit_ready_pp0_iter1_reg;
-    end
-end
-
-always @ (posedge ap_clk) begin
     if (((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        if (((exitcond_fu_102_p2 == 1'd0) & (ap_enable_reg_pp0_iter0 == 1'b1))) begin
-            loop_index_i41_fu_48 <= p_cast4_fu_96_p2;
+        if (((exitcond64_fu_101_p2 == 1'd0) & (ap_start_int == 1'b1))) begin
+            loop_index_i_fu_48 <= p_cast2_fu_95_p2;
         end else if ((ap_loop_init == 1'b1)) begin
-            loop_index_i41_fu_48 <= 8'd0;
+            loop_index_i_fu_48 <= 8'd0;
         end
     end
 end
 
 always @ (posedge ap_clk) begin
     if (((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
-        ap_loop_exit_ready_pp0_iter1_reg <= ap_loop_exit_ready;
-        wide_buffer_V_load_reg_140 <= wide_buffer_V_q0;
+        loop_index_i_load_reg_123 <= ap_sig_allocacmp_loop_index_i_load;
+        wide_port_addr_read_reg_128 <= m_axi_wide_port_RDATA;
     end
 end
 
 always @ (*) begin
-    if (((exitcond_fu_102_p2 == 1'd1) & (1'b0 == ap_block_pp0_stage0_subdone) & (ap_enable_reg_pp0_iter0 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+    if (((exitcond64_fu_101_p2 == 1'd1) & (1'b0 == ap_block_pp0_stage0_subdone) & (ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b1;
     end else begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b0;
@@ -260,7 +251,7 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((1'b0 == ap_block_pp0_stage0_subdone) & (ap_loop_exit_ready_pp0_iter2_reg == 1'b1))) begin
+    if (((1'b0 == ap_block_pp0_stage0_subdone) & (1'b1 == ap_CS_fsm_pp0_stage0) & (ap_loop_exit_ready_pp0_iter1_reg == 1'b1))) begin
         ap_done_int = 1'b1;
     end else begin
         ap_done_int = ap_done_reg;
@@ -276,7 +267,7 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((ap_enable_reg_pp0_iter2 == 1'b0) & (ap_enable_reg_pp0_iter1 == 1'b0) & (ap_enable_reg_pp0_iter0 == 1'b0))) begin
+    if (((ap_enable_reg_pp0_iter1 == 1'b0) & (ap_enable_reg_pp0_iter0 == 1'b0))) begin
         ap_idle_pp0 = 1'b1;
     end else begin
         ap_idle_pp0 = 1'b0;
@@ -284,7 +275,7 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((1'b0 == ap_block_pp0_stage0_subdone) & (ap_enable_reg_pp0_iter0 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+    if (((1'b0 == ap_block_pp0_stage0_subdone) & (ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
         ap_ready_int = 1'b1;
     end else begin
         ap_ready_int = 1'b0;
@@ -293,22 +284,22 @@ end
 
 always @ (*) begin
     if (((1'b0 == ap_block_pp0_stage0) & (1'b1 == ap_CS_fsm_pp0_stage0) & (ap_loop_init == 1'b1))) begin
-        ap_sig_allocacmp_loop_index_i41_load = 8'd0;
+        ap_sig_allocacmp_loop_index_i_load = 8'd0;
     end else begin
-        ap_sig_allocacmp_loop_index_i41_load = loop_index_i41_fu_48;
+        ap_sig_allocacmp_loop_index_i_load = loop_index_i_fu_48;
     end
 end
 
 always @ (*) begin
-    if (((1'b0 == ap_block_pp0_stage0_11001) & (ap_enable_reg_pp0_iter2 == 1'b1))) begin
-        m_axi_wide_port_WVALID = 1'b1;
+    if (((1'b0 == ap_block_pp0_stage0_11001) & (ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+        m_axi_wide_port_RREADY = 1'b1;
     end else begin
-        m_axi_wide_port_WVALID = 1'b0;
+        m_axi_wide_port_RREADY = 1'b0;
     end
 end
 
 always @ (*) begin
-    if (((1'b0 == ap_block_pp0_stage0_11001) & (ap_enable_reg_pp0_iter0 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+    if (((1'b0 == ap_block_pp0_stage0_11001) & (ap_enable_reg_pp0_iter1 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
         wide_buffer_V_ce0 = 1'b1;
     end else begin
         wide_buffer_V_ce0 = 1'b0;
@@ -316,10 +307,18 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((1'b0 == ap_block_pp0_stage0) & (ap_enable_reg_pp0_iter2 == 1'b1))) begin
-        wide_port_blk_n_W = m_axi_wide_port_WREADY;
+    if (((1'b0 == ap_block_pp0_stage0_11001) & (ap_enable_reg_pp0_iter1 == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+        wide_buffer_V_we0 = 1'b1;
     end else begin
-        wide_port_blk_n_W = 1'b1;
+        wide_buffer_V_we0 = 1'b0;
+    end
+end
+
+always @ (*) begin
+    if (((1'b0 == ap_block_pp0_stage0) & (ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_pp0_stage0))) begin
+        wide_port_blk_n_R = m_axi_wide_port_RVALID;
+    end else begin
+        wide_port_blk_n_R = 1'b1;
     end
 end
 
@@ -338,21 +337,19 @@ assign ap_CS_fsm_pp0_stage0 = ap_CS_fsm[32'd0];
 
 assign ap_block_pp0_stage0 = ~(1'b1 == 1'b1);
 
-assign ap_block_pp0_stage0_01001 = ~(1'b1 == 1'b1);
-
 always @ (*) begin
-    ap_block_pp0_stage0_11001 = ((m_axi_wide_port_WREADY == 1'b0) & (ap_enable_reg_pp0_iter2 == 1'b1));
+    ap_block_pp0_stage0_11001 = ((m_axi_wide_port_RVALID == 1'b0) & (ap_start_int == 1'b1));
 end
 
 always @ (*) begin
-    ap_block_pp0_stage0_subdone = ((m_axi_wide_port_WREADY == 1'b0) & (ap_enable_reg_pp0_iter2 == 1'b1));
+    ap_block_pp0_stage0_subdone = ((m_axi_wide_port_RVALID == 1'b0) & (ap_start_int == 1'b1));
 end
 
-assign ap_block_state1_pp0_stage0_iter0 = ~(1'b1 == 1'b1);
+always @ (*) begin
+    ap_block_state1_pp0_stage0_iter0 = (m_axi_wide_port_RVALID == 1'b0);
+end
 
 assign ap_block_state2_pp0_stage0_iter1 = ~(1'b1 == 1'b1);
-
-assign ap_block_state3_pp0_stage0_iter2 = ~(1'b1 == 1'b1);
 
 assign ap_enable_pp0 = (ap_idle_pp0 ^ 1'b1);
 
@@ -360,9 +357,9 @@ assign ap_enable_reg_pp0_iter0 = ap_start_int;
 
 assign ap_loop_exit_ready = ap_condition_exit_pp0_iter0_stage0;
 
-assign exitcond_fu_102_p2 = ((ap_sig_allocacmp_loop_index_i41_load == 8'd255) ? 1'b1 : 1'b0);
+assign exitcond64_fu_101_p2 = ((ap_sig_allocacmp_loop_index_i_load == 8'd255) ? 1'b1 : 1'b0);
 
-assign loop_index_i41_cast8_fu_91_p1 = ap_sig_allocacmp_loop_index_i41_load;
+assign loop_index_i_cast6_fu_112_p1 = loop_index_i_load_reg_123;
 
 assign m_axi_wide_port_ARADDR = 64'd0;
 
@@ -414,20 +411,22 @@ assign m_axi_wide_port_AWVALID = 1'b0;
 
 assign m_axi_wide_port_BREADY = 1'b0;
 
-assign m_axi_wide_port_RREADY = 1'b0;
-
-assign m_axi_wide_port_WDATA = wide_buffer_V_load_reg_140;
+assign m_axi_wide_port_WDATA = 128'd0;
 
 assign m_axi_wide_port_WID = 1'd0;
 
 assign m_axi_wide_port_WLAST = 1'b0;
 
-assign m_axi_wide_port_WSTRB = 8'd255;
+assign m_axi_wide_port_WSTRB = 16'd0;
 
 assign m_axi_wide_port_WUSER = 1'd0;
 
-assign p_cast4_fu_96_p2 = (ap_sig_allocacmp_loop_index_i41_load + 8'd1);
+assign m_axi_wide_port_WVALID = 1'b0;
 
-assign wide_buffer_V_address0 = loop_index_i41_cast8_fu_91_p1;
+assign p_cast2_fu_95_p2 = (ap_sig_allocacmp_loop_index_i_load + 8'd1);
 
-endmodule //axi_hls_tg_axi_hls_tg_Pipeline_6
+assign wide_buffer_V_address0 = loop_index_i_cast6_fu_112_p1;
+
+assign wide_buffer_V_d0 = wide_port_addr_read_reg_128;
+
+endmodule //axi_hls_tg_axi_hls_tg_Pipeline_2

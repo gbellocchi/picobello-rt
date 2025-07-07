@@ -35,11 +35,11 @@ output   ap_ready;
 output  [7:0] wide_buffer_V_address0;
 output   wide_buffer_V_ce0;
 output   wide_buffer_V_we0;
-output  [63:0] wide_buffer_V_d0;
+output  [127:0] wide_buffer_V_d0;
 output  [7:0] narrow_buffer_V_address0;
 output   narrow_buffer_V_ce0;
 output   narrow_buffer_V_we0;
-output  [63:0] narrow_buffer_V_d0;
+output  [127:0] narrow_buffer_V_d0;
 
 reg ap_idle;
 reg wide_buffer_V_ce0;
@@ -50,13 +50,13 @@ reg narrow_buffer_V_we0;
 (* fsm_encoding = "none" *) reg   [0:0] ap_CS_fsm;
 wire    ap_CS_fsm_state1;
 reg    ap_block_state1_pp0_stage0_iter0;
-wire   [0:0] icmp_ln60_fu_70_p2;
+wire   [0:0] icmp_ln60_fu_72_p2;
 reg    ap_condition_exit_pp0_iter0_stage0;
 wire    ap_loop_exit_ready;
 reg    ap_ready_int;
-wire   [63:0] i_cast_fu_82_p1;
-reg   [8:0] i_fu_30;
-wire   [8:0] add_ln60_fu_76_p2;
+wire   [63:0] i_cast_fu_84_p1;
+reg   [8:0] i_fu_32;
+wire   [8:0] add_ln60_fu_78_p2;
 wire    ap_loop_init;
 reg   [8:0] ap_sig_allocacmp_i_1;
 reg    ap_done_reg;
@@ -110,10 +110,10 @@ end
 
 always @ (posedge ap_clk) begin
     if (((ap_start_int == 1'b1) & (1'b1 == ap_CS_fsm_state1))) begin
-        if ((icmp_ln60_fu_70_p2 == 1'd0)) begin
-            i_fu_30 <= add_ln60_fu_76_p2;
+        if ((icmp_ln60_fu_72_p2 == 1'd0)) begin
+            i_fu_32 <= add_ln60_fu_78_p2;
         end else if ((ap_loop_init == 1'b1)) begin
-            i_fu_30 <= 9'd0;
+            i_fu_32 <= 9'd0;
         end
     end
 end
@@ -127,7 +127,7 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((ap_start_int == 1'b1) & (icmp_ln60_fu_70_p2 == 1'd1) & (1'b1 == ap_CS_fsm_state1))) begin
+    if (((ap_start_int == 1'b1) & (icmp_ln60_fu_72_p2 == 1'd1) & (1'b1 == ap_CS_fsm_state1))) begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b1;
     end else begin
         ap_condition_exit_pp0_iter0_stage0 = 1'b0;
@@ -162,7 +162,7 @@ always @ (*) begin
     if (((ap_loop_init == 1'b1) & (1'b1 == ap_CS_fsm_state1))) begin
         ap_sig_allocacmp_i_1 = 9'd0;
     end else begin
-        ap_sig_allocacmp_i_1 = i_fu_30;
+        ap_sig_allocacmp_i_1 = i_fu_32;
     end
 end
 
@@ -175,7 +175,7 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((ap_start_int == 1'b1) & (icmp_ln60_fu_70_p2 == 1'd0) & (1'b1 == ap_CS_fsm_state1))) begin
+    if (((ap_start_int == 1'b1) & (icmp_ln60_fu_72_p2 == 1'd0) & (1'b1 == ap_CS_fsm_state1))) begin
         narrow_buffer_V_we0 = 1'b1;
     end else begin
         narrow_buffer_V_we0 = 1'b0;
@@ -191,7 +191,7 @@ always @ (*) begin
 end
 
 always @ (*) begin
-    if (((ap_start_int == 1'b1) & (icmp_ln60_fu_70_p2 == 1'd0) & (1'b1 == ap_CS_fsm_state1))) begin
+    if (((ap_start_int == 1'b1) & (icmp_ln60_fu_72_p2 == 1'd0) & (1'b1 == ap_CS_fsm_state1))) begin
         wide_buffer_V_we0 = 1'b1;
     end else begin
         wide_buffer_V_we0 = 1'b0;
@@ -209,7 +209,7 @@ always @ (*) begin
     endcase
 end
 
-assign add_ln60_fu_76_p2 = (ap_sig_allocacmp_i_1 + 9'd1);
+assign add_ln60_fu_78_p2 = (ap_sig_allocacmp_i_1 + 9'd1);
 
 assign ap_CS_fsm_state1 = ap_CS_fsm[32'd0];
 
@@ -219,16 +219,16 @@ end
 
 assign ap_loop_exit_ready = ap_condition_exit_pp0_iter0_stage0;
 
-assign i_cast_fu_82_p1 = ap_sig_allocacmp_i_1;
+assign i_cast_fu_84_p1 = ap_sig_allocacmp_i_1;
 
-assign icmp_ln60_fu_70_p2 = ((ap_sig_allocacmp_i_1 == 9'd256) ? 1'b1 : 1'b0);
+assign icmp_ln60_fu_72_p2 = ((ap_sig_allocacmp_i_1 == 9'd256) ? 1'b1 : 1'b0);
 
-assign narrow_buffer_V_address0 = i_cast_fu_82_p1;
+assign narrow_buffer_V_address0 = i_cast_fu_84_p1;
 
-assign narrow_buffer_V_d0 = 64'd0;
+assign narrow_buffer_V_d0 = 128'd0;
 
-assign wide_buffer_V_address0 = i_cast_fu_82_p1;
+assign wide_buffer_V_address0 = i_cast_fu_84_p1;
 
-assign wide_buffer_V_d0 = 64'd0;
+assign wide_buffer_V_d0 = 128'd0;
 
 endmodule //axi_hls_tg_axi_hls_tg_Pipeline_init_buffers

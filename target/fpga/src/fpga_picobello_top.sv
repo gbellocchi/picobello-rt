@@ -61,7 +61,7 @@ module fpga_picobello_top
     localparam int Y = int'(ClusterId.y);
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
-    tg_tile i_cluster_tg_tile (
+    tg_realm_tile i_cluster_tg_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i      (test_mode_i),
@@ -107,7 +107,7 @@ module fpga_picobello_top
   localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
   localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
 
-  tg_tile i_fhg_spu_tile (
+  tg_realm_tile i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),
@@ -131,11 +131,24 @@ module fpga_picobello_top
     localparam int MemTileX = int'(MemTileId.x);
     localparam int MemTileY = int'(MemTileId.y);
 
-    mem_tile #(
-      .AxiUserAtop (1'b1),
-      .AxiUserAtopMsb (1),
-      .AxiUserAtopLsb (0)
-    ) i_mem_tile (
+    // mem_tile #(
+    //   .AxiUserAtop (1'b1),
+    //   .AxiUserAtopMsb (1),
+    //   .AxiUserAtopLsb (0)
+    // ) i_mem_tile (
+    //   .clk_i,
+    //   .rst_ni,
+    //   .test_enable_i(test_mode_i),
+    //   .id_i         (MemTileId),
+    //   .floo_req_o   (floo_req_out[MemTileX][MemTileY]),
+    //   .floo_rsp_i   (floo_rsp_in[MemTileX][MemTileY]),
+    //   .floo_wide_o  (floo_wide_out[MemTileX][MemTileY]),
+    //   .floo_req_i   (floo_req_in[MemTileX][MemTileY]),
+    //   .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
+    //   .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
+    // );
+
+    fpga_l2_tile i_mem_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i(test_mode_i),
