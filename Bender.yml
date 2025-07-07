@@ -75,6 +75,8 @@ sources:
       - pd/target/sim/src/tb_picobello_chip.sv
 
   - target: all(any(fpga, simulation, test), not(asic))
+    include_dirs:
+      - target/sim/include
     files:
       # Level 0
       - target/fpga/src/fpga_picobello_pkg.sv

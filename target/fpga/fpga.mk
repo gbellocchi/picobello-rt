@@ -7,7 +7,7 @@
 FPGA_SRC = $(PB_ROOT)/target/fpga/src
 FPGA_TPL = $(PB_ROOT)/target/fpga/tpl
 
-VIVADO ?= vitis-2019.2 vivado
+VIVADO ?= vivado
 VIVADO_DIR = $(PB_ROOT)/target/fpga/vivado
 VIVADO_UTILS = $(VIVADO_DIR)/utils
 VIVADO_BUILD = $(VIVADO_DIR)/build

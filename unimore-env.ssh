@@ -1,0 +1,16 @@
+#!/bin/bash
+# Copyright 2025 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+export VSIM="vsim"
+export VIVADO="vivado"
+export BASE_PYTHON=python3.11
+
+# Create the python venv
+if [ ! -d ".venv" ]; then
+  make python-venv
+fi
+
+# Activate the python venv
+source .venv/bin/activate
