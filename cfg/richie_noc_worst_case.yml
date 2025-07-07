@@ -14,35 +14,35 @@ protocols:
   - name: "narrow_in"
     type: "narrow"
     protocol: "AXI4"
-    data_width: 64
+    data_width: 128
     addr_width: 64
     id_width: 1
     user_width: 1
   - name: "narrow_out"
     type: "narrow"
     protocol: "AXI4"
-    data_width: 64
+    data_width: 128
     addr_width: 64
     id_width: 1
     user_width: 1
   - name: "wide_in"
     type: "wide"
     protocol: "AXI4"
-    data_width: 64
+    data_width: 128
     addr_width: 64
     id_width: 1
     user_width: 1
   - name: "wide_out"
     type: "wide"
     protocol: "AXI4"
-    data_width: 64
+    data_width: 128
     addr_width: 64
     id_width: 1
     user_width: 1
 
 endpoints:
   - name: "cluster"
-    array: [1, 18]
+    array: [1, 16]
     addr_range:
       base: 0xC000_0000
       size: 0x0004_0000
@@ -76,7 +76,7 @@ endpoints:
       - "narrow_out"
       - "wide_out"
   - name: "l2_spm"
-    array: [18]
+    array: [16]
     addr_range:
       base: 0xD000_0000
       size: 0x0010_0000
@@ -86,7 +86,7 @@ endpoints:
   
 routers:
   - name: "router"
-    array: [7, 18]
+    array: [8, 16]
     degree: 5
 
 connections:
@@ -94,24 +94,24 @@ connections:
     dst: "router"
     src_range:
     - [0, 0]
-    - [0, 17]
+    - [0, 15]
     dst_range:
-    - [5, 5]
-    - [0, 17]
+    - [6, 6]
+    - [0, 15]
     dst_dir: "Eject"
   - src: "cheshire"
     dst: "router"
-    dst_idx: [6, 3]
+    dst_idx: [7, 3]
     dst_dir: "Eject"
   - src: "fhg_spu"
     dst: "router"
-    dst_idx: [6, 0]
+    dst_idx: [7, 0]
     dst_dir: "Eject"
   - src: "l2_spm"
     dst: "router"
     src_range:
-      - [0, 17]
+      - [0, 15]
     dst_range:
       - [0, 0]
-      - [0, 17]
+      - [0, 15]
     dst_dir: "Eject"

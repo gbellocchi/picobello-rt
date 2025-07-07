@@ -118,8 +118,8 @@ module tb_picobello_fpga #(
     tb_tg_cfg.mem_addr_base             = 32'hD000_0000 + tb_tg_cfg.mem_port_id * 32'h0010_0000;
 
     // Set traffic generator parameters
-    tb_tg_cfg.TrafficGenTrafficDim      = 32'h0000_0100;
-    tb_tg_cfg.TrafficGenComputeDim      = 32'h0000_0100;
+    tb_tg_cfg.TrafficGenTrafficDim      = 32'h0000_4000;
+    tb_tg_cfg.TrafficGenComputeDim      = 32'h0000_0000;
     tb_tg_cfg.TrafficGenIdx             = 32'h0000_0001;
 
     // Program traffic generator
@@ -136,84 +136,88 @@ module tb_picobello_fpga #(
 
     // Stop and read timer
     picobello_stop_timer(tb_timer_cfg);
+
     $display ("[%0tns] - Timer value: %d", $time, counter_value_o);   
 
-    ////////////////////////
-    // Test: Run Them All //
-    ////////////////////////
+    /////////////////////////////
+    // Test: Parallel accesses //
+    /////////////////////////////
 
-    $display ("[%0tns] Test: Run Them All", $time);
+    $display ("[%0tns] Test: Parallel accesses", $time);
 
-    // Iterate traffic generators and memory tiles to test NoC paths
-    mem_tile_loop: for (int i_mem = 0; i_mem < picobello_pkg::NumMemTiles; i_mem++) begin
-      
-      // ---------------------------------------------------------------------------- //
+    // Initialize test variables
+    NTest = 0;
 
-      // Set memory address
-      tb_tg_cfg.mem_port_id               = i_mem;  
-      tb_tg_cfg.mem_addr_base             = 32'hD000_0000 + i_mem * 32'h0010_0000;
+    NAccxClMin = 1; // 1 accelerator per cluster tile (most performant case)
+    NAccxClMax = picobello_pkg::NumClusters; // 1 <= NAccxClMax <= NumClusters
 
-      // Set traffic generator parameters
-      tb_tg_cfg.TrafficGenTrafficDim      = 32'h0000_0100;
-      tb_tg_cfg.TrafficGenComputeDim      = 32'h0000_0100;
+    NOpsMin = 32'h0000_0000;  // Divide in two runs: Min (mem-bound): 32'h0000_0000 - Min (comp-bound): 32'h0000_8000
+    NOpsMax = 32'h0200_0000;  // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
 
-      // ---------------------------------------------------------------------------- //
+    // Loop over the number of accelerators per cluster (from 1 to 16)
+    n_accxcl_loop: for (int NAccxCl = NAccxClMin; NAccxCl <= NAccxClMax; NAccxCl = NAccxCl * 2) begin
 
-      // Program traffic generators (Snitch clusters)
-      tg_cfg_loop: for (int i_tg = 0; i_tg < (picobello_pkg::NumClusters); i_tg++) begin
-        // Set traffic generator address and index
-        tb_tg_cfg.traffic_gen_port_id       = i_tg;
-        tb_tg_cfg.traffic_gen_addr_base     = 32'hC000_0000 + i_tg * 32'h0004_0000;  
-        tb_tg_cfg.TrafficGenIdx             = i_tg;
-        picobello_tg_cfg(tb_tg_cfg);
-      end
+      NTestCl = picobello_pkg::NumClusters / NAccxCl; // Number of clusters under test
 
-      // Program traffic generators (FhgSpu)
-      tb_tg_cfg.traffic_gen_port_id       = floo_picobello_noc_pkg::FhgSpu;
-      tb_tg_cfg.traffic_gen_addr_base     = 32'hE000_0000;  
-      tb_tg_cfg.TrafficGenIdx             = picobello_pkg::NumClusters;
-      picobello_tg_cfg(tb_tg_cfg);
+      NClXMemMin = 1; // 1 cluster per memory tile (most performant case)
+      NClXMemMax = 1; // 1 <= NClXMemMax <= NTestCl
 
-      // ---------------------------------------------------------------------------- //
+      // Loop over the number of clusters per memory tile (from 1 to 16)
+      n_clxmem_loop: for (int NClXMem = NClXMemMin; NClXMem <= NClXMemMax; NClXMem = NClXMem * 2) begin
 
-      // Run traffic generators (Snitch clusters)
-      tg_start_loop: for (int i_tg = 0; i_tg < (picobello_pkg::NumClusters); i_tg++) begin
-        tb_tg_cfg.traffic_gen_addr_base     = 32'hC000_0000 + i_tg * 32'h0004_0000;  
-        picobello_tg_start(tb_tg_cfg);
-      end
+        // Loop over the number of operations per cluster (geometric progression)
+        n_ops_loop: for (int NOps = NOpsMin; NOps <= NOpsMax; NOps = (NOps == 0) ? 32 : NOps * 2) begin
 
-      // Run traffic generators (FhgSpu)
-      tb_tg_cfg.traffic_gen_addr_base     = 32'hE000_0000; 
-      picobello_tg_start(tb_tg_cfg);
+          // Set operational intensity
+          tb_tg_cfg.TrafficGenTrafficDim        = 32'h0000_1000 * NAccxCl; // DMA payload size (constant)
+          tb_tg_cfg.TrafficGenComputeDim        = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
 
-      #20us;
+          // Program traffic generators
+          cl_cfg_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+            // Set memory address
+            tb_tg_cfg.mem_port_id               = cl_id / NClXMem;  
+            tb_tg_cfg.mem_addr_base             = 32'hD000_0000 + tb_tg_cfg.mem_port_id * 32'h0010_0000;
 
-      // ---------------------------------------------------------------------------- //
+            // Set traffic generator address and index
+            tb_tg_cfg.traffic_gen_port_id       = cl_id;
+            tb_tg_cfg.traffic_gen_addr_base     = 32'hC000_0000 + cl_id * 32'h0004_0000;  
+            tb_tg_cfg.TrafficGenIdx             = cl_id;
+            picobello_tg_cfg(tb_tg_cfg);
 
-      // Wait for termination (Snitch clusters)
-      tg_wait_loop: for (int i_tg = 0; i_tg < (picobello_pkg::NumClusters); i_tg++) begin
-        tb_tg_cfg.traffic_gen_addr_base     = 32'hC000_0000 + i_tg * 32'h0004_0000;  
-        picobello_tg_polling(tb_tg_cfg);
-      end
+            // $display ("CL%d assigned to MEM%d", cl_id, tb_tg_cfg.mem_port_id);
+          end
 
-      // Wait for termination (FhgSpu)
-      tb_tg_cfg.traffic_gen_addr_base     = 32'hE000_0000; 
-      picobello_tg_polling(tb_tg_cfg);
+          // Start and read timer
+          picobello_start_timer(tb_timer_cfg);
 
-      // ---------------------------------------------------------------------------- //
+          // Run traffic generators
+          cl_run_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+            tb_tg_cfg.traffic_gen_addr_base     = 32'hC000_0000 + cl_id * 32'h0004_0000;  
+            picobello_tg_start(tb_tg_cfg);
+          end
 
-      // Print test infos (Snitch clusters)
-      tg_info_loop: for (int i_tg = 0; i_tg < (picobello_pkg::NumClusters); i_tg++) begin
-        $display ("[%0tns] - Mem-tile: %d", $time, i_mem);
-        $display ("[%0tns] - TG-tile: %d", $time, i_tg);
-      end
-      
-      // Print test infos (FhgSpu)
-      $display ("[%0tns] - Mem-tile: %d", $time, i_mem);
-      $display ("[%0tns] - TG-tile: %d", $time, picobello_pkg::NumClusters);
+          // Wait for termination
+          cl_wait_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+            tb_tg_cfg.traffic_gen_addr_base     = 32'hC000_0000 + cl_id * 32'h0004_0000;  
+            picobello_tg_polling(tb_tg_cfg);
+          end
 
-      // ---------------------------------------------------------------------------- //
-    end
+          // Stop and read timer
+          picobello_stop_timer(tb_timer_cfg);
+
+          $display ("\n[%0tns] Test #%0d", $time, NTest);  
+          $display (" - NCl:        %8d", NTestCl);
+          $display (" - NAccxCl:    %8d", NAccxCl);
+          $display (" - NClXMem:    %8d", NClXMem);
+          $display (" - NOps:       %8d", NOps);
+          $display (" - TrafficDim: %8d", tb_tg_cfg.TrafficGenTrafficDim);
+          $display (" - ComputeDim: %8d", tb_tg_cfg.TrafficGenComputeDim);
+          $display (" - ExecTime:   %8d", counter_value_o);
+
+          NTest = NTest + 1;
+        end // n_ops_loop
+      end // n_clxmem_loop
+    end // n_accxmem_loop
 
     #1us; 
     $finish();

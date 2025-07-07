@@ -204,6 +204,9 @@ module tg_tile
     .AXI_USER_WIDTH (AxiCfgAddrDownsized.UserWidth)
   ) axi_tg_tile_cfg_addr_downsized [NumTgTileCfg-1:0]();
 
+  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_aw_addr;
+  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_ar_addr;
+
   AXI_LITE #(
     .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
     .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
@@ -233,9 +236,9 @@ module tg_tile
     axi_dw_converter_intf #(
       .AXI_ID_WIDTH             (AxiCfgDataDownsized.OutIdWidth),
       .AXI_ADDR_WIDTH           (AxiCfgDataDownsized.AddrWidth),
-      .AXI_SLV_PORT_DATA_WIDTH  (AxiCfgN.DataWidth),
+      .AXI_SLV_PORT_DATA_WIDTH  (AxiCfgDataDownsized.DataWidth),
       .AXI_MST_PORT_DATA_WIDTH  (AxiCfgDataDownsized.DataWidth),
-      .AXI_USER_WIDTH           (AxiCfgN.UserWidth),
+      .AXI_USER_WIDTH           (AxiCfgDataDownsized.UserWidth),
       .AXI_MAX_READS            (8)
     ) i_axi_data_converter_tg_tile_cfg (
       .clk_i,
@@ -243,6 +246,9 @@ module tg_tile
       .slv    (axi_tg_tile_cfg[i]),
       .mst    (axi_tg_tile_cfg_data_downsized[i])
     );
+
+    assign axi_tg_tile_cfg_addr_downsized_aw_addr = axi_tg_tile_cfg_data_downsized[i].aw_addr[31:0];
+    assign axi_tg_tile_cfg_addr_downsized_ar_addr = axi_tg_tile_cfg_data_downsized[i].aw_addr[31:0];
 
     axi_modify_address_intf #(
       .AXI_SLV_PORT_ADDR_WIDTH  (AxiCfgDataDownsized.AddrWidth),
@@ -252,10 +258,10 @@ module tg_tile
       .AXI_USER_WIDTH           (AxiCfgAddrDownsized.UserWidth)
     ) i_axi_addr_converter_tg_tile_cfg (
       .slv            (axi_tg_tile_cfg_data_downsized[i]),
-      .mst_aw_addr_i  (axi_tg_tile_cfg_addr_downsized[i].aw_addr[31:0]),
-      .mst_ar_addr_i  (axi_tg_tile_cfg_addr_downsized[i].aw_addr[31:0]),
+      .mst_aw_addr_i  (axi_tg_tile_cfg_addr_downsized_aw_addr),
+      .mst_ar_addr_i  (axi_tg_tile_cfg_addr_downsized_ar_addr),
       .mst            (axi_tg_tile_cfg_addr_downsized[i])
-    );
+    ); 
 
     axi_to_axi_lite_intf #(
       .AXI_ADDR_WIDTH     (AxiCfgAddrDownsized.AddrWidth),
@@ -273,13 +279,13 @@ module tg_tile
       .slv        (axi_tg_tile_cfg_addr_downsized[i]),
       .mst        (axi_lite_tile_tg_cfg[i])
     );
-
-    `AXI_LITE_ASSIGN_TO_REQ(axi_lite_tile_tg_cfg_req_i[i], axi_lite_tile_tg_cfg[i])
-    `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[i], axi_lite_tile_tg_cfg_rsp_o[i])
   end
 
-  `AXI_LITE_ASSIGN_REQ_STRUCT(axi_lite_tg_cfg_req, axi_lite_tile_tg_cfg_req_i[0])
-  `AXI_LITE_ASSIGN_RESP_STRUCT(axi_lite_tile_tg_cfg_rsp_o[0], axi_lite_tg_cfg_rsp)
+  // `AXI_LITE_ASSIGN_REQ_STRUCT(axi_lite_tg_cfg_req, axi_lite_tile_tg_cfg_req_i[0])
+  // `AXI_LITE_ASSIGN_RESP_STRUCT(axi_lite_tile_tg_cfg_rsp_o[0], axi_lite_tg_cfg_rsp)
+
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_tg_cfg_req, axi_lite_tile_tg_cfg[0])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[0], axi_lite_tg_cfg_rsp)
 
   ///////////////////////
   // Traffic Generator //
