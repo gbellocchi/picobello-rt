@@ -16,7 +16,7 @@ module axi_hls_tg_wide_buffer_V_RAM_AUTO_1R1W (
      
     reset, clk);
 
-parameter DataWidth = 64;
+parameter DataWidth = 128;
 parameter AddressWidth = 8;
 parameter AddressRange = 256;
  

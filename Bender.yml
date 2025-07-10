@@ -81,23 +81,20 @@ sources:
       # Level 0
       - target/fpga/src/fpga_picobello_pkg.sv
       # Level 1
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_wide_buffer_V_RAM_AUTO_1R1W.v
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_flow_control_loop_pipe_sequential_init.v  
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_2.v 
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_3.v 
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_6.v     
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_7.v                      
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_compute1.v  
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_compute.v 
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_axi_hls_tg_Pipeline_init_buffers.v 
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_control_s_axi.v 
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_narrow_port_m_axi.v                       
-      - target/fpga/src/axi_hls_tg/axi_hls_tg_wide_port_m_axi.v
-      - target/fpga/src/axi_hls_tg/axi_hls_tg.v
+      - target/fpga/src/axi_hls_tg_128b_rw/axi_hls_tg_axi_hls_tg_Pipeline_wide_loop_read_1.v
+      - target/fpga/src/axi_hls_tg_128b_rw/axi_hls_tg_flow_control_loop_pipe_sequential_init.v
+      - target/fpga/src/axi_hls_tg_128b_rw/axi_hls_tg_wide_buffer_V_RAM_AUTO_1R1W.v
+      - target/fpga/src/axi_hls_tg_128b_rw/axi_hls_tg_wide_port_m_axi.v
+      - target/fpga/src/axi_hls_tg_128b_rw/read_ctrl.v
+      - target/fpga/src/axi_hls_tg_128b_rw/read.v
+      - target/fpga/src/axi_hls_tg_128b_rw/write_ctrl.v
+      - target/fpga/src/axi_hls_tg_128b_rw/write.v
       # Level 2
       - target/fpga/src/axi_hls_tg_wrapper.sv
+      - target/fpga/src/axi_hls_tg_wrapper_rw.sv
       # Level 3
       - target/fpga/src/tg_tile.sv
+      - target/fpga/src/tg_tile_rw.sv
       - target/fpga/src/tg_realm_tile.sv
       - target/fpga/src/fpga_host_tile.sv
       # Level 4

@@ -42,7 +42,7 @@ protocols:
 
 endpoints:
   - name: "cluster"
-    array: [1, 16]
+    array: [1, 4]
     addr_range:
       base: 0xC000_0000
       size: 0x0004_0000
@@ -76,7 +76,7 @@ endpoints:
       - "narrow_out"
       - "wide_out"
   - name: "l2_spm"
-    array: [32]
+    array: [8]
     addr_range:
       base: 0xD000_0000
       size: 0x0010_0000
@@ -86,7 +86,7 @@ endpoints:
   
 routers:
   - name: "router"
-    array: [14, 16]
+    array: [14, 4]
     degree: 5
 
 connections:
@@ -94,10 +94,10 @@ connections:
     dst: "router"
     src_range:
     - [0, 0]
-    - [0, 15]
+    - [0, 3]
     dst_range:
     - [6, 6]
-    - [0, 15]
+    - [0, 3]
     dst_dir: "Eject"
   - src: "cheshire"
     dst: "router"
@@ -110,16 +110,16 @@ connections:
   - src: "l2_spm"
     dst: "router"
     src_range:
-      - [0, 15]
+      - [0, 3]
     dst_range:
       - [0, 0]
-      - [0, 15]
+      - [0, 3]
     dst_dir: "Eject"
   - src: "l2_spm"
     dst: "router"
     src_range:
-      - [16, 31]
+      - [4, 7]
     dst_range:
       - [12, 12]
-      - [0, 15]
+      - [0, 3]
     dst_dir: "Eject"

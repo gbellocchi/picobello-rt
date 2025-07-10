@@ -7,7 +7,7 @@
 
 `timescale 1 ns / 1 ps 
 
-(* CORE_GENERATION_INFO="axi_hls_tg_axi_hls_tg,hls_ip_2022_2_1,{HLS_INPUT_TYPE=cxx,HLS_INPUT_FLOAT=0,HLS_INPUT_FIXED=0,HLS_INPUT_PART=xczu9eg-ffvb1156-2-e,HLS_INPUT_CLOCK=3.300000,HLS_INPUT_ARCH=others,HLS_SYN_CLOCK=2.409000,HLS_SYN_LAT=204806,HLS_SYN_TPT=none,HLS_SYN_MEM=8,HLS_SYN_DSP=0,HLS_SYN_FF=2869,HLS_SYN_LUT=8171,HLS_VERSION=2022_2_1}" *)
+(* CORE_GENERATION_INFO="axi_hls_tg_axi_hls_tg,hls_ip_2022_2_1,{HLS_INPUT_TYPE=cxx,HLS_INPUT_FLOAT=0,HLS_INPUT_FIXED=0,HLS_INPUT_PART=xczu9eg-ffvb1156-2-e,HLS_INPUT_CLOCK=3.300000,HLS_INPUT_ARCH=others,HLS_SYN_CLOCK=2.409000,HLS_SYN_LAT=205062,HLS_SYN_TPT=none,HLS_SYN_MEM=16,HLS_SYN_DSP=0,HLS_SYN_FF=3717,HLS_SYN_LUT=8405,HLS_VERSION=2022_2_1}" *)
 
 module axi_hls_tg (
         ap_clk,
@@ -150,7 +150,7 @@ parameter    C_S_AXI_CONTROL_ADDR_WIDTH = 6;
 parameter    C_S_AXI_DATA_WIDTH = 32;
 parameter    C_M_AXI_NARROW_PORT_ID_WIDTH = 1;
 parameter    C_M_AXI_NARROW_PORT_ADDR_WIDTH = 64;
-parameter    C_M_AXI_NARROW_PORT_DATA_WIDTH = 64;
+parameter    C_M_AXI_NARROW_PORT_DATA_WIDTH = 128;
 parameter    C_M_AXI_NARROW_PORT_AWUSER_WIDTH = 1;
 parameter    C_M_AXI_NARROW_PORT_ARUSER_WIDTH = 1;
 parameter    C_M_AXI_NARROW_PORT_WUSER_WIDTH = 1;
@@ -162,7 +162,7 @@ parameter    C_M_AXI_NARROW_PORT_CACHE_VALUE = 3;
 parameter    C_M_AXI_DATA_WIDTH = 32;
 parameter    C_M_AXI_WIDE_PORT_ID_WIDTH = 1;
 parameter    C_M_AXI_WIDE_PORT_ADDR_WIDTH = 64;
-parameter    C_M_AXI_WIDE_PORT_DATA_WIDTH = 64;
+parameter    C_M_AXI_WIDE_PORT_DATA_WIDTH = 128;
 parameter    C_M_AXI_WIDE_PORT_AWUSER_WIDTH = 1;
 parameter    C_M_AXI_WIDE_PORT_ARUSER_WIDTH = 1;
 parameter    C_M_AXI_WIDE_PORT_WUSER_WIDTH = 1;
@@ -176,9 +176,9 @@ parameter    C_M_AXI_LOCK = 1;
 
 parameter C_S_AXI_CONTROL_WSTRB_WIDTH = (32 / 8);
 parameter C_S_AXI_WSTRB_WIDTH = (32 / 8);
-parameter C_M_AXI_NARROW_PORT_WSTRB_WIDTH = (64 / 8);
+parameter C_M_AXI_NARROW_PORT_WSTRB_WIDTH = (128 / 8);
 parameter C_M_AXI_WSTRB_WIDTH = (32 / 8);
-parameter C_M_AXI_WIDE_PORT_WSTRB_WIDTH = (64 / 8);
+parameter C_M_AXI_WIDE_PORT_WSTRB_WIDTH = (128 / 8);
 
 input   ap_clk;
 input   ap_rst_n;
@@ -316,11 +316,11 @@ reg   [31:0] traffic_id_read_reg_372;
 wire    ap_CS_fsm_state2;
 reg   [31:0] compute_dim_read_reg_378;
 reg   [23:0] div_i_i_cast_reg_383;
-wire  signed [60:0] p_cast_fu_249_p4;
-reg   [60:0] p_cast_reg_389;
+wire  signed [59:0] p_cast_fu_249_p4;
+reg   [59:0] p_cast_reg_389;
 reg   [63:0] wide_port_addr_reg_395;
-wire  signed [60:0] p_cast1_fu_269_p4;
-reg   [60:0] p_cast1_reg_400;
+wire  signed [59:0] p_cast1_fu_269_p4;
+reg   [59:0] p_cast1_reg_400;
 reg   [63:0] narrow_port_addr_reg_406;
 reg   [23:0] div_i_i51_cast_reg_421;
 wire    ap_CS_fsm_state3;
@@ -328,17 +328,17 @@ wire   [0:0] icmp_ln1027_fu_292_p2;
 reg   [7:0] wide_buffer_V_address0;
 reg    wide_buffer_V_ce0;
 reg    wide_buffer_V_we0;
-reg   [63:0] wide_buffer_V_d0;
-wire   [63:0] wide_buffer_V_q0;
+reg   [127:0] wide_buffer_V_d0;
+wire   [127:0] wide_buffer_V_q0;
 reg    wide_buffer_V_ce1;
-wire   [63:0] wide_buffer_V_q1;
+wire   [127:0] wide_buffer_V_q1;
 reg   [7:0] narrow_buffer_V_address0;
 reg    narrow_buffer_V_ce0;
 reg    narrow_buffer_V_we0;
-reg   [63:0] narrow_buffer_V_d0;
-wire   [63:0] narrow_buffer_V_q0;
+reg   [127:0] narrow_buffer_V_d0;
+wire   [127:0] narrow_buffer_V_q0;
 reg    narrow_buffer_V_ce1;
-wire   [63:0] narrow_buffer_V_q1;
+wire   [127:0] narrow_buffer_V_q1;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_ap_start;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_ap_done;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_ap_idle;
@@ -346,11 +346,11 @@ wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_ap_ready;
 wire   [7:0] grp_axi_hls_tg_Pipeline_init_buffers_fu_182_wide_buffer_V_address0;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_wide_buffer_V_ce0;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_wide_buffer_V_we0;
-wire   [63:0] grp_axi_hls_tg_Pipeline_init_buffers_fu_182_wide_buffer_V_d0;
+wire   [127:0] grp_axi_hls_tg_Pipeline_init_buffers_fu_182_wide_buffer_V_d0;
 wire   [7:0] grp_axi_hls_tg_Pipeline_init_buffers_fu_182_narrow_buffer_V_address0;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_narrow_buffer_V_ce0;
 wire    grp_axi_hls_tg_Pipeline_init_buffers_fu_182_narrow_buffer_V_we0;
-wire   [63:0] grp_axi_hls_tg_Pipeline_init_buffers_fu_182_narrow_buffer_V_d0;
+wire   [127:0] grp_axi_hls_tg_Pipeline_init_buffers_fu_182_narrow_buffer_V_d0;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_ap_start;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_ap_done;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_ap_idle;
@@ -368,8 +368,8 @@ wire   [3:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_AWQOS;
 wire   [3:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_AWREGION;
 wire   [0:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_AWUSER;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WVALID;
-wire   [63:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WDATA;
-wire   [7:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WSTRB;
+wire   [127:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WDATA;
+wire   [15:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WSTRB;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WLAST;
 wire   [0:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WID;
 wire   [0:0] grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_WUSER;
@@ -390,7 +390,7 @@ wire    grp_axi_hls_tg_Pipeline_2_fu_190_m_axi_wide_port_BREADY;
 wire   [7:0] grp_axi_hls_tg_Pipeline_2_fu_190_wide_buffer_V_address0;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_wide_buffer_V_ce0;
 wire    grp_axi_hls_tg_Pipeline_2_fu_190_wide_buffer_V_we0;
-wire   [63:0] grp_axi_hls_tg_Pipeline_2_fu_190_wide_buffer_V_d0;
+wire   [127:0] grp_axi_hls_tg_Pipeline_2_fu_190_wide_buffer_V_d0;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_ap_start;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_ap_done;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_ap_idle;
@@ -408,8 +408,8 @@ wire   [3:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_AWQOS;
 wire   [3:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_AWREGION;
 wire   [0:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_AWUSER;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WVALID;
-wire   [63:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WDATA;
-wire   [7:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WSTRB;
+wire   [127:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WDATA;
+wire   [15:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WSTRB;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WLAST;
 wire   [0:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WID;
 wire   [0:0] grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_WUSER;
@@ -430,7 +430,7 @@ wire    grp_axi_hls_tg_Pipeline_3_fu_198_m_axi_narrow_port_BREADY;
 wire   [7:0] grp_axi_hls_tg_Pipeline_3_fu_198_narrow_buffer_V_address0;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_narrow_buffer_V_ce0;
 wire    grp_axi_hls_tg_Pipeline_3_fu_198_narrow_buffer_V_we0;
-wire   [63:0] grp_axi_hls_tg_Pipeline_3_fu_198_narrow_buffer_V_d0;
+wire   [127:0] grp_axi_hls_tg_Pipeline_3_fu_198_narrow_buffer_V_d0;
 wire    grp_axi_hls_tg_Pipeline_compute_fu_206_ap_start;
 wire    grp_axi_hls_tg_Pipeline_compute_fu_206_ap_done;
 wire    grp_axi_hls_tg_Pipeline_compute_fu_206_ap_idle;
@@ -438,7 +438,7 @@ wire    grp_axi_hls_tg_Pipeline_compute_fu_206_ap_ready;
 wire   [7:0] grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_address0;
 wire    grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_ce0;
 wire    grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_we0;
-wire   [63:0] grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_d0;
+wire   [127:0] grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_d0;
 wire   [7:0] grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_address1;
 wire    grp_axi_hls_tg_Pipeline_compute_fu_206_wide_buffer_V_ce1;
 wire    grp_axi_hls_tg_Pipeline_compute1_fu_212_ap_start;
@@ -448,7 +448,7 @@ wire    grp_axi_hls_tg_Pipeline_compute1_fu_212_ap_ready;
 wire   [7:0] grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_address0;
 wire    grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_ce0;
 wire    grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_we0;
-wire   [63:0] grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_d0;
+wire   [127:0] grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_d0;
 wire   [7:0] grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_address1;
 wire    grp_axi_hls_tg_Pipeline_compute1_fu_212_narrow_buffer_V_ce1;
 wire    grp_axi_hls_tg_Pipeline_6_fu_218_ap_start;
@@ -468,8 +468,8 @@ wire   [3:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_AWQOS;
 wire   [3:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_AWREGION;
 wire   [0:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_AWUSER;
 wire    grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WVALID;
-wire   [63:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WDATA;
-wire   [7:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WSTRB;
+wire   [127:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WDATA;
+wire   [15:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WSTRB;
 wire    grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WLAST;
 wire   [0:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WID;
 wire   [0:0] grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_WUSER;
@@ -506,8 +506,8 @@ wire   [3:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_AWQOS;
 wire   [3:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_AWREGION;
 wire   [0:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_AWUSER;
 wire    grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WVALID;
-wire   [63:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WDATA;
-wire   [7:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WSTRB;
+wire   [127:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WDATA;
+wire   [15:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WSTRB;
 wire    grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WLAST;
 wire   [0:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WID;
 wire   [0:0] grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_WUSER;
@@ -539,7 +539,7 @@ reg   [63:0] narrow_port_ARADDR;
 reg   [31:0] narrow_port_ARLEN;
 wire    narrow_port_RVALID;
 reg    narrow_port_RREADY;
-wire   [63:0] narrow_port_RDATA;
+wire   [127:0] narrow_port_RDATA;
 wire   [12:0] narrow_port_RFIFONUM;
 wire    narrow_port_BVALID;
 reg    narrow_port_BREADY;
@@ -555,7 +555,7 @@ reg   [63:0] wide_port_ARADDR;
 reg   [31:0] wide_port_ARLEN;
 wire    wide_port_RVALID;
 reg    wide_port_RREADY;
-wire   [63:0] wide_port_RDATA;
+wire   [127:0] wide_port_RDATA;
 wire   [12:0] wide_port_RFIFONUM;
 wire    wide_port_BVALID;
 reg    wide_port_BREADY;
@@ -628,7 +628,7 @@ initial begin
 end
 
 axi_hls_tg_wide_buffer_V_RAM_AUTO_1R1W #(
-    .DataWidth( 64 ),
+    .DataWidth( 128 ),
     .AddressRange( 256 ),
     .AddressWidth( 8 ))
 wide_buffer_V_U(
@@ -645,7 +645,7 @@ wide_buffer_V_U(
 );
 
 axi_hls_tg_wide_buffer_V_RAM_AUTO_1R1W #(
-    .DataWidth( 64 ),
+    .DataWidth( 128 ),
     .AddressRange( 256 ),
     .AddressWidth( 8 ))
 narrow_buffer_V_U(
@@ -874,7 +874,7 @@ axi_hls_tg_axi_hls_tg_Pipeline_6 grp_axi_hls_tg_Pipeline_6_fu_218(
     .m_axi_wide_port_ARUSER(grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_ARUSER),
     .m_axi_wide_port_RVALID(1'b0),
     .m_axi_wide_port_RREADY(grp_axi_hls_tg_Pipeline_6_fu_218_m_axi_wide_port_RREADY),
-    .m_axi_wide_port_RDATA(64'd0),
+    .m_axi_wide_port_RDATA(128'd0),
     .m_axi_wide_port_RLAST(1'b0),
     .m_axi_wide_port_RID(1'd0),
     .m_axi_wide_port_RFIFONUM(13'd0),
@@ -933,7 +933,7 @@ axi_hls_tg_axi_hls_tg_Pipeline_7 grp_axi_hls_tg_Pipeline_7_fu_226(
     .m_axi_narrow_port_ARUSER(grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_ARUSER),
     .m_axi_narrow_port_RVALID(1'b0),
     .m_axi_narrow_port_RREADY(grp_axi_hls_tg_Pipeline_7_fu_226_m_axi_narrow_port_RREADY),
-    .m_axi_narrow_port_RDATA(64'd0),
+    .m_axi_narrow_port_RDATA(128'd0),
     .m_axi_narrow_port_RLAST(1'b0),
     .m_axi_narrow_port_RID(1'd0),
     .m_axi_narrow_port_RFIFONUM(13'd0),
@@ -1003,7 +1003,7 @@ axi_hls_tg_narrow_port_m_axi #(
     .C_PROT_VALUE( C_M_AXI_NARROW_PORT_PROT_VALUE ),
     .C_CACHE_VALUE( C_M_AXI_NARROW_PORT_CACHE_VALUE ),
     .USER_RFIFONUM_WIDTH( 13 ),
-    .USER_DW( 64 ),
+    .USER_DW( 128 ),
     .USER_AW( 64 ),
     .NUM_READ_OUTSTANDING( 16 ),
     .NUM_WRITE_OUTSTANDING( 16 ))
@@ -1093,7 +1093,7 @@ axi_hls_tg_wide_port_m_axi #(
     .C_PROT_VALUE( C_M_AXI_WIDE_PORT_PROT_VALUE ),
     .C_CACHE_VALUE( C_M_AXI_WIDE_PORT_CACHE_VALUE ),
     .USER_RFIFONUM_WIDTH( 13 ),
-    .USER_DW( 64 ),
+    .USER_DW( 128 ),
     .USER_AW( 64 ),
     .NUM_READ_OUTSTANDING( 16 ),
     .NUM_WRITE_OUTSTANDING( 16 ))
@@ -1287,8 +1287,8 @@ always @ (posedge ap_clk) begin
         compute_dim_read_reg_378 <= compute_dim;
         div_i_i_cast_reg_383 <= {{traffic_dim[31:8]}};
         narrow_port_addr_reg_406 <= p_cast1_cast_fu_279_p1;
-        p_cast1_reg_400 <= {{narrow_port_offset[63:3]}};
-        p_cast_reg_389 <= {{wide_port_offset[63:3]}};
+        p_cast1_reg_400 <= {{narrow_port_offset[63:4]}};
+        p_cast_reg_389 <= {{wide_port_offset[63:4]}};
         traffic_id_read_reg_372 <= traffic_id;
         wide_port_addr_reg_395 <= p_cast_cast_fu_259_p1;
     end
@@ -1961,10 +1961,10 @@ assign icmp_ln1027_fu_292_p2 = ((i_1_fu_114 == div_i_i_cast_reg_383) ? 1'b1 : 1'
 
 assign p_cast1_cast_fu_279_p1 = p_cast1_fu_269_p4;
 
-assign p_cast1_fu_269_p4 = {{narrow_port_offset[63:3]}};
+assign p_cast1_fu_269_p4 = {{narrow_port_offset[63:4]}};
 
 assign p_cast_cast_fu_259_p1 = p_cast_fu_249_p4;
 
-assign p_cast_fu_249_p4 = {{wide_port_offset[63:3]}};
+assign p_cast_fu_249_p4 = {{wide_port_offset[63:4]}};
 
 endmodule //axi_hls_tg

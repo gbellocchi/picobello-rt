@@ -154,35 +154,29 @@ task automatic picobello_tg_cfg(
   axi_host_data_t int_write_data, int_read_data;
   axi_host_rsp_t int_rsp;
 
-  // Set destination address of narrow port
+  // Set destination address of wide port
   int_addr = tg_cfg.traffic_gen_addr_base + 8'h10;
   int_write_data = tg_cfg.mem_addr_base;
   picobello_write(int_addr, int_write_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
-  // Set destination address of wide port
-  int_addr = tg_cfg.traffic_gen_addr_base + 8'h1c;
-  int_write_data = tg_cfg.mem_addr_base;
-  picobello_write(int_addr, int_write_data, int_rsp);
-  assert(int_rsp == axi_pkg::RESP_OKAY);
-
   // Set traffic dimension
-  int_addr = tg_cfg.traffic_gen_addr_base + 8'h28;
+  int_addr = tg_cfg.traffic_gen_addr_base + 8'h1c;
   int_write_data = tg_cfg.TrafficGenTrafficDim;
   picobello_write(int_addr, int_write_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Set compute dimension
-  int_addr = tg_cfg.traffic_gen_addr_base + 8'h30;
+  int_addr = tg_cfg.traffic_gen_addr_base + 8'h24;
   int_write_data = tg_cfg.TrafficGenComputeDim;
   picobello_write(int_addr, int_write_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
-  // Set traffic index
-  int_addr = tg_cfg.traffic_gen_addr_base + 8'h38;
-  int_write_data = tg_cfg.TrafficGenIdx;
-  picobello_write(int_addr, int_write_data, int_rsp);
-  assert(int_rsp == axi_pkg::RESP_OKAY);
+  // // Set traffic index
+  // int_addr = tg_cfg.traffic_gen_addr_base + 8'h2c;
+  // int_write_data = tg_cfg.TrafficGenIdx;
+  // picobello_write(int_addr, int_write_data, int_rsp);
+  // assert(int_rsp == axi_pkg::RESP_OKAY);
 `ifdef VERBOSE
   $display ("[%0tns] picobello_tg_cfg - Configured TG-%d to access MEM-%d", $time, tg_cfg.traffic_gen_port_id, tg_cfg.mem_port_id);
 `endif

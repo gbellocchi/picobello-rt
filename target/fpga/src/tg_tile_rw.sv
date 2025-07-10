@@ -7,7 +7,7 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
-module tg_tile
+module tg_tile_rw
   import floo_pkg::*;
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*;
@@ -81,7 +81,7 @@ module tg_tile
   floo_picobello_noc_pkg::axi_wide_in_req_t chimney_wide_in_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t chimney_wide_in_rsp;
 
-  localparam chimney_cfg_t ChimneyCfgN = floo_pkg::ChimneyDefaultCfg;
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b1, 1'b0);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(ChimneyDefaultCfg, 1'b0, 1'b1);
 
   floo_nw_chimney #(
@@ -115,8 +115,8 @@ module tg_tile
     .id_i,
     .route_table_i       ('0),
     .sram_cfg_i          ('0),
-    .axi_narrow_in_req_i (chimney_narrow_in_req),
-    .axi_narrow_in_rsp_o (chimney_narrow_in_rsp),
+    .axi_narrow_in_req_i ('0),
+    .axi_narrow_in_rsp_o (),
     .axi_narrow_out_req_o(chimney_narrow_out_req),
     .axi_narrow_out_rsp_i(chimney_narrow_out_rsp),
     .axi_wide_in_req_i   (chimney_wide_in_req),
@@ -141,11 +141,17 @@ module tg_tile
   // - Traffic generator configuration (from the Host processor)
 
   // Number of partitions
-  localparam int unsigned NumTgTileCfg = 1;
+  localparam int unsigned NumTgTileCfg = 3;
 
   // AXI4-Lite interfaces - traffic generator configuration
-  axi_lite_host_req_t  axi_lite_tg_cfg_req;
-  axi_lite_host_rsp_t  axi_lite_tg_cfg_rsp;
+  axi_lite_host_req_t  axi_lite_read_cfg_req;
+  axi_lite_host_rsp_t  axi_lite_read_cfg_rsp;
+
+  axi_lite_host_req_t  axi_lite_write_cfg_req;
+  axi_lite_host_rsp_t  axi_lite_write_cfg_rsp;
+
+  axi_lite_host_req_t  axi_lite_comp_cfg_req;
+  axi_lite_host_rsp_t  axi_lite_comp_cfg_rsp;
 
   // Address map
   axi_pkg::xbar_rule_64_t [NumTgTileCfg-1:0] tg_cfg_in_addr_map;
@@ -169,11 +175,25 @@ module tg_tile
     NoAddrRules:        NumTgTileCfg
   };
 
-  // Traffic generator configuration
+  // Wide read
   assign tg_cfg_in_addr_map[0] = '{
     idx:        0,
     start_addr: tg_base_addr_i + 0 * tile_partition_len,
     end_addr:   tg_base_addr_i + 1 * tile_partition_len
+  };
+
+  // Wide write
+  assign tg_cfg_in_addr_map[1] = '{
+    idx:        1,
+    start_addr: tg_base_addr_i + 1 * tile_partition_len,
+    end_addr:   tg_base_addr_i + 2 * tile_partition_len
+  };
+
+  // Timer (compute)
+  assign tg_cfg_in_addr_map[2] = '{
+    idx:        2,
+    start_addr: tg_base_addr_i + 2 * tile_partition_len,
+    end_addr:   tg_base_addr_i + 3 * tile_partition_len
   };
 
   AXI_BUS #(
@@ -216,7 +236,7 @@ module tg_tile
   `AXI_ASSIGN_TO_RESP(chimney_narrow_out_rsp, chimney_narrow_out[0])
 
   axi_xbar_intf #(
-    .AXI_USER_WIDTH (),
+    .AXI_USER_WIDTH (AxiCfgN.UserWidth),
     .Cfg            (PicobelloTgXbarCfg),
     .ATOPS          (1'b0),
     .rule_t         (axi_pkg::xbar_rule_64_t)
@@ -281,19 +301,27 @@ module tg_tile
     );
   end
 
-  // `AXI_LITE_ASSIGN_REQ_STRUCT(axi_lite_tg_cfg_req, axi_lite_tile_tg_cfg_req_i[0])
-  // `AXI_LITE_ASSIGN_RESP_STRUCT(axi_lite_tile_tg_cfg_rsp_o[0], axi_lite_tg_cfg_rsp)
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_read_cfg_req, axi_lite_tile_tg_cfg[0])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[0], axi_lite_read_cfg_rsp)
 
-  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_tg_cfg_req, axi_lite_tile_tg_cfg[0])
-  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[0], axi_lite_tg_cfg_rsp)
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_write_cfg_req, axi_lite_tile_tg_cfg[1])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[1], axi_lite_write_cfg_rsp)
+
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_comp_cfg_req, axi_lite_tile_tg_cfg[2])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[2], axi_lite_comp_cfg_rsp)
 
   ///////////////////////
   // Traffic Generator //
   ///////////////////////
 
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (AxiCfgW.AddrWidth),
+    .AXI_DATA_WIDTH (AxiCfgW.DataWidth),
+    .AXI_ID_WIDTH   (AxiCfgW.OutIdWidth),
+    .AXI_USER_WIDTH (AxiCfgW.UserWidth)
+  ) axi_tg_wide_out();
+
   // Output data traffic
-  floo_picobello_noc_pkg::axi_narrow_out_req_t axi_tg_narrow_out_req;
-  floo_picobello_noc_pkg::axi_narrow_out_rsp_t axi_tg_narrow_out_rsp;
   floo_picobello_noc_pkg::axi_wide_out_req_t axi_tg_wide_out_req;
   floo_picobello_noc_pkg::axi_wide_out_rsp_t axi_tg_wide_out_rsp;
 
@@ -307,32 +335,48 @@ module tg_tile
   AXI_LITE #(
     .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
     .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
-  ) axi_lite_tg_cfg();
+  ) axi_lite_read_cfg();
 
-  `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_tg_cfg, axi_lite_tg_cfg_req)
-  `AXI_LITE_ASSIGN_TO_RESP(axi_lite_tg_cfg_rsp, axi_lite_tg_cfg)
+  AXI_LITE #(
+    .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
+    .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
+  ) axi_lite_write_cfg();
+
+  AXI_LITE #(
+    .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
+    .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
+  ) axi_lite_comp_cfg();
+
+  `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_read_cfg, axi_lite_read_cfg_req)
+  `AXI_LITE_ASSIGN_TO_RESP(axi_lite_read_cfg_rsp, axi_lite_read_cfg)
+
+  `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_write_cfg, axi_lite_write_cfg_req)
+  `AXI_LITE_ASSIGN_TO_RESP(axi_lite_write_cfg_rsp, axi_lite_write_cfg)
+
+  `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_comp_cfg, axi_lite_comp_cfg_req)
+  `AXI_LITE_ASSIGN_TO_RESP(axi_lite_comp_cfg_rsp, axi_lite_comp_cfg)
   
-  axi_hls_tg_wrapper #(
-    .AXI_ADDR_WIDTH (floo_picobello_noc_pkg::AxiCfgN.AddrWidth),
-    .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgN.DataWidth),
-    .AXI_ID_WIDTH (floo_picobello_noc_pkg::AxiCfgN.OutIdWidth),
-    .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth),
+  axi_hls_tg_rw_wrapper #(
+    .AXI_ADDR_WIDTH (floo_picobello_noc_pkg::AxiCfgW.AddrWidth),
+    .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgW.DataWidth),
+    .AXI_ID_WIDTH (floo_picobello_noc_pkg::AxiCfgW.OutIdWidth),
+    .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgW.UserWidth),
     .AXI_LOCK (1),
     .AXI_LITE_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
     .AXI_LITE_DATA_WIDTH (AxiLiteCfg.DataWidth)
   ) i_axi_hls_tg_wrapper (
     .clk_i,
     .rst_ni,
-    .axi_tg_narrow_out_req,
-    .axi_tg_narrow_out_rsp,
-    .axi_tg_wide_out_req,
-    .axi_tg_wide_out_rsp,
-    .axi_lite_tg_cfg
+    .axi_tg_wide_out,
+    .axi_lite_read_cfg,
+    .axi_lite_write_cfg,
+    .axi_lite_comp_cfg
   );
 
+  `AXI_ASSIGN_TO_REQ(axi_tg_wide_out_req, axi_tg_wide_out)
+  `AXI_ASSIGN_FROM_RESP(axi_tg_wide_out, axi_tg_wide_out_rsp)
+
   // Synthetic traffic
-  `AXI_ASSIGN_REQ_STRUCT(chimney_narrow_in_req, axi_tg_narrow_out_req);
-  `AXI_ASSIGN_RESP_STRUCT(axi_tg_narrow_out_rsp, chimney_narrow_in_rsp);
   `AXI_ASSIGN_REQ_STRUCT(chimney_wide_in_req, axi_tg_wide_out_req);
   `AXI_ASSIGN_RESP_STRUCT(axi_tg_wide_out_rsp, chimney_wide_in_rsp);
 
