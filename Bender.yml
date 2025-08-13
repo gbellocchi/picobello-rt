@@ -91,7 +91,7 @@ sources:
       - target/fpga/src/axi_hls_tg_128b_rw/write.v
       # Level 2
       - target/fpga/src/axi_hls_tg_wrapper.sv
-      - target/fpga/src/axi_hls_tg_wrapper_rw.sv
+      - target/fpga/src/axi_hls_tg_rw_wrapper.sv
       # Level 3
       - target/fpga/src/tg_tile.sv
       - target/fpga/src/tg_tile_rw.sv

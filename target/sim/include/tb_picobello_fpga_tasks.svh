@@ -12,19 +12,32 @@ import fpga_picobello_pkg::*;
 // Timer //
 ///////////
 
-// Initialize timer
-task automatic picobello_init_timer(
-  output timer_cfg_t timer_cfg
+// Reset and initialize timer
+task automatic picobello_reset_timer(
+  ref timer_cfg_t timer_cfg
 );
-  timer_cfg.reset_count_i = 1'b1;
+  // Reset the timer first
   @(posedge `CLK_SIGNAL);
+  timer_cfg.write_counter_i = 1'b0;
+  timer_cfg.counter_value_i = 32'b0;
+  timer_cfg.reset_count_i = 1'b1;
+  timer_cfg.enable_count_i = 1'b0;
+  timer_cfg.compare_value_i = 32'b0;
+  
+  // Release reset and initialize to known state
+  @(posedge `CLK_SIGNAL);
+  timer_cfg.write_counter_i = 1'b0;
+  timer_cfg.counter_value_i = 32'b0;
   timer_cfg.reset_count_i = 1'b0;
+  timer_cfg.enable_count_i = 1'b0;
+  timer_cfg.compare_value_i = 32'b0;
 endtask
 
 // Start timer
 task automatic picobello_start_timer(
-  output timer_cfg_t timer_cfg
+  ref timer_cfg_t timer_cfg
 );
+  @(posedge `CLK_SIGNAL);
   timer_cfg.write_counter_i = 1'b0;
   timer_cfg.counter_value_i = 32'b0;
   timer_cfg.reset_count_i = 1'b0;
@@ -34,8 +47,9 @@ endtask
 
 // Stop timer
 task automatic picobello_stop_timer(
-  output timer_cfg_t timer_cfg
+  ref timer_cfg_t timer_cfg
 );
+  @(posedge `CLK_SIGNAL);
   timer_cfg.write_counter_i = 1'b0;
   timer_cfg.counter_value_i = 32'b0;
   timer_cfg.reset_count_i = 1'b0;
