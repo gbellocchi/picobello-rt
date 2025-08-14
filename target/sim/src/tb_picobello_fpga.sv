@@ -14,8 +14,11 @@
 import fpga_picobello_pkg::*;
 
 module tb_picobello_fpga #(
-  // TB parameters
+  // TB timing
   localparam time ClkPeriod = 10ns, // Clock period
+  parameter time ApplTime = 100ps, // Delay value assignment
+  parameter time TestTime = 500ps, // Delay transaction start
+  // TG parameters
   localparam time TgBurstLength = 128 // [Beats]
 ) (
   // Clock and reset
@@ -26,12 +29,15 @@ module tb_picobello_fpga #(
   output fpga_picobello_pkg::axi_host_rsp_t tb_axi_host_rsp_o,
   // Traffic generator configuration
   input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
-  input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_write
+  input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
+  // AXI-Realm configuration
+  input axi_rt_reg_pkg::axi_rt_reg2hw_t tb_rt_wide_cfg
 );
   `include "tb_picobello_fpga_tasks.svh"
+  `include "tb_picobello_rt_tasks.svh"
   
   // Timer configuration
-  timer_cfg_t tb_timer_cfg;
+  fpga_picobello_pkg::timer_cfg_t tb_timer_cfg;
   logic target_reached_o; // Comparator value flag
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Experiment latency
 
@@ -49,6 +55,15 @@ module tb_picobello_fpga #(
 
   // SoC
   logic [picobello_pkg::NumClusters-1:0] multi_cl_done; // done flag
+
+  // Clusters
+  localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
+  floo_picobello_noc_pkg::sam_rule_t cluster_sam;
+  floo_picobello_noc_pkg::id_t cluster_idx;
+
+  // AXI-Realm
+  logic [picobello_pkg::NumClusters-1:0] rt_configured; // configuration flag
+  fpga_picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
 
   // Exploration variables 
 
@@ -117,15 +132,30 @@ module tb_picobello_fpga #(
 
   // Program and launch traffic generators inside Picobello
   initial begin
-    // Initialize timer variables
+    // Initialization - axi req
     tb_axi_host_req_i = '{default: '0};
+    // Initialization - tg cfg
     tb_tg_cfg_read = '{default: '0};
     tb_tg_cfg_write = '{default: '0};
     tb_timer_cfg = '{default: '0};
+    // Initialization - axi-realm
+    tb_rt_wide_cfg = '{default: '0};
+    rt_configured = '{default: '0};
 
     // Wait for reset
     wait(rst_n);
     @(posedge `CLK_SIGNAL); #5;
+
+    /////////////////////////
+    // Configure AXI-Realm //
+    /////////////////////////
+
+    // Initialize AXI-Realm IDs
+    init_rt_id: for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
+      cluster_sam = floo_picobello_noc_pkg::Sam[i + cluster_sam_offset];
+      cluster_idx = cluster_sam.idx;
+      rt_reg_id[i] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
+    end
 
     /////////////////////////////
     // Test: Parallel accesses //
@@ -140,7 +170,7 @@ module tb_picobello_fpga #(
     NAccxClMax = 1; // 1 <= NAccxClMax <= NumClusters
 
     NOpsMin = 32'h0000_0000; // Divide in two runs: Min (mem-bound): 32'h0000_0000 - Min (comp-bound): 32'h0000_8000
-    NOpsMax = 32'h0200_0000; // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
+    NOpsMax = 32'h0000_0000; // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
 
     @(posedge `CLK_SIGNAL);
 
