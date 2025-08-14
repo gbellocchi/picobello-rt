@@ -61,7 +61,7 @@ module fpga_picobello_top
     localparam int Y = int'(ClusterId.y);
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
-    tg_tile_rw i_cluster_tg_tile (
+    tg_realm_tile i_cluster_tg_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i      (test_mode_i),
@@ -107,7 +107,7 @@ module fpga_picobello_top
   localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
   localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
 
-  tg_tile_rw i_fhg_spu_tile (
+  tg_realm_tile i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),

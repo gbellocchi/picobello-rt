@@ -136,9 +136,9 @@ module tg_tile_rw
   /////////////////////////////////////////////
 
   // Narrow inputs must be re-routed for:
-  // - AXI-Realm configuration for narrow port (from the Host processor)
-  // - AXI-Realm configuration for wide port (from the Host processor)
-  // - Traffic generator configuration (from the Host processor)
+  // - Traffic generator read configuration (from the Host processor)
+  // - Traffic generator write configuration (from the Host processor)
+  // - Traffic generator COMP configuration (from the Host processor)
 
   // Number of partitions
   localparam int unsigned NumTgTileCfg = 3;
@@ -377,7 +377,7 @@ module tg_tile_rw
   `AXI_ASSIGN_FROM_RESP(axi_tg_wide_out, axi_tg_wide_out_rsp)
 
   // Synthetic traffic
-  `AXI_ASSIGN_REQ_STRUCT(chimney_wide_in_req, axi_tg_wide_out_req);
-  `AXI_ASSIGN_RESP_STRUCT(axi_tg_wide_out_rsp, chimney_wide_in_rsp);
+  `AXI_ASSIGN_REQ_STRUCT(chimney_wide_in_req, axi_tg_wide_out_req)
+  `AXI_ASSIGN_RESP_STRUCT(axi_tg_wide_out_rsp, chimney_wide_in_rsp)
 
 endmodule

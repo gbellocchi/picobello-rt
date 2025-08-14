@@ -13,11 +13,19 @@ package fpga_picobello_pkg;
   import floo_pkg::*;
   import floo_picobello_noc_pkg::*;
 
+  /////////
+  // SoC //
+  /////////
+
   // SoC parameters
   localparam int unsigned NumFpgaHostPorts = 1;
   localparam int unsigned NumFpgaDummyTiles = 2;
   localparam int unsigned NumTrafficGenerators = picobello_pkg::NumClusters + 1; // Snitch clusters and FhG SPU
 
+  //////////
+  // AXI4 //
+  //////////
+  
   // Host AXI4 parameters and typedefs
   localparam axi_cfg_t AxiCfgHost = '{
     AddrWidth: 64,
@@ -71,6 +79,10 @@ package fpga_picobello_pkg;
                       axi_narrow_out_addr_downsized_addr_t, axi_narrow_out_addr_downsized_id_t, axi_narrow_out_addr_downsized_data_t,
                       axi_narrow_out_addr_downsized_strb_t, axi_narrow_out_addr_downsized_user_t)
 
+  ///////////////
+  // AXI4-Lite //
+  ///////////////
+
   // AXI4-Lite configuration
   localparam axi_cfg_t AxiLiteCfg = '{
     AddrWidth: 32,
@@ -85,8 +97,41 @@ package fpga_picobello_pkg;
   `AXI_LITE_TYPEDEF_ALL_CT(axi_lite_host, axi_lite_host_req_t, axi_lite_host_rsp_t, 
                            axi_lite_host_addr_t, axi_lite_host_data_t, axi_lite_host_strb_t)
 
+  ////////////
+  // RegBus //
+  ////////////
+
   // Register bus typedefs
   `REG_BUS_TYPEDEF_ALL(cfg, axi_lite_host_addr_t, axi_lite_host_data_t, axi_lite_host_strb_t)
+
+  ///////////////
+  // AXI-Realm //
+  ///////////////
+
+  // Number of masters
+  localparam int unsigned NumMasters    = 32'd1;
+  // Number of slaves
+  localparam int unsigned NumSlaves     = 32'd1;
+  // Number of regions per master
+  localparam int unsigned NumRegions    = 32'd2;
+  // Number of outstanding Transactions
+  localparam int unsigned NumPending    = 32'd4;
+  // Depth of the Buffer
+  localparam int unsigned WBufferDepth  = 32'd16;
+  // RT unit parameters
+  localparam int unsigned PeriodWidth = 32'd32;
+  localparam int unsigned BudgetWidth = 32'd32;
+
+  // RT ID
+  localparam int unsigned AxiSlvIdWidth = (NumMasters == 32'd1 & NumSlaves == 32'd1) ?
+                                            AxiCfgW.OutIdWidth :
+                                            AxiCfgW.OutIdWidth + cf_math_pkg::idx_width(NumMasters);
+
+  typedef logic [AxiSlvIdWidth-1 :0] slv_id_t;
+
+  ///////////////////////
+  // Traffic Generator //
+  ///////////////////////
 
   // Traffic generator configuration struct
   typedef struct packed {
