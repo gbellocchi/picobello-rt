@@ -86,7 +86,7 @@ endpoints:
   
 routers:
   - name: "router"
-    array: [14, 4]
+    array: [4, 4]
     degree: 5
 
 connections:
@@ -96,16 +96,16 @@ connections:
     - [0, 0]
     - [0, 3]
     dst_range:
-    - [6, 6]
+    - [1, 1]
     - [0, 3]
     dst_dir: "Eject"
   - src: "cheshire"
     dst: "router"
-    dst_idx: [13, 3]
+    dst_idx: [3, 3]
     dst_dir: "Eject"
   - src: "fhg_spu"
     dst: "router"
-    dst_idx: [13, 0]
+    dst_idx: [3, 0]
     dst_dir: "Eject"
   - src: "l2_spm"
     dst: "router"
@@ -120,6 +120,6 @@ connections:
     src_range:
       - [4, 7]
     dst_range:
-      - [12, 12]
+      - [2, 2]
       - [0, 3]
     dst_dir: "Eject"
