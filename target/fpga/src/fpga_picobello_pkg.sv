@@ -28,11 +28,11 @@ package fpga_picobello_pkg;
   
   // Host AXI4 parameters and typedefs
   localparam axi_cfg_t AxiCfgHost = '{
-    AddrWidth: 64,
-    DataWidth: 128,
-    UserWidth: 4,
-    InIdWidth: 3,
-    OutIdWidth: 3
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth, // before: 4
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth, // before: 3
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.OutIdWidth // before: 3
   };
   typedef logic [AxiCfgHost.AddrWidth-1:0] axi_host_addr_t;
   typedef logic [AxiCfgHost.DataWidth-1:0] axi_host_data_t;
@@ -97,13 +97,6 @@ package fpga_picobello_pkg;
   `AXI_LITE_TYPEDEF_ALL_CT(axi_lite_host, axi_lite_host_req_t, axi_lite_host_rsp_t, 
                            axi_lite_host_addr_t, axi_lite_host_data_t, axi_lite_host_strb_t)
 
-  ////////////
-  // RegBus //
-  ////////////
-
-  // Register bus typedefs
-  `REG_BUS_TYPEDEF_ALL(cfg, axi_lite_host_addr_t, axi_lite_host_data_t, axi_lite_host_strb_t)
-
   ///////////////
   // AXI-Realm //
   ///////////////
@@ -113,14 +106,14 @@ package fpga_picobello_pkg;
   // Number of slaves
   localparam int unsigned NumSlaves     = 32'd1;
   // Number of regions per master
-  localparam int unsigned NumRegions    = 32'd2;
-  // Number of outstanding Transactions
+  localparam int unsigned NumRegions    = 32'd1;
+  // Number of outstanding transactions
   localparam int unsigned NumPending    = 32'd4;
-  // Depth of the Buffer
-  localparam int unsigned WBufferDepth  = 32'd16;
-  // RT unit parameters
-  localparam int unsigned PeriodWidth = 32'd32;
-  localparam int unsigned BudgetWidth = 32'd32;
+  // Write buffer depth
+  localparam int unsigned WBufferDepth  = 32'd256;
+  // QoS parameters
+  localparam int unsigned PeriodWidth   = 32'd32;
+  localparam int unsigned BudgetWidth   = 32'd32;
 
   // RT ID
   localparam int unsigned AxiSlvIdWidth = (NumMasters == 32'd1 & NumSlaves == 32'd1) ?
@@ -128,6 +121,20 @@ package fpga_picobello_pkg;
                                             AxiCfgW.OutIdWidth + cf_math_pkg::idx_width(NumMasters);
 
   typedef logic [AxiSlvIdWidth-1 :0] slv_id_t;
+
+  `REG_BUS_TYPEDEF_ALL(cfg, axi_lite_host_addr_t, axi_lite_host_data_t, axi_lite_host_strb_t)
+
+  // AXI-Realm configuration struct
+  typedef struct packed {
+    // Register file base address
+    axi_host_addr_t rt_reg_addr_base;
+    // Address region
+    int addr_reg_id;
+    // Address region
+    int mrg_id;
+    // Configuration registers
+    axi_rt_reg_pkg::axi_rt_reg2hw_t rt_regfile_cfg;
+  } rt_cfg_t;
 
   ///////////////////////
   // Traffic Generator //

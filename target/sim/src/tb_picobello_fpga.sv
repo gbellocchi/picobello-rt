@@ -31,7 +31,7 @@ module tb_picobello_fpga #(
   input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
   input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
   // AXI-Realm configuration
-  input axi_rt_reg_pkg::axi_rt_reg2hw_t tb_rt_wide_cfg
+  input fpga_picobello_pkg::rt_cfg_t tb_rt_cfg
 );
   `include "tb_picobello_fpga_tasks.svh"
   `include "tb_picobello_rt_tasks.svh"

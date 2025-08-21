@@ -141,8 +141,18 @@ module tg_realm_tile
   // - Traffic generator compute configuration (from the Host processor)
   // - AXI-Realm wide port configuration (from the Host processor)
 
-  // Number of partitions
-  localparam int unsigned NumTgTileCfg = 4;
+  localparam int unsigned NTileCfg = 4;
+
+  // Number of address map rules
+  localparam int unsigned NTrafficGenRules  = 3;
+  localparam int unsigned NAxiRealmRules    = 1;
+  localparam int unsigned NTileCfgRules     = NTrafficGenRules + NAxiRealmRules;
+
+  // Indices
+  localparam int unsigned IdxPortTgRead     = 0;
+  localparam int unsigned IdxPortTgWrite    = 1;
+  localparam int unsigned IdxPortTgCompute  = 2;
+  localparam int unsigned IdxPortAxiRealm   = 3;
 
   // AXI4-Lite interfaces - traffic generator configuration
   axi_lite_host_req_t  axi_lite_read_cfg_req;
@@ -158,14 +168,14 @@ module tg_realm_tile
   axi_lite_host_rsp_t  axi_lite_realm_wide_cfg_rsp;
 
   // Address map
-  axi_pkg::xbar_rule_64_t [NumTgTileCfg-1:0] tg_cfg_in_addr_map;
+  axi_pkg::xbar_rule_64_t [NTileCfgRules-1:0] tg_cfg_in_addr_map;
 
   logic [AxiCfgN.AddrWidth-1:0] tile_partition_len; 
   assign tile_partition_len = 64'h0000_2000;
 
   localparam axi_pkg::xbar_cfg_t PicobelloTgXbarCfg = '{
     NoSlvPorts:         1,
-    NoMstPorts:         NumTgTileCfg,
+    NoMstPorts:         NTileCfg,
     MaxMstTrans:        4,
     MaxSlvTrans:        4,
     FallThrough:        1'b0,
@@ -176,33 +186,33 @@ module tg_realm_tile
     UniqueIds:          0,
     AxiAddrWidth:       AxiCfgN.AddrWidth,
     AxiDataWidth:       AxiCfgN.DataWidth,
-    NoAddrRules:        NumTgTileCfg
+    NoAddrRules:        NTileCfgRules
   };
 
   // Wide read
   assign tg_cfg_in_addr_map[0] = '{
-    idx:        0,
+    idx:        IdxPortTgRead,
     start_addr: tg_base_addr_i + 0 * tile_partition_len,
     end_addr:   tg_base_addr_i + 1 * tile_partition_len
   };
 
   // Wide write
   assign tg_cfg_in_addr_map[1] = '{
-    idx:        1,
+    idx:        IdxPortTgWrite,
     start_addr: tg_base_addr_i + 1 * tile_partition_len,
     end_addr:   tg_base_addr_i + 2 * tile_partition_len
   };
 
   // Timer (compute)
   assign tg_cfg_in_addr_map[2] = '{
-    idx:        2,
+    idx:        IdxPortTgCompute,
     start_addr: tg_base_addr_i + 2 * tile_partition_len,
     end_addr:   tg_base_addr_i + 3 * tile_partition_len
   };
 
   // AXI-Realm wide configuration
   assign tg_cfg_in_addr_map[3] = '{
-    idx:        3,
+    idx:        IdxPortAxiRealm,
     start_addr: tg_base_addr_i + 3 * tile_partition_len,
     end_addr:   tg_base_addr_i + 4 * tile_partition_len
   }; 
@@ -219,29 +229,29 @@ module tg_realm_tile
     .AXI_DATA_WIDTH (AxiCfgN.DataWidth),
     .AXI_ID_WIDTH   (AxiCfgN.OutIdWidth),
     .AXI_USER_WIDTH (AxiCfgN.UserWidth)
-  ) axi_tg_tile_cfg [NumTgTileCfg-1:0]();
+  ) axi_tg_tile_cfg [NTileCfg-1:0]();
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (AxiCfgDataDownsized.AddrWidth),
     .AXI_DATA_WIDTH (AxiCfgDataDownsized.DataWidth),
     .AXI_ID_WIDTH   (AxiCfgDataDownsized.OutIdWidth),
     .AXI_USER_WIDTH (AxiCfgDataDownsized.UserWidth)
-  ) axi_tg_tile_cfg_data_downsized [NumTgTileCfg-1:0]();
+  ) axi_tg_tile_cfg_data_downsized [NTileCfg-1:0]();
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (AxiCfgAddrDownsized.AddrWidth),
     .AXI_DATA_WIDTH (AxiCfgAddrDownsized.DataWidth),
     .AXI_ID_WIDTH   (AxiCfgAddrDownsized.OutIdWidth),
     .AXI_USER_WIDTH (AxiCfgAddrDownsized.UserWidth)
-  ) axi_tg_tile_cfg_addr_downsized [NumTgTileCfg-1:0]();
+  ) axi_tg_tile_cfg_addr_downsized [NTileCfg-1:0]();
 
-  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_aw_addr[NumTgTileCfg-1:0];
-  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_ar_addr[NumTgTileCfg-1:0];
+  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_aw_addr[NTileCfg-1:0];
+  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_ar_addr[NTileCfg-1:0];
 
   AXI_LITE #(
     .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
     .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
-  ) axi_lite_tile_tg_cfg [NumTgTileCfg-1:0]();
+  ) axi_lite_tile_tg_cfg [NTileCfg-1:0]();
 
   `AXI_ASSIGN_FROM_REQ(chimney_narrow_out[0], chimney_narrow_out_req)
   `AXI_ASSIGN_TO_RESP(chimney_narrow_out_rsp, chimney_narrow_out[0])
@@ -262,7 +272,7 @@ module tg_realm_tile
     .default_mst_port_i     ('0)
   );
 
-  for (genvar i = 0; i < NumTgTileCfg; i++) begin : gen_tg_tile_cfg_axi_lite
+  for (genvar i = 0; i < NTileCfg; i++) begin : gen_tg_tile_cfg_axi_lite
 
     axi_dw_converter_intf #(
       .AXI_ID_WIDTH             (AxiCfgDataDownsized.OutIdWidth),
@@ -279,7 +289,7 @@ module tg_realm_tile
     );
 
     assign axi_tg_tile_cfg_addr_downsized_aw_addr[i] = axi_tg_tile_cfg_data_downsized[i].aw_addr[31:0];
-    assign axi_tg_tile_cfg_addr_downsized_ar_addr[i] = axi_tg_tile_cfg_data_downsized[i].aw_addr[31:0];
+    assign axi_tg_tile_cfg_addr_downsized_ar_addr[i] = axi_tg_tile_cfg_data_downsized[i].ar_addr[31:0];
 
     axi_modify_address_intf #(
       .AXI_SLV_PORT_ADDR_WIDTH  (AxiCfgDataDownsized.AddrWidth),
@@ -366,8 +376,8 @@ module tg_realm_tile
     .NumManagers      ( NumMasters                ),
     .AddrWidth        ( AxiCfgW.AddrWidth         ),
     .DataWidth        ( AxiCfgW.DataWidth         ),
-    .IdWidth          ( AxiCfgW.UserWidth         ),
-    .UserWidth        ( AxiCfgW.OutIdWidth        ),
+    .IdWidth          ( AxiCfgW.OutIdWidth        ),
+    .UserWidth        ( AxiCfgW.UserWidth         ),
     .NumPending       ( NumPending                ),
     .WBufferDepth     ( WBufferDepth              ),
     .NumAddrRegions   ( NumRegions                ),
@@ -379,8 +389,8 @@ module tg_realm_tile
     .aw_chan_t        ( axi_wide_in_aw_chan_t     ),
     .ar_chan_t        ( axi_wide_in_ar_chan_t     ),
     .w_chan_t         ( axi_wide_in_w_chan_t      ),
-    .r_chan_t         ( axi_wide_in_b_chan_t      ),
-    .b_chan_t         ( axi_wide_in_r_chan_t      ),
+    .r_chan_t         ( axi_wide_in_r_chan_t      ),
+    .b_chan_t         ( axi_wide_in_b_chan_t      ),
     .axi_req_t        ( axi_wide_in_req_t         ),
     .axi_resp_t       ( axi_wide_in_rsp_t         ),
     .req_req_t        ( cfg_req_t                 ),
@@ -388,12 +398,12 @@ module tg_realm_tile
   ) i_axi_rt_unit_wide (
     .clk_i,
     .rst_ni,
-    .slv_req_i        ( axi_realm_wide_in_req        ),
-    .slv_resp_o       ( axi_realm_wide_in_rsp        ),
-    .mst_req_o        ( axi_realm_wide_out_req       ),
-    .mst_resp_i       ( axi_realm_wide_out_rsp       ),
-    .reg_req_i        ( reg_realm_wide_cfg_req       ),
-    .reg_rsp_o        ( reg_realm_wide_cfg_rsp       ),
+    .slv_req_i        ( axi_realm_wide_in_req     ), // as soon as more masters are added, use an array of master ports
+    .slv_resp_o       ( axi_realm_wide_in_rsp     ), // as soon as more masters are added, use an array of master ports
+    .mst_req_o        ( axi_realm_wide_out_req    ), 
+    .mst_resp_i       ( axi_realm_wide_out_rsp    ), 
+    .reg_req_i        ( reg_realm_wide_cfg_req    ), 
+    .reg_rsp_o        ( reg_realm_wide_cfg_rsp    ), 
     .reg_id_i         ( reg_cfg_rt_wide_id        )  
   );
 
