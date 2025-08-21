@@ -65,6 +65,7 @@ endtask
 task automatic picobello_write(
   input axi_host_addr_t write_addr, 
   input axi_host_data_t write_data, 
+  input axi_host_strb_t write_strb,
   output axi_host_rsp_t write_rsp
 );
   // AW channel
@@ -85,7 +86,7 @@ task automatic picobello_write(
   tb_axi_host_req_i.aw_valid = 1'b0;
   // W channel
   tb_axi_host_req_i.w.data = write_data;
-  tb_axi_host_req_i.w.strb = '1;
+  tb_axi_host_req_i.w.strb = write_strb;
   tb_axi_host_req_i.w.last = 1'b1;
   tb_axi_host_req_i.w.user = '0;
   tb_axi_host_req_i.w_valid = 1'b1;
@@ -150,7 +151,7 @@ task automatic picobello_init_mem_tiles();
     int_mem_addr_start = 32'hD000_0000 + i_mem * 32'h0010_0000;
     int_mem_addr_end = 32'hD000_0000 + i_mem * 32'h0010_0000 + 32'h000F_FFFF;
     mem_tile_init_loop: for (axi_host_addr_t i_addr = int_mem_addr_start; i_addr <= int_mem_addr_end; i_addr += int_mem_addr_offset) begin
-      picobello_write(i_addr, int_write_data, int_rsp);
+      picobello_write(i_addr, int_write_data, 8'hf, int_rsp);
       assert(int_rsp == axi_pkg::RESP_OKAY);
     end
   end
@@ -171,25 +172,25 @@ task automatic picobello_tg_cfg(
   // Set destination address of wide port
   int_addr = tg_cfg.traffic_gen_addr_base + 8'h10;
   int_write_data = tg_cfg.mem_addr_base;
-  picobello_write(int_addr, int_write_data, int_rsp);
+  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Set traffic dimension
   int_addr = tg_cfg.traffic_gen_addr_base + 8'h1c;
   int_write_data = tg_cfg.TrafficGenTrafficDim;
-  picobello_write(int_addr, int_write_data, int_rsp);
+  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Set compute dimension
   int_addr = tg_cfg.traffic_gen_addr_base + 8'h24;
   int_write_data = tg_cfg.TrafficGenComputeDim;
-  picobello_write(int_addr, int_write_data, int_rsp);
+  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // // Set traffic index
   // int_addr = tg_cfg.traffic_gen_addr_base + 8'h2c;
   // int_write_data = tg_cfg.TrafficGenIdx;
-  // picobello_write(int_addr, int_write_data, int_rsp);
+  // picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   // assert(int_rsp == axi_pkg::RESP_OKAY);
 `ifdef VERBOSE
   $display ("[%0tns] picobello_tg_cfg - Configured TG-%d to access MEM-%d", $time, tg_cfg.traffic_gen_port_id, tg_cfg.mem_port_id);
@@ -213,7 +214,7 @@ task automatic picobello_tg_start(
   // Run traffic generator
   int_addr = tg_cfg.traffic_gen_addr_base + 8'h00;
   traffic_gen_start = (int_read_data & 32'h0000_0080) | 32'h0000_0001;
-  picobello_write(int_addr, traffic_gen_start, int_rsp);
+  picobello_write(int_addr, traffic_gen_start, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
