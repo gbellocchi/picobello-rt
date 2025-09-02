@@ -11,62 +11,70 @@ module picobello_top
   import snitch_cluster_pkg::*;
   import floo_picobello_noc_pkg::*;
 (
-  input  logic                                       clk_i,
-  input  logic                                       rst_ni,
-  input  logic                                       test_mode_i,
-  input  logic [             1:0]                    boot_mode_i,
-  input  logic                                       rtc_i,
+  input  logic                                                             clk_i,
+  input  logic                                                             rst_ni,
+  input  logic                                                             test_mode_i,
+  input  logic         [                           1:0]                    boot_mode_i,
+  input  logic                                                             rtc_i,
+  input  logic                                                             clk_rst_bypass_i,
   // JTAG
-  input  logic                                       jtag_tck_i,
-  input  logic                                       jtag_trst_ni,
-  input  logic                                       jtag_tms_i,
-  input  logic                                       jtag_tdi_i,
-  output logic                                       jtag_tdo_o,
-  output logic                                       jtag_tdo_oe_o,
+  input  logic                                                             jtag_tck_i,
+  input  logic                                                             jtag_trst_ni,
+  input  logic                                                             jtag_tms_i,
+  input  logic                                                             jtag_tdi_i,
+  output logic                                                             jtag_tdo_o,
+  output logic                                                             jtag_tdo_oe_o,
   // UART interface
-  output logic                                       uart_tx_o,
-  input  logic                                       uart_rx_i,
+  output logic                                                             uart_tx_o,
+  input  logic                                                             uart_rx_i,
   // UART modem flow control
-  output logic                                       uart_rts_no,
-  output logic                                       uart_dtr_no,
-  input  logic                                       uart_cts_ni,
-  input  logic                                       uart_dsr_ni,
-  input  logic                                       uart_dcd_ni,
-  input  logic                                       uart_rin_ni,
+  output logic                                                             uart_rts_no,
+  output logic                                                             uart_dtr_no,
+  input  logic                                                             uart_cts_ni,
+  input  logic                                                             uart_dsr_ni,
+  input  logic                                                             uart_dcd_ni,
+  input  logic                                                             uart_rin_ni,
   // I2C interface
-  output logic                                       i2c_sda_o,
-  input  logic                                       i2c_sda_i,
-  output logic                                       i2c_sda_en_o,
-  output logic                                       i2c_scl_o,
-  input  logic                                       i2c_scl_i,
-  output logic                                       i2c_scl_en_o,
+  output logic                                                             i2c_sda_o,
+  input  logic                                                             i2c_sda_i,
+  output logic                                                             i2c_sda_en_o,
+  output logic                                                             i2c_scl_o,
+  input  logic                                                             i2c_scl_i,
+  output logic                                                             i2c_scl_en_o,
   // SPI host interface
-  output logic                                       spih_sck_o,
-  output logic                                       spih_sck_en_o,
-  output logic [   SpihNumCs-1:0]                    spih_csb_o,
-  output logic [   SpihNumCs-1:0]                    spih_csb_en_o,
-  output logic [             3:0]                    spih_sd_o,
-  output logic [             3:0]                    spih_sd_en_o,
-  input  logic [             3:0]                    spih_sd_i,
+  output logic                                                             spih_sck_o,
+  output logic                                                             spih_sck_en_o,
+  output logic         [                 SpihNumCs-1:0]                    spih_csb_o,
+  output logic         [                 SpihNumCs-1:0]                    spih_csb_en_o,
+  output logic         [                           3:0]                    spih_sd_o,
+  output logic         [                           3:0]                    spih_sd_en_o,
+  input  logic         [                           3:0]                    spih_sd_i,
   // GPIO interface
-  input  logic [            31:0]                    gpio_i,
-  output logic [            31:0]                    gpio_o,
-  output logic [            31:0]                    gpio_en_o,
+  input  logic         [                          31:0]                    gpio_i,
+  output logic         [                          31:0]                    gpio_o,
+  output logic         [                          31:0]                    gpio_en_o,
+  // Chip-level register interface
+  output csh_reg_req_t [CshRegExtChipCtrl:CshRegExtFLL]                    reg_req_o,
+  input  csh_reg_rsp_t [CshRegExtChipCtrl:CshRegExtFLL]                    reg_rsp_i,
   // Serial link interface
-  input  logic [SlinkNumChan-1:0]                    slink_rcv_clk_i,
-  output logic [SlinkNumChan-1:0]                    slink_rcv_clk_o,
-  input  logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_i,
-  output logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_o,
+  input  logic         [              SlinkNumChan-1:0]                    slink_rcv_clk_i,
+  output logic         [              SlinkNumChan-1:0]                    slink_rcv_clk_o,
+  input  logic         [              SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_i,
+  output logic         [              SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_o,
   // DRAM Serial link interface
-  input  logic [SlinkNumChan-1:0]                    dram_slink_rcv_clk_i,
-  output logic [SlinkNumChan-1:0]                    dram_slink_rcv_clk_o,
-  input  logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] dram_slink_i,
-  output logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] dram_slink_o
+  input  logic         [              SlinkNumChan-1:0]                    dram_slink_rcv_clk_i,
+  output logic         [              SlinkNumChan-1:0]                    dram_slink_rcv_clk_o,
+  input  logic         [              SlinkNumChan-1:0][SlinkNumLanes-1:0] dram_slink_i,
+  output logic         [              SlinkNumChan-1:0][SlinkNumLanes-1:0] dram_slink_o
 );
 
   floo_req_t [MeshDim.x-1:0][MeshDim.y-1:0][West:North] floo_req_in, floo_req_out;
   floo_rsp_t [MeshDim.x-1:0][MeshDim.y-1:0][West:North] floo_rsp_in, floo_rsp_out;
   floo_wide_t [MeshDim.x-1:0][MeshDim.y-1:0][West:North] floo_wide_in, floo_wide_out;
+
+  logic [NumClusters-1:0] cluster_clk_en, cluster_rst_n;
+  logic [NumMemTiles-1:0] mem_tile_clk_en, mem_tile_rst_n;
+  logic fhg_spu_clk_en, fhg_spu_rst_n;
 
   ///////////////////
   // Cluster tiles //
@@ -83,16 +91,20 @@ module picobello_top
   for (genvar c = 0; c < NumClusters; c++) begin : gen_clusters
 
     localparam int ClusterSamIdx = c + ClusterX0Y0SamIdx;
-    localparam id_t ClusterId = Sam[ClusterSamIdx].idx;
-    localparam int X = int'(ClusterId.x);
-    localparam int Y = int'(ClusterId.y);
-    localparam int unsigned HartBaseId = c * NrCores;
+    localparam id_t ClusterId = SamMcast[ClusterSamIdx].idx.id;
+    localparam id_t ClusterPhysicalId = picobello_pkg::SamPhysical[ClusterSamIdx].idx;
+    localparam int X = int'(ClusterPhysicalId.x);
+    localparam int Y = int'(ClusterPhysicalId.y);
+    localparam int unsigned HartBaseId = c * NrCores + 1;  // Cheshire is hart 0
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
     cluster_tile i_cluster_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i      (test_mode_i),
+      .tile_clk_en_i      (cluster_clk_en[c]),
+      .tile_rst_ni        (cluster_rst_n[c]),
+      .clk_rst_bypass_i   (clk_rst_bypass_i),
       .debug_req_i        (debug_req[c]),
       .meip_i             (meip[c]),
       .mtip_i             (mtip[c]),
@@ -118,7 +130,8 @@ module picobello_top
   logic [            iomsb(CheshireCfg.NumExtIrqHarts):0] mtip_ext;
   logic [            iomsb(CheshireCfg.NumExtIrqHarts):0] msip_ext;
 
-  localparam id_t CheshireId = Sam[CheshireInternalSamIdx].idx;
+  localparam id_t CheshireId = SamMcast[CheshireInternalSamIdx].idx.id;
+  localparam id_t CheshirePhysicalId = SamPhysical[CheshireInternalSamIdx].idx;
 
   cheshire_tile i_cheshire_tile (
     .clk_i,
@@ -126,9 +139,9 @@ module picobello_top
     .test_mode_i,
     .boot_mode_i,
     .rtc_i,
-    .xeip_ext_o (xeip_ext),
-    .mtip_ext_o (mtip_ext),
-    .msip_ext_o (msip_ext),
+    .xeip_ext_o       (xeip_ext),
+    .mtip_ext_o       (mtip_ext),
+    .msip_ext_o       (msip_ext),
     .jtag_tck_i,
     .jtag_trst_ni,
     .jtag_tms_i,
@@ -159,6 +172,8 @@ module picobello_top
     .gpio_i,
     .gpio_o,
     .gpio_en_o,
+    .reg_req_o,
+    .reg_rsp_i,
     .slink_rcv_clk_i,
     .slink_rcv_clk_o,
     .slink_i,
@@ -167,14 +182,32 @@ module picobello_top
     .dram_slink_rcv_clk_o,
     .dram_slink_i,
     .dram_slink_o,
-    .id_i       (CheshireId),
-    .floo_req_o (floo_req_out[CheshireId.x][CheshireId.y]),
-    .floo_rsp_i (floo_rsp_in[CheshireId.x][CheshireId.y]),
-    .floo_wide_o(floo_wide_out[CheshireId.x][CheshireId.y]),
-    .floo_req_i (floo_req_in[CheshireId.x][CheshireId.y]),
-    .floo_rsp_o (floo_rsp_out[CheshireId.x][CheshireId.y]),
-    .floo_wide_i(floo_wide_in[CheshireId.x][CheshireId.y])
+    .id_i             (CheshireId),
+    .cluster_clk_en_o (cluster_clk_en),
+    .cluster_rst_no   (cluster_rst_n),
+    .mem_tile_clk_en_o(mem_tile_clk_en),
+    .mem_tile_rst_no  (mem_tile_rst_n),
+    .fhg_spu_clk_en_o (fhg_spu_clk_en),
+    .fhg_spu_rst_no   (fhg_spu_rst_n),
+    .floo_req_west_o  (floo_req_out[CheshirePhysicalId.x][CheshirePhysicalId.y][West]),
+    .floo_rsp_west_i  (floo_rsp_in[CheshirePhysicalId.x][CheshirePhysicalId.y][West]),
+    .floo_wide_west_o (floo_wide_out[CheshirePhysicalId.x][CheshirePhysicalId.y][West]),
+    .floo_req_west_i  (floo_req_in[CheshirePhysicalId.x][CheshirePhysicalId.y][West]),
+    .floo_rsp_west_o  (floo_rsp_out[CheshirePhysicalId.x][CheshirePhysicalId.y][West]),
+    .floo_wide_west_i (floo_wide_in[CheshirePhysicalId.x][CheshirePhysicalId.y][West]),
+    .floo_req_south_o (floo_req_out[CheshirePhysicalId.x][CheshirePhysicalId.y][South]),
+    .floo_rsp_south_i (floo_rsp_in[CheshirePhysicalId.x][CheshirePhysicalId.y][South]),
+    .floo_wide_south_o(floo_wide_out[CheshirePhysicalId.x][CheshirePhysicalId.y][South]),
+    .floo_req_south_i (floo_req_in[CheshirePhysicalId.x][CheshirePhysicalId.y][South]),
+    .floo_rsp_south_o (floo_rsp_out[CheshirePhysicalId.x][CheshirePhysicalId.y][South]),
+    .floo_wide_south_i(floo_wide_in[CheshirePhysicalId.x][CheshirePhysicalId.y][South])
   );
+  assign floo_req_out[CheshirePhysicalId.x][CheshirePhysicalId.y][North]  = '0;
+  assign floo_rsp_out[CheshirePhysicalId.x][CheshirePhysicalId.y][North]  = '0;
+  assign floo_wide_out[CheshirePhysicalId.x][CheshirePhysicalId.y][North] = '0;
+  assign floo_req_out[CheshirePhysicalId.x][CheshirePhysicalId.y][East]   = '0;
+  assign floo_rsp_out[CheshirePhysicalId.x][CheshirePhysicalId.y][East]   = '0;
+  assign floo_wide_out[CheshirePhysicalId.x][CheshirePhysicalId.y][East]  = '0;
 
   //////////////////
   // FhG SPU tile //
@@ -190,25 +223,43 @@ module picobello_top
 
   localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
 
-  // TODO: connect actual hart_base_id
+  // Add offset to consider Cheshire as hart 0
+  localparam int unsigned FhgSpuHartBaseId = NumClusters * NrCores + 1;
+  localparam id_t FhgSpuPhysicalId = SamPhysical[FhgSpuSamIdx].idx;
+
   fhg_spu_tile i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),
+    .tile_clk_en_i      (fhg_spu_clk_en),
+    .tile_rst_ni        (fhg_spu_rst_n),
+    .clk_rst_bypass_i   (clk_rst_bypass_i),
     .debug_req_i        (fhg_spu_debug_req),
     .meip_i             (fhg_spu_meip),
     .mtip_i             (fhg_spu_mtip),
     .msip_i             (fhg_spu_msip),
-    .hart_base_id_i     ('0),
+    .hart_base_id_i     (FhgSpuHartBaseId[9:0]),
     .cluster_base_addr_i(Sam[FhgSpuSamIdx].start_addr),
     .id_i               (FhgSpuId),
-    .floo_req_o         (floo_req_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_rsp_i         (floo_rsp_in[FhgSpuId.x][FhgSpuId.y]),
-    .floo_wide_o        (floo_wide_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_req_i         (floo_req_in[FhgSpuId.x][FhgSpuId.y]),
-    .floo_rsp_o         (floo_rsp_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_wide_i        (floo_wide_in[FhgSpuId.x][FhgSpuId.y])
+    .floo_req_west_o    (floo_req_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][West]),
+    .floo_rsp_west_i    (floo_rsp_in[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][West]),
+    .floo_wide_west_o   (floo_wide_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][West]),
+    .floo_req_west_i    (floo_req_in[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][West]),
+    .floo_rsp_west_o    (floo_rsp_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][West]),
+    .floo_wide_west_i   (floo_wide_in[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][West]),
+    .floo_req_north_o   (floo_req_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][North]),
+    .floo_rsp_north_i   (floo_rsp_in[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][North]),
+    .floo_wide_north_o  (floo_wide_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][North]),
+    .floo_req_north_i   (floo_req_in[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][North]),
+    .floo_rsp_north_o   (floo_rsp_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][North]),
+    .floo_wide_north_i  (floo_wide_in[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][North])
   );
+  assign floo_req_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][East]   = '0;
+  assign floo_rsp_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][East]   = '0;
+  assign floo_wide_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][East]  = '0;
+  assign floo_req_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][South]  = '0;
+  assign floo_rsp_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][South]  = '0;
+  assign floo_wide_out[FhgSpuPhysicalId.x][FhgSpuPhysicalId.y][South] = '0;
 
   //////////////
   // Mem tile //
@@ -217,21 +268,25 @@ module picobello_top
   for (genvar m = 0; m < NumMemTiles; m++) begin : gen_memtile
 
     localparam int MemTileSamIdx = m + L2Spm0SamIdx;
-    localparam id_t MemTileId = Sam[MemTileSamIdx].idx;
-    localparam int MemTileX = int'(MemTileId.x);
-    localparam int MemTileY = int'(MemTileId.y);
+    localparam id_t MemTileId = SamMcast[MemTileSamIdx].idx.id;
+    localparam id_t MemTilePhysicalId = SamPhysical[MemTileSamIdx].idx;
+    localparam int MemTileX = int'(MemTilePhysicalId.x);
+    localparam int MemTileY = int'(MemTilePhysicalId.y);
 
     mem_tile i_mem_tile (
       .clk_i,
       .rst_ni,
-      .test_enable_i(test_mode_i),
-      .id_i         (MemTileId),
-      .floo_req_o   (floo_req_out[MemTileX][MemTileY]),
-      .floo_rsp_i   (floo_rsp_in[MemTileX][MemTileY]),
-      .floo_wide_o  (floo_wide_out[MemTileX][MemTileY]),
-      .floo_req_i   (floo_req_in[MemTileX][MemTileY]),
-      .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
-      .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
+      .test_enable_i   (test_mode_i),
+      .tile_clk_en_i   (mem_tile_clk_en[m]),
+      .tile_rst_ni     (mem_tile_rst_n[m]),
+      .clk_rst_bypass_i(clk_rst_bypass_i),
+      .id_i            (MemTileId),
+      .floo_req_o      (floo_req_out[MemTileX][MemTileY]),
+      .floo_rsp_i      (floo_rsp_in[MemTileX][MemTileY]),
+      .floo_wide_o     (floo_wide_out[MemTileX][MemTileY]),
+      .floo_req_i      (floo_req_in[MemTileX][MemTileY]),
+      .floo_rsp_o      (floo_rsp_out[MemTileX][MemTileY]),
+      .floo_wide_i     (floo_wide_in[MemTileX][MemTileY])
     );
 
   end
@@ -243,8 +298,8 @@ module picobello_top
   for (genvar d = 0; d < NumDummyTiles; d++) begin : gen_dummytiles
 
     localparam id_t DummyTileId = DummyIdx[d];
-    localparam int DummyTileX = int'(DummyIdx[d].x);
-    localparam int DummyTileY = int'(DummyIdx[d].y);
+    localparam int DummyTileX = int'(DummyPhysicalIdx[d].x);
+    localparam int DummyTileY = int'(DummyPhysicalIdx[d].y);
 
     dummy_tile i_dummy_tile (
       .clk_i,

@@ -2,41 +2,49 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-# Sources the environment variables for the IIS environment
-.init-env:
-  before_script:
-    source iis-env.sh
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PD_COMMIT: "7d33ab4228a986369108f2a74521266b4ceaa5d3"
+  SPU_COMMIT: "c2e8815487bd713624d74ef3e3e0465196b6d67f"
 
 # Check the cache for bender and python dependencies
 .cache-deps:
-  cache:
+  cache: &global_cache
     key:
       files:
         - Bender.lock
         - requirements.txt
     paths:
       - .bender
-      - .venv
+      - .cache/pip
     policy: pull
 
-# Update the cache with the bender and python dependencies
+# Update the cache with bender and python dependencies
 .init-deps-tpl:
-  before_script:
+  script:
+    # Check out the biggest bender dependencies serially
+    # to avoid rate limiting issues
+    # TODO(fischeti): Remove once bender supports rate limiting
+    - bender path cheshire
+    - bender path cva6
+    - bender path ibex
+    - bender path floo_noc
+    - bender path idma
+    - bender path cluster_interconnect
+    - bender path snitch_cluster
     # Collect bender sourcess
     - bender checkout
     # Install the python venv
     - make python-venv
-    # Pull the PD repository
+    # Initialize the PD repository
     - make init-pd
   cache:
-    key:
-      files:
-        - Bender.lock
-        - requirements.txt
-    paths:
-      - .bender
-      - .venv
+    # inherit all global cache settings
+    <<: *global_cache
     policy: pull-push
+  # bender checkout sometimes fails,
+  # due to rate limiting of github
+  retry: 1
 
 # Generate the RTL sources
 .generate-rtl-tpl:

@@ -11,6 +11,11 @@ stages:
   - build
   - run
 
+# Sources the environment variables for the IIS environment
+.init-env:
+  before_script:
+    - source iis-env.sh
+
 ##################
 # Initialization #
 ##################
@@ -19,8 +24,18 @@ init-deps:
   stage: init
   extends:
     - .init-deps-tpl
-  script:
-    - ':'
+  artifacts:
+    paths:
+      - pd/ci.yml
+
+########################################
+# Generate RTL Sources and Addressmaps #
+########################################
+
+generate-rtl:
+  stage: build
+  extends:
+    - .generate-rtl-tpl
 
 ########################
 # Build Software Tests #
@@ -35,15 +50,6 @@ chs-sw:
   stage: build
   extends:
     - .chs-sw-tpl
-
-########################
-# Generate RTL Sources #
-########################
-
-generate-rtl:
-  stage: build
-  extends:
-    - .generate-rtl-tpl
 
 #####################
 # Build Simulations #
@@ -98,22 +104,12 @@ sim-vsim:
 # Physical Design #
 ###################
 
-init-pd:
-  stage: init
-  extends:
-    - .cache-deps
-    - .init-env
-  script: make init-pd
-  artifacts:
-    paths:
-      - pd/ci.yml
-
 subpipe:
   stage: build
   needs:
-    - init-pd
+    - init-deps
   trigger:
     include:
       - artifact: pd/ci.yml
-        job: init-pd
+        job: init-deps
     strategy: depend

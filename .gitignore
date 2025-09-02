@@ -6,8 +6,10 @@
 
 # Dependency files
 .bender
+working_dir/
 
 # Python virtual environment
+.cache/pip
 .venv
 
 # Generated source files

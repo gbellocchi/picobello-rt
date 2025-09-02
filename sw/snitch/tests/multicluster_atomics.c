@@ -72,9 +72,9 @@ uint32_t test_atomics(volatile uint32_t* atomic_var) {
      * Test 2: AMOADD
      ******************************************************/
     amo_operand = 1;
+    expected_val += amo_operand * cluster_num;
     __atomic_add_fetch(atomic_var, amo_operand, __ATOMIC_RELAXED);
     snrt_inter_cluster_barrier();
-    expected_val += amo_operand * cluster_num;
     if (*atomic_var != expected_val) nerrors++;
     snrt_inter_cluster_barrier();
 
@@ -82,9 +82,9 @@ uint32_t test_atomics(volatile uint32_t* atomic_var) {
      * Test 3: AMOSUB
      ******************************************************/
     amo_operand = 1;
+    expected_val -= amo_operand * cluster_num;
     __atomic_sub_fetch(atomic_var, amo_operand, __ATOMIC_RELAXED);
     snrt_inter_cluster_barrier();
-    expected_val -= amo_operand * cluster_num;
     if (*atomic_var != expected_val) nerrors++;
     snrt_inter_cluster_barrier();
 
@@ -94,21 +94,18 @@ uint32_t test_atomics(volatile uint32_t* atomic_var) {
 // Use at least two locations to test unaligned accesses
 #define NUM_SPM_LOCATIONS 2
 volatile uint32_t l3_a[NUM_SPM_LOCATIONS];
-volatile uint32_t* multicluster_error;
 
 int main() {
     uint32_t core_id = snrt_cluster_core_idx();
     uint32_t core_num = snrt_cluster_core_num();
-    uint32_t register volatile nerrors = 0;
+    uint32_t volatile nerrors = 0;
 
     if (core_id == 0) {
     	// Verify atomics
         for (uint32_t i = 0; i < NUM_SPM_LOCATIONS; i++) {
-            nerrors = test_atomics(&l3_a[i]);
-            __atomic_add_fetch(multicluster_error, nerrors, __ATOMIC_RELAXED);
-            snrt_inter_cluster_barrier();
-            return *multicluster_error;
+            nerrors += test_atomics(&l3_a[i]);
         }
+        return nerrors;
     } else {
         return 0;
     }

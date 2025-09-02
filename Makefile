@@ -24,6 +24,11 @@ BENDER           ?= bender -d $(PB_ROOT)
 FLOO_GEN         ?= floogen
 VERIBLE_FMT      ?= verible-verilog-format
 VERIBLE_FMT_ARGS ?= --flagfile .verilog_format --inplace --verbose
+PEAKRDL          ?= peakrdl
+
+# Tiles configuration
+SN_CLUSTERS = $(shell $(FLOO_GEN) -c $(FLOO_CFG) --query endpoints.cluster.num 2>/dev/null)
+L2_TILES = $(shell $(FLOO_GEN) -c $(FLOO_CFG) --query endpoints.l2_spm.num 2>/dev/null)
 
 # Bender prerequisites
 BENDER_YML = $(PB_ROOT)/Bender.yml
@@ -33,9 +38,47 @@ BENDER_LOCK = $(PB_ROOT)/Bender.lock
 # Bender flags #
 ################
 
-COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t floogen_pkg
+COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t pb_gen_rtl
 SIM_TARGS += -t simulation -t test -t idma_test
 FPGA_TARGS += -t fpga
+
+#############
+# systemRDL #
+#############
+
+PB_RDL_ALL += $(PB_GEN_DIR)/picobello.rdl
+PB_RDL_ALL += $(PB_GEN_DIR)/fll.rdl $(PB_GEN_DIR)/pb_chip_regs.rdl
+PB_RDL_ALL += $(wildcard $(PB_ROOT)/cfg/rdl/*.rdl)
+
+$(PB_GEN_DIR)/pb_soc_regs.sv: $(PB_GEN_DIR)/pb_soc_regs_pkg.sv
+$(PB_GEN_DIR)/pb_soc_regs_pkg.sv: $(PB_ROOT)/cfg/rdl/pb_soc_regs.rdl
+	$(PEAKRDL) regblock $< -o $(PB_GEN_DIR) --cpuif apb4-flat --default-reset arst_n -P Num_Clusters=$(SN_CLUSTERS) -P Num_Mem_Tiles=$(L2_TILES)
+
+$(PB_GEN_DIR)/picobello.rdl: $(FLOO_CFG)
+	$(FLOO_GEN) -c $(FLOO_CFG) -o $(PB_GEN_DIR) --rdl --rdl-as-mem --rdl-memwidth=32
+
+# Those are dummy RDL files, for generation without access to the PD repository.
+$(PB_GEN_DIR)/fll.rdl $(PB_GEN_DIR)/pb_chip_regs.rdl:
+	@touch $@
+
+$(PB_GEN_DIR)/pb_addrmap.h: $(PB_GEN_DIR)/picobello.rdl $(PB_RDL_ALL)
+	$(PEAKRDL) c-header $< $(PEAKRDL_INCLUDES) $(PEAKRDL_DEFINES) -o $@ -i -b ltoh
+
+$(PB_GEN_DIR)/pb_addrmap.svh: $(PB_RDL_ALL)
+	$(PEAKRDL) raw-header $< -o $@ $(PEAKRDL_INCLUDES) $(PEAKRDL_DEFINES) --format svh
+
+PB_RDL_HW_ALL += $(PB_GEN_DIR)/pb_soc_regs.sv
+PB_RDL_HW_ALL += $(PB_GEN_DIR)/pb_soc_regs_pkg.sv
+PB_RDL_HW_ALL += $(PB_GEN_DIR)/pb_addrmap.svh
+
+.PHONY: pb-soc-regs pb-soc-regs-clean
+pb-soc-regs: $(PB_GEN_DIR)/pb_soc_regs.sv $(PB_GEN_DIR)/pb_soc_regs_pkg.sv
+
+pb-soc-regs-clean:
+	rm -rf $(PB_GEN_DIR)/pb_soc_regs.sv $(PB_GEN_DIR)/pb_soc_regs_pkg.sv
+
+.PHONY: pb-addrmap
+pb-addrmap: $(PB_GEN_DIR)/pb_addrmap.h $(PB_GEN_DIR)/pb_addrmap.svh
 
 ############
 # Cheshire #
@@ -69,8 +112,6 @@ sn-hw-clean:
 ###########
 # FlooNoC #
 ###########
-
-SN_CLUSTERS = 16
 .PHONY: update-sn-cfg
 update-sn-cfg: $(SN_CFG)
 	@sed -i 's/nr_clusters: .*/nr_clusters: $(SN_CLUSTERS),/' $<
@@ -87,19 +128,21 @@ floo-hw-all: $(PB_GEN_DIR)/floo_picobello_noc_pkg.sv
 $(PB_GEN_DIR)/floo_picobello_noc_pkg.sv: $(FLOO_CFG) | $(PB_GEN_DIR)
 	$(FLOO_GEN) -c $(FLOO_CFG) -o $(PB_GEN_DIR) --only-pkg $(FLOO_GEN_FLAGS)
 
+
 floo-clean:
-	rm -rf $(PB_GEN_DIR)/floo_picobello_noc_pkg.sv
+	rm -f $(PB_GEN_DIR)/floo_picobello_noc_pkg.sv
+	rm -f $(PB_GEN_DIR)/picobello.rdl
 
 ###################
 # Physical Design #
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:picobello/picobello-pd.git
-PD_COMMIT ?= e1e618a872a631567dcc963eb3c987422eef4dbc
+PD_COMMIT ?= main
 PD_DIR = $(PB_ROOT)/pd
 SPU_REMOTE ?= git@iis-git.ee.ethz.ch:picobello/fhg_spu_cluster.git
-SPU_COMMIT ?= 52ff92b99d07f7fa48d9b81c5d713c369bd4faa6
-SPU_DIR = $(PB_ROOT)/deps/fhg_spu_cluster
+SPU_COMMIT ?= main
+SPU_DIR = $(PB_ROOT)/.deps/fhg_spu_cluster
 
 .PHONY: init-pd clean-pd
 
@@ -118,6 +161,10 @@ clean-pd:
 
 -include $(PD_DIR)/pd.mk
 
+PEAKRDL_INCLUDES += -I $(PB_ROOT)/cfg/rdl
+PEAKRDL_INCLUDES += -I $(SN_ROOT)/hw/snitch_cluster/src/snitch_cluster_peripheral
+PEAKRDL_INCLUDES += -I $(PB_GEN_DIR)
+
 #########################
 # General Phony targets #
 #########################
@@ -125,6 +172,7 @@ clean-pd:
 PB_HW_ALL += $(CHS_HW_ALL)
 PB_HW_ALL += $(CHS_SIM_ALL)
 PB_HW_ALL += $(PB_GEN_DIR)/floo_picobello_noc_pkg.sv
+PB_HW_ALL += $(PB_RDL_HW_ALL)
 PB_HW_ALL += update-sn-cfg
 
 .PHONY: picobello-hw-all picobello-clean clean
@@ -161,6 +209,7 @@ include $(PB_ROOT)/target/fpga/fpga.mk
 ########
 
 BASE_PYTHON ?= python
+PIP_CACHE_DIR ?= $(PB_ROOT)/.cache/pip
 
 .PHONY: dvt-flist python-venv python-venv-clean verible-fmt
 
@@ -172,8 +221,8 @@ python-venv: .venv
 	$(BASE_PYTHON) -m venv $@
 	. $@/bin/activate && \
 	python -m pip install --upgrade pip setuptools && \
-	python -m pip install -r requirements.txt && \
-	python -m pip install $(shell $(BENDER) path floo_noc) --no-deps
+	python -m pip install --cache-dir $(PIP_CACHE_DIR) -r requirements.txt && \
+	python -m pip install --cache-dir $(PIP_CACHE_DIR) $(shell $(BENDER) path floo_noc) --no-deps
 
 python-venv-clean:
 	rm -rf .venv
