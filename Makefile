@@ -48,7 +48,12 @@ FPGA_TARGS += -t fpga
 
 PB_RDL_ALL += $(PB_GEN_DIR)/picobello.rdl
 PB_RDL_ALL += $(PB_GEN_DIR)/fll.rdl $(PB_GEN_DIR)/pb_chip_regs.rdl
+PB_RDL_ALL += $(PB_GEN_DIR)/snitch_cluster.rdl
 PB_RDL_ALL += $(wildcard $(PB_ROOT)/cfg/rdl/*.rdl)
+
+PEAKRDL_INCLUDES += -I $(PB_ROOT)/cfg/rdl
+PEAKRDL_INCLUDES += -I $(SN_ROOT)/hw/snitch_cluster/src/snitch_cluster_peripheral
+PEAKRDL_INCLUDES += -I $(PB_GEN_DIR)
 
 $(PB_GEN_DIR)/pb_soc_regs.sv: $(PB_GEN_DIR)/pb_soc_regs_pkg.sv
 $(PB_GEN_DIR)/pb_soc_regs_pkg.sv: $(PB_ROOT)/cfg/rdl/pb_soc_regs.rdl
@@ -161,9 +166,6 @@ clean-pd:
 
 -include $(PD_DIR)/pd.mk
 
-PEAKRDL_INCLUDES += -I $(PB_ROOT)/cfg/rdl
-PEAKRDL_INCLUDES += -I $(SN_ROOT)/hw/snitch_cluster/src/snitch_cluster_peripheral
-PEAKRDL_INCLUDES += -I $(PB_GEN_DIR)
 
 #########################
 # General Phony targets #
@@ -222,7 +224,8 @@ python-venv: .venv
 	. $@/bin/activate && \
 	python -m pip install --upgrade pip setuptools && \
 	python -m pip install --cache-dir $(PIP_CACHE_DIR) -r requirements.txt && \
-	python -m pip install --cache-dir $(PIP_CACHE_DIR) $(shell $(BENDER) path floo_noc) --no-deps
+	python -m pip install --cache-dir $(PIP_CACHE_DIR) $(shell $(BENDER) path floo_noc) --no-deps && \
+	python -m pip install --cache-dir $(PIP_CACHE_DIR) $(shell $(BENDER) path snitch_cluster)
 
 python-venv-clean:
 	rm -rf .venv

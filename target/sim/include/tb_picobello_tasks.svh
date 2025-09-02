@@ -16,6 +16,9 @@ import picobello_pkg::*;
 task automatic jtag_enable_tiles();
   $display("Resetting tiles and enabling clock...");
   fix.vip.jtag_init();
+  fix.vip.jtag_write_reg32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_CLUSTER_RSTS_REG_ADDR, 32'h0000FFFF, 1'b1);
+  fix.vip.jtag_write_reg32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_MEM_TILE_RSTS_REG_ADDR, 32'h000000FF, 1'b1);
+  fix.vip.jtag_write_reg32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_FHG_SPU_RSTS_REG_ADDR, 32'h00000001, 1'b1);
   fix.vip.jtag_write_reg32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_CLUSTER_RSTS_REG_ADDR, 32'h00000000, 1'b1);
   fix.vip.jtag_write_reg32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_MEM_TILE_RSTS_REG_ADDR, 32'h00000000, 1'b1);
   fix.vip.jtag_write_reg32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_FHG_SPU_RSTS_REG_ADDR, 32'h00000000, 1'b1);
@@ -29,6 +32,9 @@ endtask
 
 task automatic slink_enable_tiles();
   $display("[SLINK] Resetting tiles and enabling clock...");
+  fix.vip.slink_write_32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_CLUSTER_RSTS_REG_ADDR, 32'h0000FFFF);
+  fix.vip.slink_write_32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_MEM_TILE_RSTS_REG_ADDR, 32'h000000FF);
+  fix.vip.slink_write_32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_FHG_SPU_RSTS_REG_ADDR, 32'h00000001);
   fix.vip.slink_write_32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_CLUSTER_RSTS_REG_ADDR, 32'h00000000);
   fix.vip.slink_write_32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_MEM_TILE_RSTS_REG_ADDR, 32'h00000000);
   fix.vip.slink_write_32(`PICOBELLO_ADDRMAP_CHESHIRE_INTERNAL_PB_SOC_REGS_FHG_SPU_RSTS_REG_ADDR, 32'h00000000);
@@ -48,6 +54,7 @@ endclass
 
 virtual_class_fastmode_l2 l2_sram_class_list[NumMemTiles][NumBanksPerWord][NumBankRows];
 
+`ifdef L2_SRAM_PATH
 for(genvar i = 0; i < NumMemTiles; i++) begin : gen_fastmode_class_per_l2_tile
   for(genvar j = 0; j < NumBanksPerWord; j++) begin : gen_fastmode_class_per_l2_col
     for(genvar k = 0; k < NumBankRows; k++) begin : gen_fastmode_class_per_l2_row
@@ -66,6 +73,7 @@ for(genvar i = 0; i < NumMemTiles; i++) begin : gen_fastmode_class_per_l2_tile
     end : gen_fastmode_class_per_l2_row
   end : gen_fastmode_class_per_l2_col
 end : gen_fastmode_class_per_l2_tile
+`endif
 
 // Write a 32-bit word into an `tc_sram` at a given address
 task automatic fastmode_write_word(input longint addr, input logic [31:0] data);
