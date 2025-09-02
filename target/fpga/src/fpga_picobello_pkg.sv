@@ -110,7 +110,7 @@ package fpga_picobello_pkg;
   // Number of outstanding transactions
   localparam int unsigned NumPending    = 32'd4;
   // Write buffer depth
-  localparam int unsigned WBufferDepth  = 32'd256;
+  localparam int unsigned WBufferDepth  = 32'd128;
   // QoS parameters
   localparam int unsigned PeriodWidth   = 32'd32;
   localparam int unsigned BudgetWidth   = 32'd32;
