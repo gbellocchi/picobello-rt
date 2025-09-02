@@ -9,7 +9,7 @@ PB_GEN_DIR = $(PB_ROOT)/.generated
 BENDER_ROOT ?= $(PB_ROOT)/.bender
 
 # Configuration files
-FLOO_CFG  ?= $(PB_ROOT)/cfg/richie_noc_worst_case.yml
+FLOO_CFG  ?= $(PB_ROOT)/cfg/rt_16cl_1h.yml
 SN_CFG	  ?= $(PB_ROOT)/cfg/snitch_cluster.json
 PLIC_CFG  ?= $(PB_ROOT)/cfg/rv_plic.cfg.hjson
 SLINK_CFG ?= $(PB_ROOT)/cfg/serial_link.hjson
