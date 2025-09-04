@@ -65,6 +65,10 @@ module tb_picobello_fpga
   logic [picobello_pkg::NumClusters-1:0][31:0] n_compute; // number of compute operations
   logic [picobello_pkg::NumClusters-1:0][31:0] comp_timer_0, comp_timer_1, comp_timer_val; // timers
 
+  // AXI-Realm
+  logic [picobello_pkg::NumClusters-1:0] rt_configured; // configuration flag
+  fpga_picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
+  
   // Clusters
   localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
   floo_picobello_noc_pkg::sam_rule_t cluster_sam;
@@ -79,23 +83,37 @@ module tb_picobello_fpga
   // Exploration variables 
 
   // Number of performed tests
-  int NTest;
-  // Number of test iterations (for coarser transactions)
-  int NTestIterations;
-  // Number of cluster under test
-  int NTestCl;
-  // Number of operations per cluster
-  int NOps, NOpsMin, NOpsMax;
-  // Number of cluster tiles per memory tile
-  int NClXMem, NClXMemMin, NClXMemMax;
-  // Number of accelerators per cluster
-  int NAccxCl, NAccxClMin, NAccxClMax;
-  // Traffic dimension (hardwired)
-  int TrafficDim;
-  // Burst length
-  int BurstLength, BurstLengthMin, BurstLengthMax;
+  int NTest = 0;
 
-  // DUT
+  // Number of test iterations (for coarser transactions)
+  int NTestIterations = 1;
+
+  // Number of clusters under test
+  int NTestCl = 1; //picobello_pkg::NumClusters / NAccxCl;
+
+  // Traffic dimension (hardwired)
+  int TrafficDim = 128 * 32; // hardwired in traffic generator design
+
+  // Number of operations per cluster
+  int NOpsMin = 32'h0000_0000; // Divide in two runs: Min (mem-bound): 32'h0000_0000 - Min (comp-bound): 32'h0000_8000
+  int NOpsMax = 32'h0000_0000; // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
+
+  // Number of cluster tiles per memory tile
+  int NClXMemMin = 1; // 1 cluster per memory tile (most performant case)
+  int NClXMemMax = 1; // 1 <= NClXMemMax <= NTestCl
+
+  // Number of accelerators per cluster
+  int NAccxClMin = 1; // accelerator per cluster tile (most performant case)
+  int NAccxClMax = 1; // <= NAccxClMax <= NumClusters
+
+  // Burst length
+  int BurstLengthMin = 32'd1; // burstless (single-beat)
+  int BurstLengthMax = 32'd1; // max allowed by axi4
+
+  /////////
+  // DUT //
+  /////////
+
   fpga_picobello_top #(
     // Parameters
     .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),  
@@ -133,6 +151,10 @@ module tb_picobello_fpga
     .clk_o            (clk),
     .rst_no           (rst_n)
   );
+
+  ///////////
+  // Timer //
+  ///////////
 
   // TB counter
   timer_unit_counter timer_i (
@@ -231,52 +253,22 @@ module tb_picobello_fpga
       rt_reg_id[i] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
     end
 
-    /////////////////////////////
-    // Test: Parallel accesses //
-    /////////////////////////////
-
-    $display ("\n- Exploration test -");
-
-    // Initialize test variables
-    NTest = 0;
-
-    NAccxClMin = 1; // accelerator per cluster tile (most performant case)
-    NAccxClMax = 1; // <= NAccxClMax <= NumClusters
-
-    NOpsMin = 32'h0000_0000; // Divide in two runs: Min (mem-bound): 32'h0000_0000 - Min (comp-bound): 32'h0000_8000
-    NOpsMax = 32'h0000_0000; // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
-
-    BurstLengthMin = 32'd1; // burstless (single-beat)
-    BurstLengthMax = 32'd128; // max allowed by axi4
-
-    TrafficDim = 128 * 32; // hardwired in traffic generator design
-    NTestIterations = 1; // to model coarser transactions even with fixed TrafficDim
-
-    @(posedge `CLK_SIGNAL);
-
-    // Initialize address offsets
-    dma_r_addr_offset = 32'h0000_0000;
-    dma_w_addr_offset = 32'h0000_2000;
-    compute_addr_offset = 32'h0000_4000;
-    rt_addr_offset = 32'h0000_6000;
-
-    @(posedge `CLK_SIGNAL);
+    //////////////////////////////
+    // Design space exploration //
+    //////////////////////////////
 
     // Loop over the number of accelerators per cluster (from 1 to 16)
-    n_acc_x_cl_loop: for (NAccxCl = NAccxClMin; NAccxCl <= NAccxClMax; NAccxCl = NAccxCl * 2) begin
+    n_acc_x_cl_loop: for (int NAccxCl = NAccxClMin; NAccxCl <= NAccxClMax; NAccxCl = NAccxCl * 2) begin
 
-      NTestCl = 1; //picobello_pkg::NumClusters / NAccxCl; // Number of clusters under test
-
-      NClXMemMin = 1; // 1 cluster per memory tile (most performant case)
-      NClXMemMax = 1; // 1 <= NClXMemMax <= NTestCl
+      // NTestCl = picobello_pkg::NumClusters / NAccxCl;
 
       @(posedge `CLK_SIGNAL);
 
       // Loop over the number of clusters per memory tile (from 1 to 16)
-      n_cl_x_mem_loop: for (NClXMem = NClXMemMin; NClXMem <= NClXMemMax; NClXMem = NClXMem * 2) begin
+      n_cl_x_mem_loop: for (int NClXMem = NClXMemMin; NClXMem <= NClXMemMax; NClXMem = NClXMem * 2) begin
 
         // Loop over the number of operations per cluster (geometric progression)
-        n_ops_loop: for (NOps = NOpsMin; NOps <= NOpsMax; NOps = (NOps == 0) ? 32 : NOps * 2) begin
+        n_ops_loop: for (int NOps = NOpsMin; NOps <= NOpsMax; NOps = (NOps == 0) ? 32 : NOps * 2) begin
 
           // Set operational intensity
           tb_tg_cfg_read.TrafficGenTrafficDim        = TrafficDim; // DMA payload size (hardwired)
@@ -311,7 +303,7 @@ module tb_picobello_fpga
           end
 
           // Loop over burst length values (geometric progression)
-          burst_length_loop: for (BurstLength = BurstLengthMin; BurstLength <= BurstLengthMax; BurstLength = BurstLength * 2) begin
+          burst_length_loop: for (int BurstLength = BurstLengthMin; BurstLength <= BurstLengthMax; BurstLength = BurstLength * 2) begin
 
             // Configure AXI-Realm
             rt_cfg_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
