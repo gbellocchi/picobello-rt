@@ -13,7 +13,10 @@
 
 import fpga_picobello_pkg::*;
 
-module tb_picobello_fpga #(
+module tb_picobello_fpga 
+  import picobello_pkg::*; 
+  import floo_pkg::*; 
+  import floo_picobello_noc_pkg::*; #(
   // TB timing
   localparam time ClkPeriod = 10ns, // Clock period
   parameter time ApplTime = 100ps, // Delay value assignment
@@ -21,7 +24,6 @@ module tb_picobello_fpga #(
   // TG parameters
   localparam time TgBurstLength = 128 // [Beats]
 ) (
-  // Clock and reset
   input  logic clk,
   input  logic rst_n,
   // Host signals
