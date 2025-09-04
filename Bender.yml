@@ -61,6 +61,7 @@ sources:
     include_dirs:
       - target/sim/include
     files:
+      - target/sim/src/axi_bw_monitor.sv
       - target/sim/src/fixture_picobello_top.sv
       - target/sim/src/tb_picobello_top.sv
 
