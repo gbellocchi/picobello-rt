@@ -37,12 +37,22 @@ module tb_picobello_fpga
 );
   `include "tb_picobello_fpga_tasks.svh"
   `include "tb_picobello_rt_tasks.svh"
+
+  logic [picobello_pkg::NumClusters-1:0] start_of_sim;
+  logic [picobello_pkg::NumClusters-1:0] end_of_sim;
   
   // Timer configuration
   fpga_picobello_pkg::timer_cfg_t tb_timer_cfg;
   logic target_reached_o; // Comparator value flag
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Experiment latency
 
+  // BW monitoring
+  floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_req; 
+  floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_rsp;
+
+  floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_req; 
+  floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_rsp;
+  
   // DMA in
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_first_burst; // first burst flag
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_timer_0, dma_r_timer_1, dma_r_timer_val; // timers
@@ -142,7 +152,64 @@ module tb_picobello_fpga
     .target_reached_o (target_reached_o)
   );
 
-  // Program and launch traffic generators inside Picobello
+  ////////////////
+  // BW monitor //
+  ////////////////
+
+  // Cluster wide input
+  for (genvar c = 0; c < picobello_pkg::NumClusters; c++) begin : gen_cl_bw_monitor
+    localparam string BwMonitorName = $sformatf("cl_bw_monitor_%0d", c);
+
+    assign bw_rt_cl_req[c] = dut.gen_clusters[c].i_cluster_tg_tile.axi_realm_wide_in_req;
+    assign bw_rt_cl_rsp[c] = dut.gen_clusters[c].i_cluster_tg_tile.axi_realm_wide_in_rsp;
+
+    axi_bw_monitor #(
+      .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
+      .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
+      .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
+      .Name       ( BwMonitorName                             )
+    ) i_axi_bw_monitor (
+      .clk_i          ( clk                 ),
+      .rst_ni         ( rst_n               ),
+      .en_cnt_i       ( start_of_sim[c]     ),
+      .rst_cnt_i      ( start_of_sim[c]     ),
+      .end_cnt_i      ( end_of_sim[c]       ),
+      .req_i          ( bw_rt_cl_req[c]     ),
+      .rsp_i          ( bw_rt_cl_rsp[c]     ),
+      .ar_in_flight_o (                     ),
+      .aw_in_flight_o (                     )
+    );
+  end
+
+  // NoC wide input
+  for (genvar c = 0; c < picobello_pkg::NumClusters; c++) begin : gen_noc_bw_monitor
+    localparam string BwMonitorName = $sformatf("noc_bw_monitor_%0d", c);
+
+    assign bw_rt_noc_req[c] = dut.gen_clusters[c].i_cluster_tg_tile.chimney_wide_in_req;
+    assign bw_rt_noc_rsp[c] = dut.gen_clusters[c].i_cluster_tg_tile.chimney_wide_in_rsp;
+
+    axi_bw_monitor #(
+      .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
+      .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
+      .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
+      .Name       ( BwMonitorName                             )
+    ) i_axi_bw_monitor (
+      .clk_i          ( clk                 ),
+      .rst_ni         ( rst_n               ),
+      .en_cnt_i       ( start_of_sim[c]     ),
+      .rst_cnt_i      ( start_of_sim[c]     ),
+      .end_cnt_i      ( end_of_sim[c]       ),
+      .req_i          ( bw_rt_noc_req[c]    ),
+      .rsp_i          ( bw_rt_noc_rsp[c]    ),
+      .ar_in_flight_o (                     ),
+      .aw_in_flight_o (                     )
+    );
+  end
+
+  //////////////////
+  // TB execution //
+  //////////////////
+
   initial begin
     // Initialization - axi req
     tb_axi_host_req_i = '{default: '0};
@@ -315,6 +382,9 @@ module tb_picobello_fpga
             // Start timer
             picobello_start_timer(tb_timer_cfg);
 
+            start_of_sim = '{default: '0};
+            end_of_sim = '{default: '0};
+
             // Repeat test multiple times
             test_repetition_loop: for (int test_id = 0; test_id < NTestIterations; test_id++) begin
 
@@ -346,12 +416,12 @@ module tb_picobello_fpga
                 comp_timer_1 = '{default: '0};
                 comp_timer_val = '{default: '0};
 
-                // --- SoC
-                multi_cl_done = '{default: '0};
-
                 // DMA-in: read data from L2 memory
                 // $display ("\nTest #%0d-------------DMA-in: read data from L2 memory", NTest);
                 dma_in_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+
+                  if(test_id==0) start_of_sim[cl_id] = 1'b1;
+
                   case (cl_id)
                     0: dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                     1: dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
@@ -540,16 +610,15 @@ module tb_picobello_fpga
 
                   @(posedge `CLK_SIGNAL);
 
-                  multi_cl_done[cl_id] = 1'b1;
+                  if(test_id==NTestIterations-1) end_of_sim[cl_id] = 1'b1;
                 end
 
-                // Multi-cluster: wait for completion (barrier)
+                // Multi-cluster idle barrier
                 multi_cl_idle_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-                  while (!multi_cl_done[cl_id]) begin 
+                  while (!end_of_sim[cl_id]) begin 
                     @(posedge `CLK_SIGNAL);
                   end
                 end
-
               end // dma_out_set_acc_x_cl_loop
 
             end // test_repetition_loop
