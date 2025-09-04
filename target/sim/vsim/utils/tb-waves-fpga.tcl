@@ -4,8 +4,28 @@
 #
 # Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
+# Parameters
+set dim_x_cl 4
+set dim_y_cl 4
+set n_cl [expr {$dim_x_cl * $dim_y_cl}]
+
+set dim_x_mem 1
+set dim_y_mem 32
+
+set dim_x_dummy 5
+set dim_y_dummy 16
+
 # TB top
 add wave -noupdate -group {tb} {/tb_picobello_fpga/*}
+
+# TB BW monitors
+for {set idx 0} {$idx < $n_cl} {incr idx} {
+    set y [expr {$idx % $dim_y_cl}]
+    set x [expr {int($idx / $dim_y_cl)}]
+
+    add wave -noupdate -group {tb_bw_monitor} -group "gen_cl_bw_monitor[$idx]" /tb_picobello_fpga/gen_cl_bw_monitor\[$idx\]/i_axi_bw_monitor/*
+    add wave -noupdate -group {tb_bw_monitor} -group "gen_noc_bw_monitor[$idx]" /tb_picobello_fpga/gen_noc_bw_monitor\[$idx\]/i_axi_bw_monitor/*
+}
 
 # TB timer
 add wave -noupdate -group {tb_timer} {/tb_picobello_fpga/timer_i/*}
@@ -19,17 +39,26 @@ add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_fpga/dut/i_
 add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_fpga/dut/i_fpga_host_tile/i_chimney/*}
 
 # Cluster tiles
-set dim_x_cl 4
-set dim_y_cl 4
-
-for {set idx 0} {$idx < [expr {$dim_x_cl * $dim_y_cl}]} {incr idx} {
+for {set idx 0} {$idx < $n_cl} {incr idx} {
     set y [expr {$idx % $dim_y_cl}]
     set x [expr {int($idx / $dim_y_cl)}]
     set tile_path "/tb_picobello_fpga/dut/gen_clusters\[$idx\]/i_cluster_tg_tile"
 
     # add wave -noupdate -group "cluster_tile[$x][$y]" ${tile_path}/*
-    add wave -noupdate -group "cluster_tile[$x][$y]" -group {router} ${tile_path}/i_router/*
-    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} ${tile_path}/i_chimney/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {router} -group {top} ${tile_path}/i_router/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {top} ${tile_path}/i_chimney/*
+
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {narrow_r_rob} ${tile_path}/i_chimney/i_narrow_r_rob/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {narrow_b_rob} ${tile_path}/i_chimney/i_narrow_b_rob/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {wide_r_rob} ${tile_path}/i_chimney/i_wide_r_rob/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {wide_b_rob} ${tile_path}/i_chimney/i_wide_b_rob/*
+    
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {req_wormhole_arbiter} ${tile_path}/i_chimney/i_req_wormhole_arbiter/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {rsp_wormhole_arbiter} ${tile_path}/i_chimney/i_rsp_wormhole_arbiter/*
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {wide_wormhole_arbiter} ${tile_path}/i_chimney/i_wide_wormhole_arbiter/*
+
+    add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {narrow_meta_buffer} ${tile_path}/i_chimney/gen_narrow_mgr_port/i_narrow_meta_buffer/*
+    # add wave -noupdate -group "cluster_tile[$x][$y]" -group {ni} -group {wide_meta_buffer} ${tile_path}/i_chimney/gen_wide_mgr_port/i_wide_meta_buffer/*
 
     # # Traffic generator
     add wave -noupdate -group "cluster_tile[$x][$y]" -group {traffic_gen} -group {axi_tg_wide_out} ${tile_path}/i_axi_hls_tg_wrapper/axi_tg_wide_out/*
@@ -78,7 +107,7 @@ for {set idx 0} {$idx < [expr {$dim_x_cl * $dim_y_cl}]} {incr idx} {
 
     # add wave -noupdate -group "cluster_tile[$x][$y]" -group {axi_rt} -group {axi_write_buffer} ${tile_path}/i_axi_rt_unit_wide/gen_rt_units[0]/i_axi_rt_unit/i_axi_write_buffer/*
     
-    add wave -noupdate -group "cluster_tile[$x][$y]" -group {axi_rt} -group {axi_isolate_tail} ${tile_path}/i_axi_rt_unit_wide/gen_rt_units[0]/i_axi_rt_unit/i_axi_isolate_tail/*
+    # add wave -noupdate -group "cluster_tile[$x][$y]" -group {axi_rt} -group {axi_isolate_tail} ${tile_path}/i_axi_rt_unit_wide/gen_rt_units[0]/i_axi_rt_unit/i_axi_isolate_tail/*
 
     add wave -noupdate -group "cluster_tile[$x][$y]" -group {axi_rt} -group {axi_rt_regbus_guard} ${tile_path}/i_axi_rt_unit_wide/i_axi_rt_regbus_guard/*
     add wave -noupdate -group "cluster_tile[$x][$y]" -group {axi_rt} -group {axi_rt_regbus_guard} -group {reg_demux} ${tile_path}/i_axi_rt_unit_wide/i_axi_rt_regbus_guard/i_reg_demux/*
@@ -95,33 +124,27 @@ for {set idx 0} {$idx < [expr {$dim_x_cl * $dim_y_cl}]} {incr idx} {
 }
 
 # Memory tiles
-set dim_x_mem 1
-set dim_y_mem 32
-
 for {set idx 0} {$idx < [expr {$dim_x_mem * $dim_y_mem}]} {incr idx} {
     set y [expr {$idx % $dim_y_mem}]
     set x [expr {int($idx / $dim_y_mem)}]
     set tile_path "/tb_picobello_fpga/dut/gen_memtile\[$idx\]/i_mem_tile"
 
     add wave -noupdate -group "mem_tile[$x][$y]" ${tile_path}/*
-    add wave -noupdate -group "mem_tile[$x][$y]" -group {router} ${tile_path}/i_router/*
+    add wave -noupdate -group "mem_tile[$x][$y]" -group {router} -group {top} ${tile_path}/i_router/*
     add wave -noupdate -group "mem_tile[$x][$y]" -group {router} -group {req_floo_router} ${tile_path}/i_router/i_req_floo_router/*
     add wave -noupdate -group "mem_tile[$x][$y]" -group {router} -group {rsp_floo_router} ${tile_path}/i_router/i_rsp_floo_router/*
     add wave -noupdate -group "mem_tile[$x][$y]" -group {router} -group {wide_req_floo_router} ${tile_path}/i_router/i_wide_req_floo_router/*
-    add wave -noupdate -group "mem_tile[$x][$y]" -group {ni} ${tile_path}/i_chimney/*
-    add wave -noupdate -group "mem_tile[$x][$y]" -group {axi_to_obi} ${tile_path}/i_axi_to_obi/*
+    add wave -noupdate -group "mem_tile[$x][$y]" -group {ni} -group {top} ${tile_path}/i_chimney/*
+    # add wave -noupdate -group "mem_tile[$x][$y]" -group {axi_to_obi} ${tile_path}/i_axi_to_obi/*
 }
 
 # # Dummy tiles
-# set dim_x_dummy 5
-# set dim_y_dummy 16
-
 # for {set idx 0} {$idx < [expr {$dim_x_dummy * $dim_y_dummy}]} {incr idx} {
 #     set y [expr {$idx % $dim_y_dummy}]
 #     set x [expr {int($idx / $dim_y_dummy)}]
 #     set tile_path "/tb_picobello_fpga/dut/gen_dummytiles\[$idx\]/i_dummy_tile"
 #     # add wave -noupdate -group "dummy_tile[$x][$y]" ${tile_path}/*
-#     add wave -noupdate -group "dummy_tile[$x][$y]" -group {router} ${tile_path}/i_router/*
+#     add wave -noupdate -group "dummy_tile[$x][$y]" -group {router} -group {top} ${tile_path}/i_router/*
 # }
 
 TreeUpdate [SetDefaultTree]
