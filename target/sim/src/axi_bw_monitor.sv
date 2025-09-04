@@ -80,90 +80,94 @@ module axi_bw_monitor #(
   end
 
   initial begin
-    ar_cnt = 0;
-    aw_cnt = 0;
-    w_cnt = 0;
-    r_cnt = 0;
-    read_latency_mean = 0;
-    write_latency_mean = 0;
-    read_latency_stddev = 0;
-    write_latency_stddev = 0;
-    read_bw = 0;
-    write_bw = 0;
-    read_util = 0;
-    write_util = 0;
-    prev_r_last = 1;
-    @(posedge en_cnt_i);
-    while(!end_cnt_i) begin
-      @(posedge clk_i);
-      if (req_i.ar_valid && rsp_i.ar_ready) begin
-        ar_outstanding[req_i.ar.id].push_back(cycle_cnt);
-        ar_cnt++;
-      end
-      if (req_i.aw_valid && rsp_i.aw_ready) begin
-        aw_outstanding[req_i.aw.id].push_back(cycle_cnt);
-        aw_cnt++;
-      end
-      if (req_i.w_valid && rsp_i.w_ready) begin
-        w_cnt++;
-      end
-      if (rsp_i.r_valid && req_i.r_ready) begin
-        r_cnt++;
-        if (prev_r_last) begin
-          read_latency.push_back(cycle_cnt - ar_outstanding[rsp_i.r.id].pop_front());
-        end
-        prev_r_last = rsp_i.r.last;
-      end
-      if (rsp_i.b_valid && req_i.b_ready) begin
-        write_latency.push_back(cycle_cnt - aw_outstanding[rsp_i.b.id].pop_front());
-      end
-    end
-
-    // Calculate the average of all latencies
-    foreach (read_latency[i]) begin
-      read_latency_mean += read_latency[i];
-    end
-    foreach (write_latency[i]) begin
-      write_latency_mean += write_latency[i];
-    end
-    if (read_latency.size() == 0) begin
+    while(1) begin 
+      ar_cnt = 0;
+      aw_cnt = 0;
+      w_cnt = 0;
+      r_cnt = 0;
       read_latency_mean = 0;
-    end else begin
-      read_latency_mean = read_latency_mean / read_latency.size();
-    end
-    if (write_latency.size() == 0) begin
       write_latency_mean = 0;
-    end else begin
-      write_latency_mean = write_latency_mean / write_latency.size();
-    end
-    // Calculate the standard deviation of all latencies
-    foreach (read_latency[i]) begin
-      read_latency_stddev += (read_latency[i] - read_latency_mean) ** 2;
-    end
-    foreach (write_latency[i]) begin
-      write_latency_stddev += (write_latency[i] - write_latency_mean) ** 2;
-    end
-    if (read_latency.size() == 0) begin
       read_latency_stddev = 0;
-    end else begin
-      read_latency_stddev = $sqrt(read_latency_stddev / read_latency.size());
-    end
-    if (write_latency.size() == 0) begin
       write_latency_stddev = 0;
-    end else begin
-      write_latency_stddev = $sqrt(write_latency_stddev / write_latency.size());
-    end
+      read_bw = 0;
+      write_bw = 0;
+      read_util = 0;
+      write_util = 0;
+      prev_r_last = 1;
 
-    // Calculate the BW and utilization
-    read_bw = real'(r_cnt) * $bits(rsp_i.r.data) / real'(cycle_cnt);
-    write_bw = real'(w_cnt) * $bits(req_i.w.data) / real'(cycle_cnt);
-    read_util = real'(r_cnt) * 100 / real'(cycle_cnt);
-    write_util = real'(w_cnt) * 100 / real'(cycle_cnt);
+      @(posedge en_cnt_i);
 
-    $display("[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
-             Name, read_latency_mean, read_latency_stddev, read_bw, read_util);
-    $display("[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
-             Name, write_latency_mean, write_latency_stddev, write_bw, write_util);
-  end
+      while(en_cnt_i) begin
+        @(posedge clk_i);
+        if (req_i.ar_valid && rsp_i.ar_ready) begin
+          ar_outstanding[req_i.ar.id].push_back(cycle_cnt_reg);
+          ar_cnt++;
+        end
+        if (req_i.aw_valid && rsp_i.aw_ready) begin
+          aw_outstanding[req_i.aw.id].push_back(cycle_cnt_reg);
+          aw_cnt++;
+        end
+        if (req_i.w_valid && rsp_i.w_ready) begin
+          w_cnt++;
+        end
+        if (rsp_i.r_valid && req_i.r_ready) begin
+          r_cnt++;
+          if (prev_r_last) begin
+            read_latency.push_back(cycle_cnt_reg - ar_outstanding[rsp_i.r.id].pop_front());
+          end
+          prev_r_last = rsp_i.r.last;
+        end
+        if (rsp_i.b_valid && req_i.b_ready) begin
+          write_latency.push_back(cycle_cnt_reg - aw_outstanding[rsp_i.b.id].pop_front());
+        end
+      end
 
+      // Calculate the average of all latencies
+      foreach (read_latency[i]) begin
+        read_latency_mean += read_latency[i];
+      end
+      foreach (write_latency[i]) begin
+        write_latency_mean += write_latency[i];
+      end
+      if (read_latency.size() == 0) begin
+        read_latency_mean = 0;
+      end else begin
+        read_latency_mean = read_latency_mean / read_latency.size();
+      end
+      if (write_latency.size() == 0) begin
+        write_latency_mean = 0;
+      end else begin
+        write_latency_mean = write_latency_mean / write_latency.size();
+      end
+      // Calculate the standard deviation of all latencies
+      foreach (read_latency[i]) begin
+        read_latency_stddev += (read_latency[i] - read_latency_mean) ** 2;
+      end
+      foreach (write_latency[i]) begin
+        write_latency_stddev += (write_latency[i] - write_latency_mean) ** 2;
+      end
+      if (read_latency.size() == 0) begin
+        read_latency_stddev = 0;
+      end else begin
+        read_latency_stddev = $sqrt(read_latency_stddev / read_latency.size());
+      end
+      if (write_latency.size() == 0) begin
+        write_latency_stddev = 0;
+      end else begin
+        write_latency_stddev = $sqrt(write_latency_stddev / write_latency.size());
+      end
+
+      // Calculate the BW and utilization
+      read_bw = real'(r_cnt) * $bits(rsp_i.r.data) / real'(cycle_cnt_reg);
+      write_bw = real'(w_cnt) * $bits(req_i.w.data) / real'(cycle_cnt_reg);
+      read_util = real'(r_cnt) * 100 / real'(cycle_cnt_reg);
+      write_util = real'(w_cnt) * 100 / real'(cycle_cnt_reg);
+
+      // Print statistics
+      $display("[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
+              Name, read_latency_mean, read_latency_stddev, read_bw, read_util);
+      $display("[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
+              Name, write_latency_mean, write_latency_stddev, write_bw, write_util);
+    end // infinite loop
+  end // initial block
 endmodule
