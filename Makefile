@@ -35,7 +35,7 @@ BENDER_LOCK = $(PB_ROOT)/Bender.lock
 
 COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t floogen_pkg
 SIM_TARGS += -t simulation -t test -t idma_test
-FPGA_TARGS += -t fpga
+FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_use_fpga_scm
 
 ############
 # Cheshire #
