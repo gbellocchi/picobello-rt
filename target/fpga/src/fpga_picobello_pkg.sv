@@ -98,22 +98,33 @@ package fpga_picobello_pkg;
                            axi_lite_host_addr_t, axi_lite_host_data_t, axi_lite_host_strb_t)
 
   ///////////////
+  // L2 Memory //
+  ///////////////
+
+  localparam int unsigned L2AddrWidth = floo_picobello_noc_pkg::AxiCfgW.AddrWidth;
+  localparam int unsigned L2DataWidth = floo_picobello_noc_pkg::AxiCfgW.DataWidth;
+  localparam int unsigned L2IdWidth   = floo_picobello_noc_pkg::AxiCfgW.OutIdWidth;
+  localparam int unsigned L2UserWidth = floo_picobello_noc_pkg::AxiCfgW.UserWidth;
+
+  ///////////////
   // AXI-Realm //
   ///////////////
 
   // Number of masters
-  localparam int unsigned NumMasters    = 32'd1;
+  localparam int unsigned NumMasters      = 32'd1;
   // Number of slaves
-  localparam int unsigned NumSlaves     = 32'd1;
+  localparam int unsigned NumSlaves       = 32'd1;
   // Number of regions per master
-  localparam int unsigned NumRegions    = 32'd1;
+  localparam int unsigned NumRegions      = 32'd1;
+  // Max burst length
+  localparam int unsigned MaxBurstLength  = 32'd128;
   // Number of outstanding transactions
-  localparam int unsigned NumPending    = 32'd4;
+  localparam int unsigned NumPending      = MaxBurstLength;
   // Write buffer depth
-  localparam int unsigned WBufferDepth  = 32'd128;
+  localparam int unsigned WBufferDepth    = MaxBurstLength;
   // QoS parameters
-  localparam int unsigned PeriodWidth   = 32'd32;
-  localparam int unsigned BudgetWidth   = 32'd32;
+  localparam int unsigned PeriodWidth     = 32'd32;
+  localparam int unsigned BudgetWidth     = 32'd32;
 
   // RT ID
   localparam int unsigned AxiSlvIdWidth = (NumMasters == 32'd1 & NumSlaves == 32'd1) ?

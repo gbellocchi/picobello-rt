@@ -23,6 +23,14 @@ packages:
     - common_cells
     - common_verification
     - tech_cells_generic
+  axi2mem:
+    revision: null
+    version: null
+    source:
+      Path: target/fpga/src/axi2mem
+    dependencies:
+    - common_cells
+    - riscv
   axi_llc:
     revision: 59bb8a681347e1133f11a82190fbf4bc11900d9e
     version: 0.2.2
@@ -245,6 +253,14 @@ packages:
     - axi
     - common_cells
     - common_verification
+  riscv:
+    revision: 6e190eb77bcb4f6e6b70bc677b8e203dfc2ade6f
+    version: ~
+    source:
+      Git: "https://github.com/AlSaqr-platform/riscv_nn"
+    dependencies:
+      - fpnew
+      - tech_cells_generic
   riscv-dbg:
     revision: 358f90110220adf7a083f8b65d157e836d706236
     version: 0.8.1

@@ -18,6 +18,7 @@ dependencies:
   axi_obi: { path: "hw/axi_obi" }
   picobello-pd:  { path: "./pd" }
   fhg_spu_cluster:  { path: "./deps/fhg_spu_cluster" }
+  axi2mem:  { path: "./target/fpga/src/axi2mem" }
 
 workspace:
   package_links:
@@ -96,6 +97,7 @@ sources:
       - target/fpga/src/tg_tile.sv
       - target/fpga/src/tg_tile_rw.sv
       - target/fpga/src/tg_realm_tile.sv
+      - target/fpga/src/fpga_l2_tile.sv
       - target/fpga/src/fpga_host_tile.sv
       # Level 4
       - target/fpga/src/fpga_picobello_top.sv
