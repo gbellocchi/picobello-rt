@@ -8,6 +8,48 @@ import fpga_picobello_pkg::*;
 
 `define wait_for(signal) do @(posedge `CLK_SIGNAL); while (!signal);
 
+////////////////
+// BW monitor //
+////////////////
+
+// Reset and initialize BW monitor
+task automatic picobello_reset_bw_monitor(
+  ref logic bw_monitor_start,
+  ref logic bw_monitor_rst
+);
+  // Reset the monitor first
+  @(posedge `CLK_SIGNAL);
+  bw_monitor_start = 1'b0;
+  bw_monitor_rst = 1'b1;
+
+  // Release reset and initialize to known state
+  @(posedge `CLK_SIGNAL);
+  bw_monitor_start = 1'b0;
+  bw_monitor_rst = 1'b0;
+endtask
+
+// Start BW monitor
+task automatic picobello_start_bw_monitor(
+  ref logic bw_monitor_start,
+  ref logic bw_monitor_rst
+);
+  // Start the monitor
+  @(posedge `CLK_SIGNAL);
+  bw_monitor_start = 1'b1;
+  bw_monitor_rst = 1'b0;
+endtask
+
+// Stop BW monitor
+task automatic picobello_stop_bw_monitor(
+  ref logic bw_monitor_start,
+  ref logic bw_monitor_rst
+);
+  // Stop the monitor
+  @(posedge `CLK_SIGNAL);
+  bw_monitor_start = 1'b0;
+  bw_monitor_rst = 1'b0;
+endtask
+
 ///////////
 // Timer //
 ///////////
