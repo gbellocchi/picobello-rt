@@ -38,7 +38,6 @@ module tb_picobello_fpga
   `include "tb_picobello_fpga_tasks.svh"
   `include "tb_picobello_rt_tasks.svh"
 
-  logic [picobello_pkg::NumClusters-1:0] start_of_sim;
   logic [picobello_pkg::NumClusters-1:0] end_of_sim;
   
   // Timer configuration
@@ -47,6 +46,9 @@ module tb_picobello_fpga
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Experiment latency
 
   // BW monitoring
+  logic bw_monitor_enable [picobello_pkg::NumClusters-1:0];
+  logic bw_monitor_rst;
+
   floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_req; 
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_rsp;
 
@@ -108,7 +110,7 @@ module tb_picobello_fpga
 
   // Burst length
   int BurstLengthMin = 32'd1; // burstless (single-beat)
-  int BurstLengthMax = 32'd1; // max allowed by axi4
+  int BurstLengthMax = 32'd128; // max allowed by axi4
 
   /////////
   // DUT //
@@ -186,15 +188,14 @@ module tb_picobello_fpga
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
-      .clk_i          ( clk                 ),
-      .rst_ni         ( rst_n               ),
-      .en_cnt_i       ( start_of_sim[c]     ),
-      .rst_cnt_i      ( start_of_sim[c]     ),
-      .end_cnt_i      ( end_of_sim[c]       ),
-      .req_i          ( bw_rt_cl_req[c]     ),
-      .rsp_i          ( bw_rt_cl_rsp[c]     ),
-      .ar_in_flight_o (                     ),
-      .aw_in_flight_o (                     )
+      .clk_i          ( clk                   ),
+      .rst_ni         ( rst_n                 ),
+      .en_cnt_i       ( bw_monitor_enable[c]  ),
+      .rst_cnt_i      ( bw_monitor_rst        ),
+      .req_i          ( bw_rt_cl_req[c]       ),
+      .rsp_i          ( bw_rt_cl_rsp[c]       ),
+      .ar_in_flight_o (                       ),
+      .aw_in_flight_o (                       )
     );
   end
 
@@ -211,15 +212,14 @@ module tb_picobello_fpga
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
-      .clk_i          ( clk                 ),
-      .rst_ni         ( rst_n               ),
-      .en_cnt_i       ( start_of_sim[c]     ),
-      .rst_cnt_i      ( start_of_sim[c]     ),
-      .end_cnt_i      ( end_of_sim[c]       ),
-      .req_i          ( bw_rt_noc_req[c]    ),
-      .rsp_i          ( bw_rt_noc_rsp[c]    ),
-      .ar_in_flight_o (                     ),
-      .aw_in_flight_o (                     )
+      .clk_i          ( clk                   ),
+      .rst_ni         ( rst_n                 ),
+      .en_cnt_i       ( bw_monitor_enable[c]  ),
+      .rst_cnt_i      ( bw_monitor_rst        ),
+      .req_i          ( bw_rt_noc_req[c]      ),
+      .rsp_i          ( bw_rt_noc_rsp[c]      ),
+      .ar_in_flight_o (                       ),
+      .aw_in_flight_o (                       )
     );
   end
 
@@ -366,8 +366,16 @@ module tb_picobello_fpga
 
             @(posedge `CLK_SIGNAL); #5;
 
+            // Initialize runtime signals
+            end_of_sim = '{default: '0};
+
             // Initialize timer
             picobello_reset_timer(tb_timer_cfg);
+
+            // Initialize BW monitor
+            bw_monitor_init_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+              picobello_reset_bw_monitor(bw_monitor_enable[cl_id], bw_monitor_rst);
+            end
 
             // Reset old timer counter value
             tb_timer_cnt_value_old = '0; // Reset old counter value
@@ -376,9 +384,6 @@ module tb_picobello_fpga
 
             // Start timer
             picobello_start_timer(tb_timer_cfg);
-
-            start_of_sim = '{default: '0};
-            end_of_sim = '{default: '0};
 
             // Repeat test multiple times
             test_repetition_loop: for (int test_id = 0; test_id < NTestIterations; test_id++) begin
@@ -415,7 +420,10 @@ module tb_picobello_fpga
                 // $display ("\nTest #%0d-------------DMA-in: read data from L2 memory", NTest);
                 dma_in_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
 
-                  if(test_id==0) start_of_sim[cl_id] = 1'b1;
+                  if(test_id==0) begin
+                    // Start BW monitor
+                    picobello_start_bw_monitor(bw_monitor_enable[cl_id], bw_monitor_rst);
+                  end
 
                   case (cl_id)
                     0: dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
@@ -605,7 +613,13 @@ module tb_picobello_fpga
 
                   @(posedge `CLK_SIGNAL);
 
-                  if(test_id==NTestIterations-1) end_of_sim[cl_id] = 1'b1;
+                  if(test_id==NTestIterations-1) begin 
+                    // Set barrier bit
+                    end_of_sim[cl_id] = 1'b1;
+
+                    // Stop BW monitor
+                    picobello_stop_bw_monitor(bw_monitor_enable[cl_id], bw_monitor_rst);
+                  end
                 end
 
                 // Multi-cluster idle barrier

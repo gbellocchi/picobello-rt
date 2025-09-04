@@ -333,13 +333,14 @@ module tg_realm_tile
 
   `AXI_LITE_ASSIGN_TO_REQ(axi_lite_realm_wide_cfg_req, axi_lite_tile_tg_cfg[3])
   `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[3], axi_lite_realm_wide_cfg_rsp)
-
+  
   ///////////////
   // AXI-Realm //
   ///////////////
 
   // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
 
+  // TO DO: Make it parameterizable on the number of tile managers
   floo_picobello_noc_pkg::axi_wide_in_req_t axi_realm_wide_in_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t axi_realm_wide_in_rsp;
   floo_picobello_noc_pkg::axi_wide_out_req_t axi_realm_wide_out_req;
