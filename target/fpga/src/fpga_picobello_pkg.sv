@@ -139,6 +139,7 @@ package fpga_picobello_pkg;
   typedef struct packed {
     // Register file base address
     axi_host_addr_t rt_reg_addr_base;
+    axi_host_addr_t rt_reg_addr_offset;
     // Address region
     int addr_reg_id;
     // Address region
@@ -156,9 +157,11 @@ package fpga_picobello_pkg;
     // Port IDs
     logic [3:0] traffic_gen_port_id;
     logic [3:0] mem_port_id;
-    // Addresses
+    // Addresses and offsets
   	axi_host_addr_t traffic_gen_addr_base; // Traffic generator base address
+    axi_host_addr_t traffic_gen_addr_offset; // Traffic generator address offset
     axi_host_addr_t mem_addr_base; // Memory base address
+    axi_host_addr_t mem_addr_offset; // Memory address offset
     // Traffic generator parameters
     axi_host_data_t TrafficGenTrafficDim; // Traffic dimension
     axi_host_data_t TrafficGenComputeDim; // Compute dimension
