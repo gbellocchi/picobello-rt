@@ -56,30 +56,25 @@ module tb_picobello_fpga
   // DMA in
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_first_burst; // first burst flag
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_timer_0, dma_r_timer_1, dma_r_timer_val; // timers
-  axi_narrow_out_addr_downsized_addr_t dma_r_addr_offset;
 
   // DMA write
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_w_timer_0, dma_w_timer_1, dma_w_timer_val; // timers
-  axi_narrow_out_addr_downsized_addr_t dma_w_addr_offset;
 
   // Compute
   logic [picobello_pkg::NumClusters-1:0] compute_first_burst, compute_done; // done flag
   logic [picobello_pkg::NumClusters-1:0][31:0] n_compute; // number of compute operations
   logic [picobello_pkg::NumClusters-1:0][31:0] comp_timer_0, comp_timer_1, comp_timer_val; // timers
-  axi_narrow_out_addr_downsized_addr_t compute_addr_offset;
-
-  // SoC
-  logic [picobello_pkg::NumClusters-1:0] multi_cl_done; // done flag
 
   // Clusters
   localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
   floo_picobello_noc_pkg::sam_rule_t cluster_sam;
   floo_picobello_noc_pkg::id_t cluster_idx;
 
-  // AXI-Realm
-  logic [picobello_pkg::NumClusters-1:0] rt_configured; // configuration flag
-  fpga_picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
-  axi_narrow_out_addr_downsized_addr_t rt_addr_offset;
+  // Cluster peripheral address map
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_offset = 32'h0000_0000;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_offset = 32'h0000_2000;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_offset = 32'h0000_4000;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_6000;
 
   // Exploration variables 
 
