@@ -7,17 +7,17 @@
 
 /// A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus
 module axi_bw_monitor #(
-  parameter type req_t     = logic,
-  parameter type rsp_t    = logic,
+  parameter type req_t = logic,
+  parameter type rsp_t = logic,
   parameter int unsigned AxiIdWidth = 4,
   parameter int unsigned NumAxiIds = 2**AxiIdWidth,
   parameter string Name = ""
 ) (
   input logic clk_i,
+  input logic rst_ni,
 
   input logic en_cnt_i,
   input logic rst_cnt_i,
-  input logic end_cnt_i,
 
   input req_t req_i,
   input rsp_t rsp_i,
@@ -26,7 +26,7 @@ module axi_bw_monitor #(
   output logic [31:0] aw_in_flight_o
 );
 
-  int unsigned cycle_cnt;
+  int unsigned cycle_cnt, cycle_cnt_reg;
 
   int unsigned ar_outstanding [NumAxiIds][$];
   int unsigned aw_outstanding [NumAxiIds][$];
@@ -47,15 +47,29 @@ module axi_bw_monitor #(
 
   int unsigned prev_r_last;
 
-  initial begin
-    cycle_cnt = 0;
-    @(posedge en_cnt_i);
-    while(!end_cnt_i) begin
-      @(posedge clk_i);
-      cycle_cnt++;
+  // Count clock cycles
+  always_comb 
+  begin
+    cycle_cnt = cycle_cnt_reg;
+
+    if(rst_cnt_i) begin
+      cycle_cnt = 0;
+    end
+    else if(en_cnt_i) begin
+      cycle_cnt = cycle_cnt_reg + 1;
     end
   end
 
+  always_ff@(posedge clk_i, negedge rst_ni) begin
+    if(!rst_ni) begin
+      cycle_cnt_reg <= 0;
+    end
+    else begin
+      cycle_cnt_reg <= cycle_cnt;
+    end
+  end
+
+  // Count ax requests
   always @(posedge clk_i) begin
     ar_in_flight_o = 0;
     aw_in_flight_o = 0;
