@@ -4,12 +4,14 @@
 
 // Authors:
 //  - Tim Fischer <fischeti@iis.ee.ethz.ch>
+//  - Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 /// A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus
 module axi_bw_monitor #(
   parameter type req_t = logic,
   parameter type rsp_t = logic,
   parameter type cfg_t = logic,
+  parameter type stat_t = logic,
   parameter int unsigned AxiIdWidth = 4,
   parameter int unsigned NumAxiIds = 2**AxiIdWidth,
   parameter string Name = ""
@@ -17,35 +19,47 @@ module axi_bw_monitor #(
   input logic clk_i,
   input logic rst_ni,
 
-  input cfg_t cfg_i,
-
   input req_t req_i,
   input rsp_t rsp_i,
 
   output logic [31:0] ar_in_flight_o,
-  output logic [31:0] aw_in_flight_o
-);
+  output logic [31:0] aw_in_flight_o,
 
+  input cfg_t cfg_i,
+  output stat_t stats_o
+);
+  // Cycle counter
   int unsigned cycle_cnt, cycle_cnt_reg;
 
+  // Stats registers
+  stat_t stats_reg;
+
+  // Queues
   int unsigned ar_outstanding [NumAxiIds][$];
   int unsigned aw_outstanding [NumAxiIds][$];
   int unsigned read_latency [$];
   int unsigned write_latency [$];
-  real read_latency_mean;
-  real write_latency_mean;
-  real read_latency_stddev;
-  real write_latency_stddev;
-  real read_bw;
-  real write_bw;
-  real read_util;
-  real write_util;
+
+  // Control
+  int unsigned prev_r_last;
+
+  // AX channel counters
   int unsigned ar_cnt;
   int unsigned aw_cnt;
   int unsigned w_cnt;
   int unsigned r_cnt;
 
-  int unsigned prev_r_last;
+  // Read statistics
+  real read_latency_mean;
+  real read_latency_stddev;
+  real read_bw;
+  real read_util;
+
+  // Write statistics
+  real write_latency_mean;
+  real write_latency_stddev;
+  real write_bw;
+  real write_util;
 
   // Count clock cycles
   always_comb 
@@ -163,11 +177,17 @@ module axi_bw_monitor #(
       read_util = real'(r_cnt) * 100 / real'(cycle_cnt_reg);
       write_util = real'(w_cnt) * 100 / real'(cycle_cnt_reg);
 
-      // Print statistics
-      $display("[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
-              Name, read_latency_mean, read_latency_stddev, read_bw, read_util);
-      $display("[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
-              Name, write_latency_mean, write_latency_stddev, write_bw, write_util);
+      // Route read channel statistics
+      stats_o.read_latency_mean = read_latency_mean;
+      stats_o.read_latency_stddev = read_latency_stddev;
+      stats_o.read_bw = read_bw;
+      stats_o.read_util = read_util;
+
+      // Route write channel statistics
+      stats_o.write_latency_mean = write_latency_mean;
+      stats_o.write_latency_stddev = write_latency_stddev;
+      stats_o.write_bw = write_bw;
+      stats_o.write_util = write_util;
     end // infinite loop
   end // initial block
 endmodule

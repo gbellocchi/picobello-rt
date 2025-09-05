@@ -50,10 +50,12 @@ module tb_picobello_fpga
   floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_rsp;
   fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_cfg;
+  fpga_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0];
 
   floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_rsp;
   fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_cfg;
+  fpga_picobello_pkg::bw_monitor_stats_t bw_rt_noc_stats [picobello_pkg::NumClusters-1:0];
 
   // DMA in
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_first_burst; // first burst flag
@@ -110,7 +112,7 @@ module tb_picobello_fpga
 
   // Burst length
   int BurstLengthMin = 32'd1; // burstless (single-beat)
-  int BurstLengthMax = 32'd128; // max allowed by axi4
+  int BurstLengthMax = 32'd1; // max allowed by axi4
 
   /////////
   // DUT //
@@ -185,6 +187,7 @@ module tb_picobello_fpga
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
       .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
       .cfg_t      ( fpga_picobello_pkg::bw_monitor_cfg_t      ),
+      .stat_t     ( fpga_picobello_pkg::bw_monitor_stats_t    ),
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
@@ -194,7 +197,8 @@ module tb_picobello_fpga
       .rsp_i          ( bw_rt_cl_rsp[cl_id]         ),
       .ar_in_flight_o (                             ),
       .aw_in_flight_o (                             ),
-      .cfg_i          ( bw_rt_cl_cfg[cl_id]         )
+      .cfg_i          ( bw_rt_cl_cfg[cl_id]         ),
+      .stats_o        ( bw_rt_cl_stats[cl_id]       )
     );
   end
 
@@ -208,6 +212,7 @@ module tb_picobello_fpga
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
       .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
       .cfg_t      ( fpga_picobello_pkg::bw_monitor_cfg_t      ),
+      .stat_t     ( fpga_picobello_pkg::bw_monitor_stats_t    ),
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
@@ -217,7 +222,8 @@ module tb_picobello_fpga
       .rsp_i          ( bw_rt_noc_rsp[cl_id]         ),
       .ar_in_flight_o (                              ),
       .aw_in_flight_o (                              ),
-      .cfg_i          ( bw_rt_noc_cfg[cl_id]         )
+      .cfg_i          ( bw_rt_noc_cfg[cl_id]         ),
+      .stats_o        ( bw_rt_noc_stats[cl_id]       )
     );
   end
 
@@ -663,6 +669,25 @@ module tb_picobello_fpga
             $display (" - DmaWriteTime[NTestCl-1]:   %8d", dma_w_timer_val[NTestCl-1]);
             
             $display (" - ExecTime:       %8d", tb_timer_cnt_value - tb_timer_cnt_value_old);
+
+            bw_monitor_display_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+              $display(
+                "[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
+                $sformatf("cl_bw_monitor_%0d", cl_id), 
+                bw_rt_cl_stats[cl_id].read_latency_mean, 
+                bw_rt_cl_stats[cl_id].read_latency_stddev, 
+                bw_rt_cl_stats[cl_id].read_bw, 
+                bw_rt_cl_stats[cl_id].read_util
+              );
+              $display(
+                "[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
+                $sformatf("cl_bw_monitor_%0d", cl_id), 
+                bw_rt_cl_stats[cl_id].write_latency_mean, 
+                bw_rt_cl_stats[cl_id].write_latency_stddev, 
+                bw_rt_cl_stats[cl_id].write_bw, 
+                bw_rt_cl_stats[cl_id].write_util
+              );
+            end
 
             NTest = NTest + 1;
             tb_timer_cnt_value_old = tb_timer_cnt_value; // Store old counter value
