@@ -148,6 +148,17 @@ package fpga_picobello_pkg;
     axi_rt_reg_pkg::axi_rt_reg2hw_t rt_regfile_cfg;
   } rt_cfg_t;
 
+  /////////////////////
+  // AXI BW Monitors //
+  /////////////////////
+
+  // AXI BW monitor configuration struct
+  typedef struct packed {
+    // Control
+    logic en_cnt;
+    logic rst_cnt;
+  } bw_monitor_cfg_t;
+
   ///////////////////////
   // Traffic Generator //
   ///////////////////////

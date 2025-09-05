@@ -46,15 +46,14 @@ module tb_picobello_fpga
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Experiment latency
 
   // BW monitoring
-  logic bw_monitor_enable [picobello_pkg::NumClusters-1:0];
-  logic bw_monitor_rst;
-
-  floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_req; 
+  floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_rsp;
+  fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_cfg;
 
-  floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_req; 
+  floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_rsp;
-  
+  fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_cfg;
+
   // DMA in
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_first_burst; // first burst flag
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_timer_0, dma_r_timer_1, dma_r_timer_val; // timers
@@ -176,11 +175,10 @@ module tb_picobello_fpga
   ////////////////
 
   // Cluster wide input
-  for (genvar c = 0; c < picobello_pkg::NumClusters; c++) begin : gen_cl_bw_monitor
-    localparam string BwMonitorName = $sformatf("cl_bw_monitor_%0d", c);
-
-    assign bw_rt_cl_req[c] = dut.gen_clusters[c].i_cluster_tg_tile.axi_realm_wide_in_req;
-    assign bw_rt_cl_rsp[c] = dut.gen_clusters[c].i_cluster_tg_tile.axi_realm_wide_in_rsp;
+  for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_cl_bw_monitor
+    localparam string BwMonitorName = $sformatf("cl_bw_monitor_%0d", cl_id);
+    assign bw_rt_cl_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_tg_tile.axi_realm_wide_in_req;
+    assign bw_rt_cl_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_tg_tile.axi_realm_wide_in_rsp;
 
     axi_bw_monitor #(
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
@@ -188,23 +186,22 @@ module tb_picobello_fpga
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
-      .clk_i          ( clk                   ),
-      .rst_ni         ( rst_n                 ),
-      .en_cnt_i       ( bw_monitor_enable[c]  ),
-      .rst_cnt_i      ( bw_monitor_rst        ),
-      .req_i          ( bw_rt_cl_req[c]       ),
-      .rsp_i          ( bw_rt_cl_rsp[c]       ),
-      .ar_in_flight_o (                       ),
-      .aw_in_flight_o (                       )
+      .clk_i          ( clk                         ),
+      .rst_ni         ( rst_n                       ),
+      .en_cnt_i       ( bw_rt_cl_cfg[cl_id].en_cnt  ),
+      .rst_cnt_i      ( bw_rt_cl_cfg[cl_id].rst_cnt ),
+      .req_i          ( bw_rt_cl_req[cl_id]         ),
+      .rsp_i          ( bw_rt_cl_rsp[cl_id]         ),
+      .ar_in_flight_o (                             ),
+      .aw_in_flight_o (                             )
     );
   end
 
   // NoC wide input
-  for (genvar c = 0; c < picobello_pkg::NumClusters; c++) begin : gen_noc_bw_monitor
-    localparam string BwMonitorName = $sformatf("noc_bw_monitor_%0d", c);
-
-    assign bw_rt_noc_req[c] = dut.gen_clusters[c].i_cluster_tg_tile.chimney_wide_in_req;
-    assign bw_rt_noc_rsp[c] = dut.gen_clusters[c].i_cluster_tg_tile.chimney_wide_in_rsp;
+  for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_bw_monitor
+    localparam string BwMonitorName = $sformatf("noc_bw_monitor_%0d", cl_id);
+    assign bw_rt_noc_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_tg_tile.chimney_wide_in_req;
+    assign bw_rt_noc_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_tg_tile.chimney_wide_in_rsp;
 
     axi_bw_monitor #(
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
@@ -212,14 +209,14 @@ module tb_picobello_fpga
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
-      .clk_i          ( clk                   ),
-      .rst_ni         ( rst_n                 ),
-      .en_cnt_i       ( bw_monitor_enable[c]  ),
-      .rst_cnt_i      ( bw_monitor_rst        ),
-      .req_i          ( bw_rt_noc_req[c]      ),
-      .rsp_i          ( bw_rt_noc_rsp[c]      ),
-      .ar_in_flight_o (                       ),
-      .aw_in_flight_o (                       )
+      .clk_i          ( clk                          ),
+      .rst_ni         ( rst_n                        ),
+      .en_cnt_i       ( bw_rt_noc_cfg[cl_id].en_cnt  ),
+      .rst_cnt_i      ( bw_rt_noc_cfg[cl_id].rst_cnt ),
+      .req_i          ( bw_rt_noc_req[cl_id]         ),
+      .rsp_i          ( bw_rt_noc_rsp[cl_id]         ),
+      .ar_in_flight_o (                              ),
+      .aw_in_flight_o (                              )
     );
   end
 
@@ -374,7 +371,11 @@ module tb_picobello_fpga
 
             // Initialize BW monitor
             bw_monitor_init_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-              picobello_reset_bw_monitor(bw_monitor_enable[cl_id], bw_monitor_rst);
+              picobello_reset_bw_monitor(bw_rt_cl_cfg[cl_id]);
+              picobello_reset_bw_monitor(bw_rt_noc_cfg[cl_id]);
+              @(posedge `CLK_SIGNAL);
+              picobello_stop_bw_monitor(bw_rt_cl_cfg[cl_id]);
+              picobello_stop_bw_monitor(bw_rt_noc_cfg[cl_id]);
             end
 
             // Reset old timer counter value
@@ -394,7 +395,6 @@ module tb_picobello_fpga
 
               // Iterate over the accelerators per cluster
               dma_in_set_acc_x_cl_loop: for (int acc_cl_id = 0; acc_cl_id < NAccxCl; acc_cl_id++) begin
-
                 // Initialize TB exploration variables
 
                 // --- DMA in
@@ -422,7 +422,8 @@ module tb_picobello_fpga
 
                   if(test_id==0) begin
                     // Start BW monitor
-                    picobello_start_bw_monitor(bw_monitor_enable[cl_id], bw_monitor_rst);
+                    picobello_start_bw_monitor(bw_rt_cl_cfg[cl_id]);
+                    picobello_start_bw_monitor(bw_rt_noc_cfg[cl_id]);
                   end
 
                   case (cl_id)
@@ -618,7 +619,8 @@ module tb_picobello_fpga
                     end_of_sim[cl_id] = 1'b1;
 
                     // Stop BW monitor
-                    picobello_stop_bw_monitor(bw_monitor_enable[cl_id], bw_monitor_rst);
+                    picobello_stop_bw_monitor(bw_rt_cl_cfg[cl_id]);
+                    picobello_stop_bw_monitor(bw_rt_noc_cfg[cl_id]);
                   end
                 end
 
