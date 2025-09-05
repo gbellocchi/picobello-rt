@@ -7,9 +7,47 @@
 import fpga_picobello_pkg::*;
 import axi_rt_reg_pkg::* ;
 
+////////////////
+// BW monitor //
+////////////////
+
+// Reset and initialize BW monitor
+task automatic picobello_reset_bw_monitor(
+  output bw_monitor_cfg_t bw_monitor
+);
+  // Reset the monitor first
+  @(posedge `CLK_SIGNAL);
+  bw_monitor.en_cnt = 1'b0;
+  bw_monitor.rst_cnt = 1'b1;
+endtask
+
+// Start BW monitor
+task automatic picobello_start_bw_monitor(
+  output bw_monitor_cfg_t bw_monitor
+);
+  // Start the monitor
+  @(posedge `CLK_SIGNAL);
+  bw_monitor.en_cnt = 1'b1;
+  bw_monitor.rst_cnt = 1'b0;
+endtask
+
+// Stop BW monitor
+task automatic picobello_stop_bw_monitor(
+  output bw_monitor_cfg_t bw_monitor
+);
+  // Stop the monitor
+  @(posedge `CLK_SIGNAL);
+  bw_monitor.en_cnt = 1'b0;
+  bw_monitor.rst_cnt = 1'b0;
+endtask
+
+///////////////
+// AXI-Realm //
+///////////////
+
 // Check input RT configuration correctness
 task automatic picobello_rt_check_cfg(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   // Check that the address region ID is consistent
   assert (tb_rt_cfg.addr_reg_id < (NumReg - 1)) else
@@ -22,7 +60,7 @@ endtask
 
 // Configure AXI-Realm guard register
 task automatic picobello_rt_guard_init(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -58,7 +96,7 @@ endtask
 
 // Configure AXI-Realm address region
 task automatic picobello_rt_set_addr_reg(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -94,7 +132,7 @@ endtask
 
 // Configure AXI-Realm period-budget QoS service
 task automatic picobello_rt_set_period_budget(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -130,7 +168,7 @@ endtask
 
 // Configure AXI-Realm burst splitter
 task automatic picobello_rt_set_burst_length(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -157,7 +195,7 @@ endtask
 
 // Enable IMTU mode
 task automatic picobello_rt_enable_imtu(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -176,7 +214,7 @@ endtask
 
 // Abort IMTU mode
 task automatic picobello_rt_abort_imtu(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -196,7 +234,7 @@ endtask
 
 // Enable RT mode
 task automatic picobello_rt_enable_rt(
-  input rt_cfg_t  tb_rt_cfg
+  input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
