@@ -184,17 +184,17 @@ module tb_picobello_fpga
     axi_bw_monitor #(
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
       .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
+      .cfg_t      ( fpga_picobello_pkg::bw_monitor_cfg_t      ),
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
       .clk_i          ( clk                         ),
-      .rst_ni         ( rst_n                       ),
-      .en_cnt_i       ( bw_rt_cl_cfg[cl_id].en_cnt  ),
-      .rst_cnt_i      ( bw_rt_cl_cfg[cl_id].rst_cnt ),
+      .rst_ni         ( rst_n                       ),    
       .req_i          ( bw_rt_cl_req[cl_id]         ),
       .rsp_i          ( bw_rt_cl_rsp[cl_id]         ),
       .ar_in_flight_o (                             ),
-      .aw_in_flight_o (                             )
+      .aw_in_flight_o (                             ),
+      .cfg_i          ( bw_rt_cl_cfg[cl_id]         )
     );
   end
 
@@ -207,17 +207,17 @@ module tb_picobello_fpga
     axi_bw_monitor #(
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
       .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
+      .cfg_t      ( fpga_picobello_pkg::bw_monitor_cfg_t      ),
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
       .clk_i          ( clk                          ),
       .rst_ni         ( rst_n                        ),
-      .en_cnt_i       ( bw_rt_noc_cfg[cl_id].en_cnt  ),
-      .rst_cnt_i      ( bw_rt_noc_cfg[cl_id].rst_cnt ),
       .req_i          ( bw_rt_noc_req[cl_id]         ),
       .rsp_i          ( bw_rt_noc_rsp[cl_id]         ),
       .ar_in_flight_o (                              ),
-      .aw_in_flight_o (                              )
+      .aw_in_flight_o (                              ),
+      .cfg_i          ( bw_rt_noc_cfg[cl_id]         )
     );
   end
 

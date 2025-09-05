@@ -9,6 +9,7 @@
 module axi_bw_monitor #(
   parameter type req_t = logic,
   parameter type rsp_t = logic,
+  parameter type cfg_t = logic,
   parameter int unsigned AxiIdWidth = 4,
   parameter int unsigned NumAxiIds = 2**AxiIdWidth,
   parameter string Name = ""
@@ -16,8 +17,7 @@ module axi_bw_monitor #(
   input logic clk_i,
   input logic rst_ni,
 
-  input logic en_cnt_i,
-  input logic rst_cnt_i,
+  input cfg_t cfg_i,
 
   input req_t req_i,
   input rsp_t rsp_i,
@@ -52,10 +52,10 @@ module axi_bw_monitor #(
   begin
     cycle_cnt = cycle_cnt_reg;
 
-    if(rst_cnt_i) begin
+    if(cfg_i.rst_cnt) begin
       cycle_cnt = 0;
     end
-    else if(en_cnt_i) begin
+    else if(cfg_i.en_cnt) begin
       cycle_cnt = cycle_cnt_reg + 1;
     end
   end
@@ -95,9 +95,9 @@ module axi_bw_monitor #(
       write_util = 0;
       prev_r_last = 1;
 
-      @(posedge en_cnt_i);
+      @(posedge cfg_i.en_cnt);
 
-      while(en_cnt_i) begin
+      while(cfg_i.en_cnt) begin
         @(posedge clk_i);
         if (req_i.ar_valid && rsp_i.ar_ready) begin
           ar_outstanding[req_i.ar.id].push_back(cycle_cnt_reg);
