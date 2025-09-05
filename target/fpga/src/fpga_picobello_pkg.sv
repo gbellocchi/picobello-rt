@@ -154,10 +154,29 @@ package fpga_picobello_pkg;
 
   // AXI BW monitor configuration struct
   typedef struct packed {
-    // Control
-    logic en_cnt;
-    logic rst_cnt;
+    // Read channel
+    logic en_r_cnt;
+    logic rst_r_cnt;
+    // Write channel
+    logic en_w_cnt;
+    logic rst_w_cnt;
   } bw_monitor_cfg_t;
+
+  typedef struct {
+    // string name;
+    // Read channel
+    real r_latency_mean;
+    real r_latency_stddev;
+    real r_bw [$];
+    real r_bw_mean;
+    real r_util_mean;
+    // Write channel
+    real w_latency_mean;
+    real w_latency_stddev;
+    real w_bw [$];
+    real w_bw_mean;
+    real w_util_mean;
+  } bw_monitor_stats_t;
 
   ///////////////////////
   // Traffic Generator //

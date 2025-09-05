@@ -668,22 +668,23 @@ module tb_picobello_fpga
             
             $display (" - ExecTime:       %8d", tb_timer_cnt_value - tb_timer_cnt_value_old);
 
+
             bw_monitor_display_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
               $display(
                 "[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
                 $sformatf("cl_bw_monitor_%0d", cl_id), 
                 bw_rt_cl_stats[cl_id].r_latency_mean, 
                 bw_rt_cl_stats[cl_id].r_latency_stddev, 
-                bw_rt_cl_stats[cl_id].r_bw, 
-                bw_rt_cl_stats[cl_id].r_util
+                bw_rt_cl_stats[cl_id].r_bw_mean, 
+                bw_rt_cl_stats[cl_id].r_util_mean
               );
               $display(
                 "[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
                 $sformatf("cl_bw_monitor_%0d", cl_id), 
                 bw_rt_cl_stats[cl_id].w_latency_mean, 
                 bw_rt_cl_stats[cl_id].w_latency_stddev, 
-                bw_rt_cl_stats[cl_id].w_bw, 
-                bw_rt_cl_stats[cl_id].w_util
+                bw_rt_cl_stats[cl_id].w_bw_mean, 
+                bw_rt_cl_stats[cl_id].w_util_mean
               );
             end
 
