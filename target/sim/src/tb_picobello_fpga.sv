@@ -243,6 +243,7 @@ module tb_picobello_fpga
     rt_configured = '{default: '0};
     // Initialization - bw monitors
     bw_rt_cl_cfg = '{default: '0};
+    bw_rt_noc_cfg = '{default: '0};
 
     // Wait for reset
     wait(rst_n);
@@ -380,11 +381,8 @@ module tb_picobello_fpga
 
             // Initialize BW monitor
             bw_monitor_init_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-              picobello_reset_bw_monitor(bw_rt_cl_cfg[cl_id]);
-              picobello_reset_bw_monitor(bw_rt_noc_cfg[cl_id]);
-              @(posedge `CLK_SIGNAL);
-              picobello_stop_bw_monitor(bw_rt_cl_cfg[cl_id]);
-              picobello_stop_bw_monitor(bw_rt_noc_cfg[cl_id]);
+              picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id);
+              picobello_reset_bw_monitor(bw_rt_noc_cfg, cl_id);
             end
 
             // Reset old timer counter value
@@ -431,8 +429,8 @@ module tb_picobello_fpga
 
                   if(test_id==0) begin
                     // Start BW monitor
-                    picobello_start_bw_monitor(bw_rt_cl_cfg[cl_id]);
-                    picobello_start_bw_monitor(bw_rt_noc_cfg[cl_id]);
+                    picobello_start_bw_r_monitor(bw_rt_cl_cfg, cl_id);
+                    picobello_start_bw_r_monitor(bw_rt_noc_cfg, cl_id);
                   end
 
                   case (cl_id)
@@ -628,8 +626,8 @@ module tb_picobello_fpga
                     end_of_sim[cl_id] = 1'b1;
 
                     // Stop BW monitor
-                    picobello_stop_bw_monitor(bw_rt_cl_cfg[cl_id]);
-                    picobello_stop_bw_monitor(bw_rt_noc_cfg[cl_id]);
+                    picobello_stop_bw_r_monitor(bw_rt_cl_cfg, cl_id);
+                    picobello_stop_bw_r_monitor(bw_rt_noc_cfg, cl_id);
                   end
                 end
 
@@ -674,18 +672,18 @@ module tb_picobello_fpga
               $display(
                 "[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
                 $sformatf("cl_bw_monitor_%0d", cl_id), 
-                bw_rt_cl_stats[cl_id].read_latency_mean, 
-                bw_rt_cl_stats[cl_id].read_latency_stddev, 
-                bw_rt_cl_stats[cl_id].read_bw, 
-                bw_rt_cl_stats[cl_id].read_util
+                bw_rt_cl_stats[cl_id].r_latency_mean, 
+                bw_rt_cl_stats[cl_id].r_latency_stddev, 
+                bw_rt_cl_stats[cl_id].r_bw, 
+                bw_rt_cl_stats[cl_id].r_util
               );
               $display(
                 "[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
                 $sformatf("cl_bw_monitor_%0d", cl_id), 
-                bw_rt_cl_stats[cl_id].write_latency_mean, 
-                bw_rt_cl_stats[cl_id].write_latency_stddev, 
-                bw_rt_cl_stats[cl_id].write_bw, 
-                bw_rt_cl_stats[cl_id].write_util
+                bw_rt_cl_stats[cl_id].w_latency_mean, 
+                bw_rt_cl_stats[cl_id].w_latency_stddev, 
+                bw_rt_cl_stats[cl_id].w_bw, 
+                bw_rt_cl_stats[cl_id].w_util
               );
             end
 

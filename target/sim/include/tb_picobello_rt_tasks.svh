@@ -13,32 +13,51 @@ import axi_rt_reg_pkg::* ;
 
 // Reset and initialize BW monitor
 task automatic picobello_reset_bw_monitor(
-  output bw_monitor_cfg_t bw_monitor
+  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  input int idx
 );
-  // Reset the monitor first
+  bw_monitor[idx].rst_r_cnt = 1'b1;
+  bw_monitor[idx].rst_w_cnt = 1'b1;
   @(posedge `CLK_SIGNAL);
-  bw_monitor.en_cnt = 1'b0;
-  bw_monitor.rst_cnt = 1'b1;
+  bw_monitor[idx].rst_r_cnt = 1'b0;
+  bw_monitor[idx].rst_w_cnt = 1'b0;
 endtask
 
-// Start BW monitor
-task automatic picobello_start_bw_monitor(
-  output bw_monitor_cfg_t bw_monitor
+// Start BW monitor on read channels
+task automatic picobello_start_bw_r_monitor(
+  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  input int idx
 );
-  // Start the monitor
-  @(posedge `CLK_SIGNAL);
-  bw_monitor.en_cnt = 1'b1;
-  bw_monitor.rst_cnt = 1'b0;
+  bw_monitor[idx].en_r_cnt = 1'b1;
+  bw_monitor[idx].rst_r_cnt = 1'b0;
 endtask
 
-// Stop BW monitor
-task automatic picobello_stop_bw_monitor(
-  output bw_monitor_cfg_t bw_monitor
+// Start BW monitor on write channels
+task automatic picobello_start_bw_w_monitor(
+  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  input int idx
 );
-  // Stop the monitor
+  bw_monitor[idx].en_w_cnt = 1'b1;
+  bw_monitor[idx].rst_w_cnt = 1'b0;
+endtask
+
+// Stop BW monitor on read channels
+task automatic picobello_stop_bw_r_monitor(
+  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  input int idx
+);
+  bw_monitor[idx].en_r_cnt = 1'b0;
+  bw_monitor[idx].rst_r_cnt = 1'b0;
+endtask
+
+// Stop BW monitor on write channels
+task automatic picobello_stop_bw_w_monitor(
+  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  input int idx
+);
   @(posedge `CLK_SIGNAL);
-  bw_monitor.en_cnt = 1'b0;
-  bw_monitor.rst_cnt = 1'b0;
+  bw_monitor[idx].en_w_cnt = 1'b0;
+  bw_monitor[idx].rst_w_cnt = 1'b0;
 endtask
 
 ///////////////
