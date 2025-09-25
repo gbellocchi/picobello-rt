@@ -300,11 +300,11 @@ module tb_picobello_fpga
             // Configure read traffic generator
             tb_tg_cfg_read.mem_port_id               = cl_id / NClXMem;  
             tb_tg_cfg_read.mem_addr_offset           = tb_tg_cfg_read.mem_port_id * (Sam[cl_id + L2Spm0SamIdx].end_addr - Sam[cl_id + L2Spm0SamIdx].start_addr);   
-            tb_tg_cfg_read.mem_addr_base             = Sam[cl_id + L2Spm0SamIdx].start_addr + tb_tg_cfg_read.mem_addr_offset;
+            tb_tg_cfg_read.mem_addr_base             = Sam[L2Spm0SamIdx].start_addr + tb_tg_cfg_read.mem_addr_offset;
 
             tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
             tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-            tb_tg_cfg_read.traffic_gen_addr_offset   = cluster_tile_dma_r_addr_offset + cl_id * (Sam[cl_id + ClusterX0Y0SamIdx].end_addr - Sam[cl_id + ClusterX0Y0SamIdx].start_addr);
+            tb_tg_cfg_read.traffic_gen_addr_offset   = cluster_tile_dma_r_addr_offset;
             tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
             
             picobello_tg_cfg(tb_tg_cfg_read);
@@ -312,12 +312,12 @@ module tb_picobello_fpga
             // Configure write traffic generator
             tb_tg_cfg_write.mem_port_id              = cl_id / NClXMem;
             tb_tg_cfg_write.mem_addr_offset          = tb_tg_cfg_write.mem_port_id * (Sam[cl_id + L2Spm0SamIdx + NumClusters].end_addr - Sam[cl_id + L2Spm0SamIdx + NumClusters].start_addr);
-            tb_tg_cfg_write.mem_addr_base            = Sam[cl_id + L2Spm0SamIdx + NumClusters].start_addr + tb_tg_cfg_write.mem_addr_offset;
+            tb_tg_cfg_write.mem_addr_base            = Sam[L2Spm0SamIdx + NumClusters].start_addr + tb_tg_cfg_write.mem_addr_offset;
             // NB: to make offset dependent on N_L2_SPM/2
 
             tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
             tb_tg_cfg_write.TrafficGenIdx            = cl_id;
-            tb_tg_cfg_write.traffic_gen_addr_offset  = cluster_tile_dma_w_addr_offset + cl_id * (Sam[cl_id + ClusterX0Y0SamIdx].end_addr - Sam[cl_id + ClusterX0Y0SamIdx].start_addr);
+            tb_tg_cfg_write.traffic_gen_addr_offset  = cluster_tile_dma_w_addr_offset;
             tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
 
             picobello_tg_cfg(tb_tg_cfg_write);
@@ -332,7 +332,7 @@ module tb_picobello_fpga
             rt_cfg_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
 
               // Set address base
-              tb_rt_cfg.rt_reg_addr_offset                                          = cluster_tile_rt_addr_offset + cl_id * (Sam[cl_id + ClusterX0Y0SamIdx].end_addr - Sam[cl_id + ClusterX0Y0SamIdx].start_addr);
+              tb_rt_cfg.rt_reg_addr_offset                                          = cluster_tile_rt_addr_offset;
               tb_rt_cfg.rt_reg_addr_base                                            = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
 
               // Set address region - Memory tile
