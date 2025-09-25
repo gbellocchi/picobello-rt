@@ -9,7 +9,7 @@ PB_GEN_DIR = $(PB_ROOT)/.generated
 BENDER_ROOT ?= $(PB_ROOT)/.bender
 
 # Configuration files
-FLOO_CFG  ?= $(PB_ROOT)/cfg/rt_16cl_1h.yml
+FLOO_CFG  ?= $(PB_ROOT)/cfg/rt_fair.yml
 SN_CFG	  ?= $(PB_ROOT)/cfg/snitch_cluster.json
 PLIC_CFG  ?= $(PB_ROOT)/cfg/rv_plic.cfg.hjson
 SLINK_CFG ?= $(PB_ROOT)/cfg/serial_link.hjson
@@ -41,30 +41,30 @@ FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_
 # Cheshire #
 ############
 
-CLINTCORES ?= 17
-include $(CHS_ROOT)/cheshire.mk
+# CLINTCORES ?= 17
+# include $(CHS_ROOT)/cheshire.mk
 
-$(CHS_ROOT)/hw/rv_plic.cfg.hjson: $(OTPROOT)/.generated2
-$(OTPROOT)/.generated2: $(PLIC_CFG)
-	flock -x $@ sh -c "cp $< $(CHS_ROOT)/hw/" && touch $@
+# $(CHS_ROOT)/hw/rv_plic.cfg.hjson: $(OTPROOT)/.generated2
+# $(OTPROOT)/.generated2: $(PLIC_CFG)
+# 	flock -x $@ sh -c "cp $< $(CHS_ROOT)/hw/" && touch $@
 
-$(CHS_ROOT)/hw/serial_link.hjson: $(CHS_SLINK_DIR)/.generated2
-$(CHS_SLINK_DIR)/.generated2:	$(SLINK_CFG)
-	flock -x $@ sh -c "cp $< $(CHS_ROOT)/hw/" && touch $@
+# $(CHS_ROOT)/hw/serial_link.hjson: $(CHS_SLINK_DIR)/.generated2
+# $(CHS_SLINK_DIR)/.generated2:	$(SLINK_CFG)
+# 	flock -x $@ sh -c "cp $< $(CHS_ROOT)/hw/" && touch $@
 
 ##################
 # Snitch Cluster #
 ##################
 
-SN_GEN_DIR = $(PB_GEN_DIR)
-include $(SN_ROOT)/target/common/common.mk
-include $(SN_ROOT)/target/common/rtl.mk
+# SN_GEN_DIR = $(PB_GEN_DIR)
+# include $(SN_ROOT)/target/common/common.mk
+# include $(SN_ROOT)/target/common/rtl.mk
 
-.PHONY: sn-hw-clean sn-hw-all
+# .PHONY: sn-hw-clean sn-hw-all
 
-sn-hw-all: $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
-sn-hw-clean:
-	rm -rf $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
+# sn-hw-all: $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
+# sn-hw-clean:
+# 	rm -rf $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
 
 ###########
 # FlooNoC #
@@ -94,29 +94,29 @@ floo-clean:
 # Physical Design #
 ###################
 
-PD_REMOTE ?= git@iis-git.ee.ethz.ch:picobello/picobello-pd.git
-PD_COMMIT ?= e1e618a872a631567dcc963eb3c987422eef4dbc
-PD_DIR = $(PB_ROOT)/pd
-SPU_REMOTE ?= git@iis-git.ee.ethz.ch:picobello/fhg_spu_cluster.git
-SPU_COMMIT ?= 52ff92b99d07f7fa48d9b81c5d713c369bd4faa6
-SPU_DIR = $(PB_ROOT)/deps/fhg_spu_cluster
+# PD_REMOTE ?= git@iis-git.ee.ethz.ch:picobello/picobello-pd.git
+# PD_COMMIT ?= e1e618a872a631567dcc963eb3c987422eef4dbc
+# PD_DIR = $(PB_ROOT)/pd
+# SPU_REMOTE ?= git@iis-git.ee.ethz.ch:picobello/fhg_spu_cluster.git
+# SPU_COMMIT ?= 52ff92b99d07f7fa48d9b81c5d713c369bd4faa6
+# SPU_DIR = $(PB_ROOT)/deps/fhg_spu_cluster
 
-.PHONY: init-pd clean-pd
+# .PHONY: init-pd clean-pd
 
-init-pd: $(PD_DIR) $(SPU_DIR)
-$(PD_DIR):
-	git clone $(PD_REMOTE) $(PD_DIR)
-	cd $(PD_DIR) && git checkout $(PD_COMMIT)
+# init-pd: $(PD_DIR) $(SPU_DIR)
+# $(PD_DIR):
+# 	git clone $(PD_REMOTE) $(PD_DIR)
+# 	cd $(PD_DIR) && git checkout $(PD_COMMIT)
 
-$(SPU_DIR):
-	-git clone $(SPU_REMOTE) $(SPU_DIR)
-	-cd $(SPU_DIR) && git checkout $(SPU_COMMIT)
+# $(SPU_DIR):
+# 	-git clone $(SPU_REMOTE) $(SPU_DIR)
+# 	-cd $(SPU_DIR) && git checkout $(SPU_COMMIT)
 
-clean-pd:
-	rm -rf $(PD_DIR)
-	rm -rf $(SPU_DIR)
+# clean-pd:
+# 	rm -rf $(PD_DIR)
+# 	rm -rf $(SPU_DIR)
 
--include $(PD_DIR)/pd.mk
+# -include $(PD_DIR)/pd.mk
 
 #########################
 # General Phony targets #
@@ -139,7 +139,7 @@ picobello-hw-clean clean: sn-hw-clean floo-clean
 # Software #
 ############
 
-include $(PB_ROOT)/sw/sw.mk
+# include $(PB_ROOT)/sw/sw.mk
 
 ##############
 # Simulation #
