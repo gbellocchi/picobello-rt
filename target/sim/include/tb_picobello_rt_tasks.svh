@@ -5,6 +5,7 @@
 // Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 import fpga_picobello_pkg::*;
+import sim_picobello_pkg::*;
 import axi_rt_reg_pkg::* ;
 
 ////////////////
@@ -13,7 +14,7 @@ import axi_rt_reg_pkg::* ;
 
 // Reset and initialize BW monitor
 task automatic picobello_reset_bw_monitor(
-  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  ref sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
   input int idx
 );
   bw_monitor[idx].rst_r_cnt = 1'b1;
@@ -25,7 +26,7 @@ endtask
 
 // Start BW monitor on read channels
 task automatic picobello_start_bw_r_monitor(
-  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  ref sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
   input int idx
 );
   bw_monitor[idx].en_r_cnt = 1'b1;
@@ -34,7 +35,7 @@ endtask
 
 // Start BW monitor on write channels
 task automatic picobello_start_bw_w_monitor(
-  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  ref sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
   input int idx
 );
   bw_monitor[idx].en_w_cnt = 1'b1;
@@ -43,7 +44,7 @@ endtask
 
 // Stop BW monitor on read channels
 task automatic picobello_stop_bw_r_monitor(
-  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  ref sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
   input int idx
 );
   bw_monitor[idx].en_r_cnt = 1'b0;
@@ -52,7 +53,7 @@ endtask
 
 // Stop BW monitor on write channels
 task automatic picobello_stop_bw_w_monitor(
-  ref fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
+  ref sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_monitor,
   input int idx
 );
   @(posedge `CLK_SIGNAL);

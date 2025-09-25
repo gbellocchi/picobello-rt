@@ -81,6 +81,7 @@ sources:
       - target/sim/include
     files:
       # Level 0
+      - target/sim/src/sim_picobello_pkg.sv
       - target/fpga/src/fpga_picobello_pkg.sv
       # Level 1
       - target/fpga/src/axi_hls_tg_128b_rw/axi_hls_tg_axi_hls_tg_Pipeline_wide_loop_read_1.v

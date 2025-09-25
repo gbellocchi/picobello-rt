@@ -148,36 +148,6 @@ package fpga_picobello_pkg;
     axi_rt_reg_pkg::axi_rt_reg2hw_t rt_regfile_cfg;
   } rt_cfg_t;
 
-  /////////////////////
-  // AXI BW Monitors //
-  /////////////////////
-
-  // AXI BW monitor configuration struct
-  typedef struct packed {
-    // Read channel
-    logic en_r_cnt;
-    logic rst_r_cnt;
-    // Write channel
-    logic en_w_cnt;
-    logic rst_w_cnt;
-  } bw_monitor_cfg_t;
-
-  typedef struct {
-    // string name;
-    // Read channel
-    real r_latency_mean;
-    real r_latency_stddev;
-    real r_bw [$];
-    real r_bw_mean;
-    real r_util_mean;
-    // Write channel
-    real w_latency_mean;
-    real w_latency_stddev;
-    real w_bw [$];
-    real w_bw_mean;
-    real w_util_mean;
-  } bw_monitor_stats_t;
-
   ///////////////////////
   // Traffic Generator //
   ///////////////////////

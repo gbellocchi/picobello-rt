@@ -13,6 +13,7 @@
 `define t_multi_cl_displacement 16 + 96 // assuming protocol conversion (10) + sequential transmission (x16) x worst-case assumption (6)
 
 import fpga_picobello_pkg::*;
+import sim_picobello_pkg::*;
 
 module tb_picobello_fpga 
   import picobello_pkg::*; 
@@ -49,13 +50,16 @@ module tb_picobello_fpga
   // BW monitoring
   floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_rsp;
-  fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_cfg;
-  fpga_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_cl_cfg;
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0];
 
   floo_picobello_noc_pkg::axi_wide_in_req_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_rsp;
-  fpga_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_cfg;
-  fpga_picobello_pkg::bw_monitor_stats_t bw_rt_noc_stats [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t [picobello_pkg::NumClusters-1:0] bw_rt_noc_cfg;
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_stats [picobello_pkg::NumClusters-1:0];
+
+  // Experimental statistics
+  sim_picobello_pkg::experimental_stats_t experimental_stats;
 
   // DMA in
   logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_first_burst; // first burst flag
@@ -186,8 +190,8 @@ module tb_picobello_fpga
     axi_bw_monitor #(
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
       .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
-      .cfg_t      ( fpga_picobello_pkg::bw_monitor_cfg_t      ),
-      .stat_t     ( fpga_picobello_pkg::bw_monitor_stats_t    ),
+      .cfg_t      ( sim_picobello_pkg::bw_monitor_cfg_t      ),
+      .stat_t     ( sim_picobello_pkg::bw_monitor_stats_t    ),
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
@@ -211,8 +215,8 @@ module tb_picobello_fpga
     axi_bw_monitor #(
       .req_t      ( floo_picobello_noc_pkg::axi_wide_in_req_t ),
       .rsp_t      ( floo_picobello_noc_pkg::axi_wide_in_rsp_t ),
-      .cfg_t      ( fpga_picobello_pkg::bw_monitor_cfg_t      ),
-      .stat_t     ( fpga_picobello_pkg::bw_monitor_stats_t    ),
+      .cfg_t      ( sim_picobello_pkg::bw_monitor_cfg_t      ),
+      .stat_t     ( sim_picobello_pkg::bw_monitor_stats_t    ),
       .AxiIdWidth ( floo_picobello_noc_pkg::AxiCfgW.InIdWidth ),
       .Name       ( BwMonitorName                             )
     ) i_axi_bw_monitor (
