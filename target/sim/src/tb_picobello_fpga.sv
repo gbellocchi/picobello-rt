@@ -88,6 +88,11 @@ module tb_picobello_fpga
   axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_offset = 32'h0000_4000;
   axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_6000;
 
+  // File IO
+  int fileDescriptor;
+  string filePath;
+  string fileDir;
+
   // Exploration variables 
 
   // Number of performed tests
@@ -652,27 +657,28 @@ module tb_picobello_fpga
 
             @(posedge `CLK_SIGNAL);
 
-            $display ("\n[%0tns] Test #%0d", $time, NTest);
-            $display (" - NCl:            %8d", NTestCl);
-            $display (" - NAccxCl:        %8d", NAccxCl);
-            $display (" - NClXMem:        %8d", NClXMem);
-            $display (" - NOps:           %8d", tb_tg_cfg_read.TrafficGenComputeDim);
-            $display (" - TrafficDim:     %8d", tb_tg_cfg_read.TrafficGenTrafficDim);
-            $display (" - ComputeDim:     %8d", tb_tg_cfg_read.TrafficGenComputeDim);
+            //////////////////////////////////
+            // Display experimental results //
+            //////////////////////////////////
 
-            $display (" - BurstLength:    %8d", BurstLength);
+            // Print experimental setup statistics
+            experimental_stats.id_test = NTest;
+            experimental_stats.n_test_cl = NTestCl;
+            experimental_stats.n_accx_cl = NAccxCl;
+            experimental_stats.n_clx_mem = NClXMem;
+            experimental_stats.traffic_gen_traffic_dim = tb_tg_cfg_read.TrafficGenTrafficDim;
+            experimental_stats.traffic_gen_compute_dim = tb_tg_cfg_read.TrafficGenComputeDim;
+            experimental_stats.burst_length = BurstLength;
+            experimental_stats.t_exec_time_ck = tb_timer_cnt_value - tb_timer_cnt_value_old;
 
-            $display (" - DmaReadTime[0]:    %8d", dma_r_timer_val[0]);
-            $display (" - ComputeTime[0]:    %8d", comp_timer_val[0]);
-            $display (" - DmaWriteTime[0]:   %8d", dma_w_timer_val[0]);
+            $display ("\n Test #%0d",           experimental_stats.id_test);
+            $display (" - NCl:            %8d", experimental_stats.n_test_cl);
+            $display (" - NAccxCl:        %8d", experimental_stats.n_accx_cl);
+            $display (" - NClXMem:        %8d", experimental_stats.n_clx_mem);
+            $display (" - BurstLength:    %8d", experimental_stats.burst_length);
+            $display (" - ExecTime:       %8d", experimental_stats.t_exec_time_ck);
 
-            $display (" - DmaReadTime[NTestCl-1]:    %8d", dma_r_timer_val[NTestCl-1]);
-            $display (" - ComputeTime[NTestCl-1]:    %8d", comp_timer_val[NTestCl-1]);
-            $display (" - DmaWriteTime[NTestCl-1]:   %8d", dma_w_timer_val[NTestCl-1]);
-            
-            $display (" - ExecTime:       %8d", tb_timer_cnt_value - tb_timer_cnt_value_old);
-
-
+            // Print BW monitor statistics
             bw_monitor_display_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
               $display(
                 "[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
@@ -690,6 +696,67 @@ module tb_picobello_fpga
                 bw_rt_cl_stats[cl_id].w_bw_mean, 
                 bw_rt_cl_stats[cl_id].w_util_mean
               );
+            end
+
+            ///////////////////////////////////////
+            // Save experimental results to file //
+            ///////////////////////////////////////
+
+            // Save experimental setup statistics to file
+            if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
+              // Experimental setup - Open file
+              $sformat(filePath, "%s/test%0d_experimental.txt", fileDir, experimental_stats.id_test);
+              $display("Writing results to file: %s", filePath);
+              fileDescriptor = $fopen(filePath, "w"); 
+              // Experimental setup - Write values
+              $fwrite(fileDescriptor, "id_test: %0d\n", experimental_stats.id_test);
+              $fwrite(fileDescriptor, "n_test_cl: %0d\n", experimental_stats.n_test_cl);
+              $fwrite(fileDescriptor, "n_accx_cl: %0d\n", experimental_stats.n_accx_cl);
+              $fwrite(fileDescriptor, "n_clx_mem: %0d\n", experimental_stats.n_clx_mem);
+              $fwrite(fileDescriptor, "burst_length: %0d\n", experimental_stats.burst_length);
+              $fwrite(fileDescriptor, "t_exec_time_ck: %0d\n", experimental_stats.t_exec_time_ck);
+              // Experimental setup - Close file
+              $fclose(fileDescriptor);
+            end
+
+            // Save BW statistics to file
+            if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
+              f_bw_stats_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+                // BW stats - Open file
+                $sformat(filePath, "%s/test%0d_bw_stats_cl%0d.txt", fileDir, experimental_stats.id_test, cl_id);
+                $display("Writing results to file: %s", filePath);
+                fileDescriptor = $fopen(filePath, "w"); 
+                // BW stats - Write values
+                $fwrite(fileDescriptor, "id_test: %0d\n", experimental_stats.id_test);
+                $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id].r_latency_mean);
+                $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id].r_latency_stddev);
+                $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id].r_bw_mean);
+                $fwrite(fileDescriptor, "r_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id].r_util_mean);
+                $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id].w_latency_mean);
+                $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id].w_latency_stddev);
+                $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id].w_bw_mean);
+                $fwrite(fileDescriptor, "w_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id].w_util_mean);
+                // BW stats - Close file
+                $fclose(fileDescriptor);
+              end
+            end
+
+            // Save BW inst to file
+            if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
+              f_bw_inst_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+                // BW inst - Open file
+                $sformat(filePath, "%s/test%0d_bw_inst_cl%0d.txt", fileDir, experimental_stats.id_test, cl_id);
+                $display("Writing results to file: %s", filePath);
+                fileDescriptor = $fopen(filePath, "w"); 
+                // BW inst - Write header
+                $fwrite(fileDescriptor, "time, bw\n");
+                // BW inst - Write values
+                foreach (bw_rt_cl_stats[cl_id].r_bw_val[i]) begin
+                  $fwrite(fileDescriptor, "%0.2f, %0.2f\n", bw_rt_cl_stats[cl_id].r_bw_t[i], bw_rt_cl_stats[cl_id].r_bw_val[i]);
+                end
+                // BW inst - Close file
+                $fclose(fileDescriptor);
+              end
             end
 
             NTest = NTest + 1;

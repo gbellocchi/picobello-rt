@@ -7,6 +7,9 @@
 VSIM ?= vsim
 VSIM_DIR = $(PB_ROOT)/target/sim/vsim
 VSIM_WORK = $(VSIM_DIR)/work
+VSIM_LOG = $(VSIM_DIR)/log
+
+VSIM_LOG_CFG = $(VSIM_LOG)/$(subst .yml,,$(shell basename $(FLOO_CFG)))
 
 VLOG_ARGS = -work $(VSIM_WORK)
 VLOG_ARGS += -suppress vlog-2583
@@ -23,6 +26,7 @@ VSIM_FLAGS += -64
 
 VSIM_FLAGS_GUI = -voptargs=+acc
 
+VCD_COMMON_CMD = vcd file tb.vcd; vcd add -r /*;
 VSIM_COMMON_CMD = log -r /*; run -a;
 VSIM_WAVES_CMD = source "$(VSIM_DIR)/utils/tb-waves-fpga.tcl";
 
@@ -36,6 +40,7 @@ $(eval $(call add_vsim_flag,CHS_BINARY))
 $(eval $(call add_vsim_flag,SN_BINARY))
 $(eval $(call add_vsim_flag,BOOTMODE))
 $(eval $(call add_vsim_flag,PRELMODE))
+$(eval $(call add_vsim_flag,VSIM_LOG_CFG))
 
 .PHONY: vsim-compile vsim-clean vsim-run
 
@@ -44,15 +49,18 @@ vsim-clean:
 	rm -f $(VSIM_DIR)/transcript
 	rm -f $(VSIM_DIR)/compile.tcl
 
-vsim-compile: $(VSIM_DIR)/compile.tcl $(PB_HW_ALL)
+vsim-compile: $(VSIM_DIR)/compile.tcl $(PB_HW_ALL) vsim-log 
 	$(VSIM) -c $(VSIM_FLAGS) -do "source $<; quit"
 
+vsim-log:
+	mkdir -p $(VSIM_LOG_CFG)
+	
 $(VSIM_DIR)/compile.tcl: $(BENDER_YML) $(BENDER_LOCK)
 	bender script vsim --compilation-mode common $(COMMON_TARGS) $(SIM_TARGS) --vlog-arg="$(VLOG_ARGS)"> $@
 	echo 'vlog -work $(VSIM_WORK) "$(realpath $(CHS_ROOT))/target/sim/src/elfloader.cpp" -ccflags "-std=c++11"' >> $@
 
 vsim-run:
-	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
+	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
 
 vsim-run-batch:
 	$(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "run -all; quit"
