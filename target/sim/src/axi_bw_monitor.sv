@@ -37,8 +37,10 @@ module axi_bw_monitor #(
   int unsigned aw_outstanding [NumAxiIds][$];
   int unsigned r_latency [$];
   int unsigned w_latency [$];
-  real r_bw [$];
-  real w_bw [$];
+  real r_bw_t [$];
+  real r_bw_val [$];
+  real w_bw_t [$];
+  real w_bw_val [$];
 
   // Control
   int unsigned prev_r_last;
@@ -121,7 +123,8 @@ module axi_bw_monitor #(
             // Calculate read latency comparing r and ar timestamps
             r_latency.push_back(r_cycle_cnt_reg - ar_outstanding[rsp_i.r.id].pop_front());
             // Calculate bandwidth
-            r_bw.push_back(real'(r_cnt) * $bits(rsp_i.r.data) / real'(r_cycle_cnt_reg));
+            r_bw_t.push_back(real'(r_cycle_cnt_reg));
+            r_bw_val.push_back(real'(r_cnt) * $bits(rsp_i.r.data) / real'(r_cycle_cnt_reg));
           end
           prev_r_last = rsp_i.r.last;
         end
@@ -154,7 +157,8 @@ module axi_bw_monitor #(
       // Route read channel statistics
       stats_o.r_latency_mean = r_latency_mean;
       stats_o.r_latency_stddev = r_latency_stddev;
-      stats_o.r_bw = r_bw;
+      stats_o.r_bw_t = r_bw_t;
+      stats_o.r_bw_val = r_bw_val;
       stats_o.r_bw_mean = r_bw_mean;
       stats_o.r_util_mean = r_util_mean;
     end // infinite loop
@@ -220,7 +224,8 @@ module axi_bw_monitor #(
           // Calculate write latency comparing w and aw timestamps
           w_latency.push_back(w_cycle_cnt_reg - aw_outstanding[rsp_i.b.id].pop_front());
           // Calculate bandwidth
-          w_bw.push_back(real'(w_cnt) * $bits(req_i.w.data) / real'(w_cycle_cnt_reg));
+          w_bw_t.push_back(real'(w_cycle_cnt_reg));
+          w_bw_val.push_back(real'(w_cnt) * $bits(req_i.w.data) / real'(w_cycle_cnt_reg));
         end
       end
 
@@ -250,7 +255,8 @@ module axi_bw_monitor #(
       // Route write channel statistics
       stats_o.w_latency_mean = w_latency_mean;
       stats_o.w_latency_stddev = w_latency_stddev;
-      stats_o.w_bw = w_bw;
+      stats_o.w_bw_t = w_bw_t;
+      stats_o.w_bw_val = w_bw_val;
       stats_o.w_bw_mean = w_bw_mean;
       stats_o.w_util_mean = w_util_mean;
     end // infinite loop
