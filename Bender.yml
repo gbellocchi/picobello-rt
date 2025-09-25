@@ -81,6 +81,7 @@ sources:
       - target/sim/include
     files:
       # Level 0
+      - target/sim/src/sim_picobello_pkg.sv
       - target/fpga/src/fpga_picobello_pkg.sv
       # Level 1
       - target/fpga/src/axi_hls_tg_128b_rw/axi_hls_tg_axi_hls_tg_Pipeline_wide_loop_read_1.v
@@ -91,12 +92,10 @@ sources:
       - target/fpga/src/axi_hls_tg_128b_rw/read.v
       - target/fpga/src/axi_hls_tg_128b_rw/write_ctrl.v
       - target/fpga/src/axi_hls_tg_128b_rw/write.v
+      - target/sim/src/rt_toolkit_picobello.sv
       # Level 2
-      - target/fpga/src/axi_hls_tg_wrapper.sv
       - target/fpga/src/axi_hls_tg_rw_wrapper.sv
       # Level 3
-      - target/fpga/src/tg_tile.sv
-      - target/fpga/src/tg_tile_rw.sv
       - target/fpga/src/tg_realm_tile.sv
       - target/fpga/src/fpga_l2_tile.sv
       - target/fpga/src/fpga_host_tile.sv
@@ -104,7 +103,8 @@ sources:
       - target/fpga/src/fpga_picobello_top.sv
       - target/fpga/src/fpga_picobello_top_wrapper.sv
       # Level 5
-      - target/sim/src/tb_picobello_fpga.sv
+      # - target/sim/src/tb_picobello_fpga.sv
+      - target/sim/src/tb_picobello_fpga_fair.sv
 
   - target: all(any(fpga), not(any(asic, simulation, test)))
     files:

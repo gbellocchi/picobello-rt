@@ -3,14 +3,22 @@
 # Solderpad Hardware License, Version 0.51, see LICENSE for details.
 # SPDX-License-Identifier: SHL-0.51
 
+THIS_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+
+export PICOBELLO_HOME_DIR=$HOME/workspace_pulp/picobello-rt
+export PICOBELLO_INSTALL=$PICOBELLO_HOME_DIR/sw/install # cheshire gcc toolchain
+export PATH=$PATH:$PICOBELLO_INSTALL/bin
+export LLVM_BINROOT=$PICOBELLO_HOME_DIR/sw/riscv32-pulp-llvm-ubuntu2004-0.12.0/ # snitch llvm toolchain
+
 export VSIM="vsim"
 export VIVADO="vivado"
 export BASE_PYTHON=python3.11
 
 # Create the python venv
-if [ ! -d ".venv" ]; then
+if [ ! -d "$PICOBELLO_HOME_DIR/.venv" ]; then
+  cd $PICOBELLO_HOME_DIR
   make python-venv
 fi
 
 # Activate the python venv
-source .venv/bin/activate
+source $PICOBELLO_HOME_DIR/.venv/bin/activate

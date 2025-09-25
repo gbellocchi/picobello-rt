@@ -67,7 +67,6 @@ module fpga_picobello_top_wrapper
     // SoC parameters
     .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),   
     .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),   
-    .NumTrafficGenerators     (fpga_picobello_pkg::NumTrafficGenerators),
     // AXI4 channel types
     .axi_host_req_t           (fpga_picobello_pkg::axi_host_req_t),
     .axi_host_rsp_t           (fpga_picobello_pkg::axi_host_rsp_t),

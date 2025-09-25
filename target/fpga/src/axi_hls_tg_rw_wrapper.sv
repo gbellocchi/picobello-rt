@@ -21,15 +21,19 @@ module axi_hls_tg_rw_wrapper #(
     // AXI4 wide
     AXI_BUS.Master          axi_tg_wide_out,
     // AXI4-Lite program
-    AXI_LITE.Slave          axi_lite_read_cfg,
-    AXI_LITE.Slave          axi_lite_write_cfg,
-    AXI_LITE.Slave          axi_lite_comp_cfg
+    AXI_LITE.Slave          axi_lite_read_regfile,
+    AXI_LITE.Slave          axi_lite_write_regfile,
+    AXI_LITE.Slave          axi_lite_comp_regfile
 );  
 
     import floo_pkg::*;
     import floo_picobello_noc_pkg::*;
     import picobello_pkg::*;
     import fpga_picobello_pkg::*;
+
+    //////////////////////
+    // Wire definitions //
+    //////////////////////
 
     AXI_BUS #(
         .AXI_ADDR_WIDTH (AxiCfgW.AddrWidth),
@@ -66,6 +70,10 @@ module axi_hls_tg_rw_wrapper #(
     floo_picobello_noc_pkg::axi_wide_out_req_t axi_tg_wide_dummy_req;
     floo_picobello_noc_pkg::axi_wide_out_rsp_t axi_tg_wide_dummy_rsp;
 
+    ////////////////////////////
+    // R/W traffic generators //
+    ////////////////////////////
+
     // Join read / write generators into output
 
     axi_rw_join #(
@@ -75,14 +83,14 @@ module axi_hls_tg_rw_wrapper #(
         .clk_i,
         .rst_ni,
         // Read Slave
-        .slv_read_req_i            ( axi_tg_wide_out_r_read_req      ),
-        .slv_read_resp_o           ( axi_tg_wide_out_r_read_rsp      ),
+        .slv_read_req_i            ( axi_tg_wide_out_r_read_req     ),
+        .slv_read_resp_o           ( axi_tg_wide_out_r_read_rsp     ),
         // Write Slave
-        .slv_write_req_i           ( axi_tg_wide_out_w_write_req      ),
-        .slv_write_resp_o          ( axi_tg_wide_out_w_write_rsp      ),
+        .slv_write_req_i           ( axi_tg_wide_out_w_write_req    ),
+        .slv_write_resp_o          ( axi_tg_wide_out_w_write_rsp    ),
         // Read / Write Master
-        .mst_req_o                 ( axi_tg_wide_out_req        ),
-        .mst_resp_i                ( axi_tg_wide_out_rsp        )
+        .mst_req_o                 ( axi_tg_wide_out_req            ),
+        .mst_resp_i                ( axi_tg_wide_out_rsp            )
     );
 
     `AXI_ASSIGN_FROM_REQ(axi_tg_wide_out, axi_tg_wide_out_req)
@@ -97,14 +105,14 @@ module axi_hls_tg_rw_wrapper #(
         .clk_i,
         .rst_ni,
         // Read Slave
-        .slv_read_req_i            ( axi_tg_wide_out_w_read_req      ),
-        .slv_read_resp_o           ( axi_tg_wide_out_w_read_rsp      ),
+        .slv_read_req_i            ( axi_tg_wide_out_w_read_req     ),
+        .slv_read_resp_o           ( axi_tg_wide_out_w_read_rsp     ),
         // Write Slave
-        .slv_write_req_i           ( axi_tg_wide_out_r_write_req      ),
-        .slv_write_resp_o          ( axi_tg_wide_out_r_write_rsp      ),
+        .slv_write_req_i           ( axi_tg_wide_out_r_write_req    ),
+        .slv_write_resp_o          ( axi_tg_wide_out_r_write_rsp    ),
         // Read / Write Master
-        .mst_req_o                 ( axi_tg_wide_dummy_req        ),
-        .mst_resp_i                ( axi_tg_wide_dummy_rsp        )
+        .mst_req_o                 ( axi_tg_wide_dummy_req          ),
+        .mst_resp_i                ( axi_tg_wide_dummy_rsp          )
     );
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : write_dummy_rsp_ff
@@ -145,8 +153,6 @@ module axi_hls_tg_rw_wrapper #(
         end
     end
 
-    // AXI4 TG - Wide Read
-
     `AXI_ASSIGN_TO_REQ(axi_tg_wide_out_r_req, axi_tg_wide_rw_out[0])
     `AXI_ASSIGN_FROM_RESP(axi_tg_wide_rw_out[0], axi_tg_wide_out_r_rsp)
 
@@ -157,14 +163,14 @@ module axi_hls_tg_rw_wrapper #(
         .clk_i,
         .rst_ni,
         // Read / Write Slave
-        .slv_req_i                 ( axi_tg_wide_out_r_req      ),
-        .slv_resp_o                ( axi_tg_wide_out_r_rsp      ),
+        .slv_req_i                 ( axi_tg_wide_out_r_req          ),
+        .slv_resp_o                ( axi_tg_wide_out_r_rsp          ),
         // Read Master
         .mst_read_req_o            ( axi_tg_wide_out_r_read_req     ),
         .mst_read_resp_i           ( axi_tg_wide_out_r_read_rsp     ),
         // Write Master
-        .mst_write_req_o           ( axi_tg_wide_out_r_write_req      ),
-        .mst_write_resp_i          ( axi_tg_wide_out_r_write_rsp      )
+        .mst_write_req_o           ( axi_tg_wide_out_r_write_req    ),
+        .mst_write_resp_i          ( axi_tg_wide_out_r_write_rsp    )
     );
 
     read #(
@@ -237,28 +243,26 @@ module axi_hls_tg_rw_wrapper #(
         .m_axi_wide_port_BID        ( axi_tg_wide_rw_out[0].b_id            ),
         .m_axi_wide_port_BUSER      ( axi_tg_wide_rw_out[0].b_user          ),
         // AXI4-Lite control
-        .s_axi_control_AWVALID      ( axi_lite_read_cfg.aw_valid            ),
-        .s_axi_control_AWREADY      ( axi_lite_read_cfg.aw_ready            ),
-        .s_axi_control_AWADDR       ( axi_lite_read_cfg.aw_addr             ),
-        .s_axi_control_WVALID       ( axi_lite_read_cfg.w_valid             ),
-        .s_axi_control_WREADY       ( axi_lite_read_cfg.w_ready             ),
-        .s_axi_control_WDATA        ( axi_lite_read_cfg.w_data              ),
-        .s_axi_control_WSTRB        ( axi_lite_read_cfg.w_strb              ),
-        .s_axi_control_ARVALID      ( axi_lite_read_cfg.ar_valid            ),
-        .s_axi_control_ARREADY      ( axi_lite_read_cfg.ar_ready            ),
-        .s_axi_control_ARADDR       ( axi_lite_read_cfg.ar_addr             ),
-        .s_axi_control_RVALID       ( axi_lite_read_cfg.r_valid             ),
-        .s_axi_control_RREADY       ( axi_lite_read_cfg.r_ready             ),
-        .s_axi_control_RDATA        ( axi_lite_read_cfg.r_data              ),
-        .s_axi_control_RRESP        ( axi_lite_read_cfg.r_resp              ),
-        .s_axi_control_BVALID       ( axi_lite_read_cfg.b_valid             ),
-        .s_axi_control_BREADY       ( axi_lite_read_cfg.b_ready             ),
-        .s_axi_control_BRESP        ( axi_lite_read_cfg.b_resp              ),
+        .s_axi_control_AWVALID      ( axi_lite_read_regfile.aw_valid        ),
+        .s_axi_control_AWREADY      ( axi_lite_read_regfile.aw_ready        ),
+        .s_axi_control_AWADDR       ( axi_lite_read_regfile.aw_addr         ),
+        .s_axi_control_WVALID       ( axi_lite_read_regfile.w_valid         ),
+        .s_axi_control_WREADY       ( axi_lite_read_regfile.w_ready         ),
+        .s_axi_control_WDATA        ( axi_lite_read_regfile.w_data          ),
+        .s_axi_control_WSTRB        ( axi_lite_read_regfile.w_strb          ),
+        .s_axi_control_ARVALID      ( axi_lite_read_regfile.ar_valid        ),
+        .s_axi_control_ARREADY      ( axi_lite_read_regfile.ar_ready        ),
+        .s_axi_control_ARADDR       ( axi_lite_read_regfile.ar_addr         ),
+        .s_axi_control_RVALID       ( axi_lite_read_regfile.r_valid         ),
+        .s_axi_control_RREADY       ( axi_lite_read_regfile.r_ready         ),
+        .s_axi_control_RDATA        ( axi_lite_read_regfile.r_data          ),
+        .s_axi_control_RRESP        ( axi_lite_read_regfile.r_resp          ),
+        .s_axi_control_BVALID       ( axi_lite_read_regfile.b_valid         ),
+        .s_axi_control_BREADY       ( axi_lite_read_regfile.b_ready         ),
+        .s_axi_control_BRESP        ( axi_lite_read_regfile.b_resp          ),
         // Interrupt
         .interrupt                  (                                       )
     );
-
-    // AXI4 TG - Wide Write
 
     `AXI_ASSIGN_TO_REQ(axi_tg_wide_out_w_req, axi_tg_wide_rw_out[1])
     `AXI_ASSIGN_FROM_RESP(axi_tg_wide_rw_out[1], axi_tg_wide_out_w_rsp)
@@ -270,14 +274,14 @@ module axi_hls_tg_rw_wrapper #(
         .clk_i,
         .rst_ni,
         // Read / Write Slave
-        .slv_req_i                 ( axi_tg_wide_out_w_req      ),
-        .slv_resp_o                ( axi_tg_wide_out_w_rsp      ),
+        .slv_req_i                 ( axi_tg_wide_out_w_req          ),
+        .slv_resp_o                ( axi_tg_wide_out_w_rsp          ),
         // Read Master
         .mst_read_req_o            ( axi_tg_wide_out_w_read_req     ),
         .mst_read_resp_i           ( axi_tg_wide_out_w_read_rsp     ),
         // Write Master
-        .mst_write_req_o           ( axi_tg_wide_out_w_write_req      ),
-        .mst_write_resp_i          ( axi_tg_wide_out_w_write_rsp      )
+        .mst_write_req_o           ( axi_tg_wide_out_w_write_req    ),
+        .mst_write_resp_i          ( axi_tg_wide_out_w_write_rsp    )
     );
 
     write #(
@@ -301,8 +305,8 @@ module axi_hls_tg_rw_wrapper #(
         .C_S_AXI_DATA_WIDTH                     (AXI_LITE_DATA_WIDTH),
         .C_S_AXI_CONTROL_ADDR_WIDTH             (AXI_LITE_ADDR_WIDTH)
     ) i_axi_hls_tg_write (
-        .ap_clk                     ( clk_i                             ),
-        .ap_rst_n                   ( rst_ni                            ),
+        .ap_clk                     ( clk_i                                 ),
+        .ap_rst_n                   ( rst_ni                                ),
         // AXI4 wide
         .m_axi_wide_port_AWVALID    ( axi_tg_wide_rw_out[1].aw_valid        ),
         .m_axi_wide_port_AWREADY    ( axi_tg_wide_rw_out[1].aw_ready        ),
@@ -350,23 +354,23 @@ module axi_hls_tg_rw_wrapper #(
         .m_axi_wide_port_BID        ( axi_tg_wide_rw_out[1].b_id            ),
         .m_axi_wide_port_BUSER      ( axi_tg_wide_rw_out[1].b_user          ),
         // AXI4-Lite control
-        .s_axi_control_AWVALID      ( axi_lite_write_cfg.aw_valid           ),
-        .s_axi_control_AWREADY      ( axi_lite_write_cfg.aw_ready           ),
-        .s_axi_control_AWADDR       ( axi_lite_write_cfg.aw_addr            ),
-        .s_axi_control_WVALID       ( axi_lite_write_cfg.w_valid            ),
-        .s_axi_control_WREADY       ( axi_lite_write_cfg.w_ready            ),
-        .s_axi_control_WDATA        ( axi_lite_write_cfg.w_data             ),
-        .s_axi_control_WSTRB        ( axi_lite_write_cfg.w_strb             ),
-        .s_axi_control_ARVALID      ( axi_lite_write_cfg.ar_valid           ),
-        .s_axi_control_ARREADY      ( axi_lite_write_cfg.ar_ready           ),
-        .s_axi_control_ARADDR       ( axi_lite_write_cfg.ar_addr            ),
-        .s_axi_control_RVALID       ( axi_lite_write_cfg.r_valid            ),
-        .s_axi_control_RREADY       ( axi_lite_write_cfg.r_ready            ),
-        .s_axi_control_RDATA        ( axi_lite_write_cfg.r_data             ),
-        .s_axi_control_RRESP        ( axi_lite_write_cfg.r_resp             ),
-        .s_axi_control_BVALID       ( axi_lite_write_cfg.b_valid            ),
-        .s_axi_control_BREADY       ( axi_lite_write_cfg.b_ready            ),
-        .s_axi_control_BRESP        ( axi_lite_write_cfg.b_resp             ),
+        .s_axi_control_AWVALID      ( axi_lite_write_regfile.aw_valid       ),
+        .s_axi_control_AWREADY      ( axi_lite_write_regfile.aw_ready       ),
+        .s_axi_control_AWADDR       ( axi_lite_write_regfile.aw_addr        ),
+        .s_axi_control_WVALID       ( axi_lite_write_regfile.w_valid        ),
+        .s_axi_control_WREADY       ( axi_lite_write_regfile.w_ready        ),
+        .s_axi_control_WDATA        ( axi_lite_write_regfile.w_data         ),
+        .s_axi_control_WSTRB        ( axi_lite_write_regfile.w_strb         ),
+        .s_axi_control_ARVALID      ( axi_lite_write_regfile.ar_valid       ),
+        .s_axi_control_ARREADY      ( axi_lite_write_regfile.ar_ready       ),
+        .s_axi_control_ARADDR       ( axi_lite_write_regfile.ar_addr        ),
+        .s_axi_control_RVALID       ( axi_lite_write_regfile.r_valid        ),
+        .s_axi_control_RREADY       ( axi_lite_write_regfile.r_ready        ),
+        .s_axi_control_RDATA        ( axi_lite_write_regfile.r_data         ),
+        .s_axi_control_RRESP        ( axi_lite_write_regfile.r_resp         ),
+        .s_axi_control_BVALID       ( axi_lite_write_regfile.b_valid        ),
+        .s_axi_control_BREADY       ( axi_lite_write_regfile.b_ready        ),
+        .s_axi_control_BRESP        ( axi_lite_write_regfile.b_resp         ),
         // Interrupt
         .interrupt                  (                                       )
     );

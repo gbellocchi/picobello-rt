@@ -75,8 +75,8 @@ module fpga_l2_tile
   // Chimney //
   /////////////
 
-  floo_picobello_noc_pkg::axi_wide_in_req_t chimney_wide_out_req;
-  floo_picobello_noc_pkg::axi_wide_in_rsp_t chimney_wide_out_rsp;
+  floo_picobello_noc_pkg::axi_wide_out_req_t chimney_wide_out_req;
+  floo_picobello_noc_pkg::axi_wide_out_rsp_t chimney_wide_out_rsp;
 
   localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b0, 1'b0);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(ChimneyDefaultCfg, 1'b1, 1'b0);
