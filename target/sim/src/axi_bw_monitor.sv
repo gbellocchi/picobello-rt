@@ -99,12 +99,22 @@ module axi_bw_monitor #(
 
   initial begin
     while(1) begin 
+      // Initialize AR channel counters
       ar_cnt = 0;
       r_cnt = 0;
+      // Initialize queues
+      for (int i = 0; i < NumAxiIds; i++) begin
+        ar_outstanding[i].delete();
+      end
+      r_latency.delete();
+      r_bw_t.delete();
+      r_bw_val.delete();
+      // Initialize read statistics
       r_latency_mean = 0;
       r_latency_stddev = 0;
       r_bw_mean = 0;
       r_util_mean = 0;
+      // Initialize read controls
       prev_r_last = 1;
 
       @(posedge cfg_i.en_r_cnt);
@@ -200,8 +210,17 @@ module axi_bw_monitor #(
 
   initial begin
     while(1) begin 
+      // Initialize AW channel counters
       aw_cnt = 0;
       w_cnt = 0;
+      // Initialize queues
+      for (int i = 0; i < NumAxiIds; i++) begin
+        aw_outstanding[i].delete();
+      end
+      w_latency.delete();
+      w_bw_t.delete();
+      w_bw_val.delete();
+      // Initialize write statistics
       w_latency_mean = 0;
       w_latency_stddev = 0;
       w_bw_mean = 0;
