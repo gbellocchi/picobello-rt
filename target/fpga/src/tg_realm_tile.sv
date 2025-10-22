@@ -12,7 +12,11 @@ module tg_realm_tile
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*;
   import fpga_picobello_pkg::*;
-(
+#(
+  /// Number of cores in the tile.
+  parameter int unsigned NumCores = 1,
+  parameter int unsigned NumCoresMax = 64
+) (
   input  logic                                    clk_i,
   input  logic                                    rst_ni,
   input  logic                                    test_enable_i,
@@ -172,7 +176,7 @@ module tg_realm_tile
 
   // Cluster peripheral address map
   axi_narrow_out_addr_downsized_addr_t mst_cfg_partition_dim = 32'h0000_1000; // Max number of addressable masters = 64
-  axi_narrow_out_addr_downsized_addr_t multi_mst_cfg_partition_dim = mst_cfg_partition_dim * NumMasters;
+  axi_narrow_out_addr_downsized_addr_t multi_mst_cfg_partition_dim = mst_cfg_partition_dim * NumCores;
 
   axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_0000;
   axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_offset = 32'h0000_0800;
@@ -385,7 +389,7 @@ module tg_realm_tile
 
   // AXI RT unit wide
   axi_rt_unit_top #(
-    .NumManagers      ( NumMasters                ),
+    .NumManagers      ( NumCores                  ),
     .AddrWidth        ( AxiCfgW.AddrWidth         ),
     .DataWidth        ( AxiCfgW.DataWidth         ),
     .IdWidth          ( AxiCfgW.OutIdWidth        ),
@@ -495,4 +499,11 @@ module tg_realm_tile
   `AXI_ASSIGN_REQ_STRUCT(axi_realm_wide_in_req, axi_tg_wide_out_req)
   `AXI_ASSIGN_RESP_STRUCT(axi_tg_wide_out_rsp, axi_realm_wide_in_rsp)
 
+  // pragma translate_off
+  `ifndef VERILATOR
+  initial begin
+    assert (NumCores < NumCoresMax) else $fatal(1, "Wrong number of cores");
+  end
+  `endif
+  // pragma translate_on
 endmodule

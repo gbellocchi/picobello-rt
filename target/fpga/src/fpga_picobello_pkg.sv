@@ -20,7 +20,6 @@ package fpga_picobello_pkg;
   // SoC parameters
   localparam int unsigned NumFpgaHostPorts = 1;
   localparam int unsigned NumFpgaDummyTiles = 2;
-  localparam int unsigned NumTrafficGenerators = picobello_pkg::NumClusters + 1; // Snitch clusters and FhG SPU
 
   //////////
   // AXI4 //

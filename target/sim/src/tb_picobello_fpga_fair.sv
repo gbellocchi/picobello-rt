@@ -86,6 +86,9 @@ module tb_picobello_fpga_fair
   floo_picobello_noc_pkg::sam_rule_t cluster_sam;
   floo_picobello_noc_pkg::id_t cluster_idx;
 
+  localparam int unsigned NumCores = 1; // cores per cluster tile
+  localparam int unsigned NumCoresActive = 1; // active cores per cluster tile
+
   // Cluster peripheral address map
   axi_narrow_out_addr_downsized_addr_t mst_cfg_partition_dim = 32'h0000_1000; // Max number of addressable masters = 64
   axi_narrow_out_addr_downsized_addr_t multi_mst_cfg_partition_dim = mst_cfg_partition_dim * NumMasters;
@@ -151,7 +154,7 @@ module tb_picobello_fpga_fair
     // Parameters
     .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),  
     .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),    
-    .NumTrafficGenerators     (fpga_picobello_pkg::NumTrafficGenerators),
+    .NumCores                 (NumCores),
     // AXI4 channel types
     .axi_host_req_t           (fpga_picobello_pkg::axi_host_req_t),
     .axi_host_rsp_t           (fpga_picobello_pkg::axi_host_rsp_t),
@@ -183,14 +186,6 @@ module tb_picobello_fpga_fair
   ) i_clk_gen (
     .clk_o            (clk),
     .rst_no           (rst_n)
-  );
-
-  ////////////////
-  // RT toolkit //
-  ////////////////
-
-  rt_toolkit rt (
-    .*
   );
 
   ///////////
@@ -670,6 +665,10 @@ module tb_picobello_fpga_fair
 
     #1us; 
     $finish();
+  end
+
+  initial begin
+    assert (NumCoresActive <= NumCores) else $fatal(1, "Wrong number of active cores per cluster!");
   end
 
 endmodule

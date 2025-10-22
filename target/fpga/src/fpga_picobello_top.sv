@@ -15,8 +15,8 @@ module fpga_picobello_top
   parameter int unsigned NumFpgaHostPorts = 1,
   // Number of FPGA dummy tiles
   parameter int unsigned NumFpgaDummyTiles = 2,
-  // Number of traffic generators
-  parameter int unsigned NumTrafficGenerators = NumClusters + 1,
+  // Number of cores within each cluster tile
+  parameter int unsigned NumCores = 1,
   // AXI4 channel types
   parameter type axi_host_req_t = logic,
   parameter type axi_host_rsp_t = logic,
@@ -61,7 +61,9 @@ module fpga_picobello_top
     localparam int Y = int'(ClusterId.y);
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
-    tg_realm_tile i_cluster_tg_tile (
+    tg_realm_tile #(
+      .NumCores           (NumCores)
+    ) i_cluster_tg_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i      (test_mode_i),
@@ -73,7 +75,7 @@ module fpga_picobello_top
       .floo_req_i         (floo_req_in[X][Y]),
       .floo_rsp_o         (floo_rsp_out[X][Y]),
       .floo_wide_i        (floo_wide_in[X][Y])
-    );
+      );
   end
 
   ////////////////////
@@ -107,7 +109,9 @@ module fpga_picobello_top
   localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
   localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
 
-  tg_realm_tile i_fhg_spu_tile (
+  tg_realm_tile #(
+    .NumCores           (1)
+    ) i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),
