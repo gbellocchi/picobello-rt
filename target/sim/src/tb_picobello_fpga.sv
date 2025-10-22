@@ -113,8 +113,8 @@ module tb_picobello_fpga
   // Number of test iterations (for coarser transactions)
   int NTestIterations = 1;
 
-  // Number of clusters under test
-  int NTestCl = 1; //picobello_pkg::NumClusters / NAccxCl;
+  // Number of physical clusters under test
+  int NTestCl = 1; // Effective number of clusters
 
   // Traffic dimension (hardwired)
   int TrafficDim = 128 * 32; // hardwired in traffic generator design
@@ -124,16 +124,16 @@ module tb_picobello_fpga
   int NOpsMax = 32'h0000_0000; // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
 
   // Number of cluster tiles per memory tile
-  int NClXMemMin = 1; // 1 cluster per memory tile (most performant case)
-  int NClXMemMax = 1; // 1 <= NClXMemMax <= NTestCl
+  int NClXMemMin = NTestCl; // 1 cluster per memory tile (most performant case)
+  int NClXMemMax = NTestCl; // 1 <= NClXMemMax <= NTestCl
 
   // Number of accelerators per cluster
   int NAccxClMin = 1; // accelerator per cluster tile (most performant case)
   int NAccxClMax = 1; // <= NAccxClMax <= NumClusters
 
   // Burst length
-  int BurstLengthMin = 32'd1; // burstless (single-beat)
-  int BurstLengthMax = 32'd1; // max allowed by axi4
+  int BurstLengthMin = 32'd128; // burstless (single-beat)
+  int BurstLengthMax = 32'd128; // max allowed by axi4
 
   /////////
   // DUT //
@@ -287,8 +287,6 @@ module tb_picobello_fpga
 
     // Loop over the number of accelerators per cluster (from 1 to 16)
     n_acc_x_cl_loop: for (int NAccxCl = NAccxClMin; NAccxCl <= NAccxClMax; NAccxCl = NAccxCl * 2) begin
-
-      // NTestCl = picobello_pkg::NumClusters / NAccxCl;
 
       @(posedge `CLK_SIGNAL);
 
@@ -445,7 +443,6 @@ module tb_picobello_fpga
                 comp_timer_val = '{default: '0};
 
                 // DMA-in: read data from L2 memory
-                // $display ("\nTest #%0d-------------DMA-in: read data from L2 memory", NTest);
                 dma_in_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
 
                   if(test_id==0) begin
@@ -459,18 +456,18 @@ module tb_picobello_fpga
                     1: dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                     2: dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                     3: dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 4: dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 5: dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 6: dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 7: dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 8: dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 9: dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 10: dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 11: dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 12: dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 13: dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 14: dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                    // 15: dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    4: dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    5: dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    6: dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    7: dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    8: dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    9: dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    10: dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    11: dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    12: dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    13: dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    14: dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                    15: dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                   endcase
                   dma_r_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma read starts
                 end
@@ -478,25 +475,24 @@ module tb_picobello_fpga
                 `wait_n_clk(`t_periph_bus); // Overhead: dma programming time (cluster peripheral bus)
 
                 // DMA-in: wait first burst completion
-                // $display ("\nTest #%0d-------------DMA-in: wait first burst completion", NTest);
                 dma_in_first_burst_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
                   case (cl_id)
                     0: while(dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
                     1: while(dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
                     2: while(dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
                     3: while(dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 4: while(dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 5: while(dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 6: while(dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 7: while(dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 8: while(dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 9: while(dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 10: while(dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 11: while(dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 12: while(dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 13: while(dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 14: while(dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
-                    // 15: while(dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    4: while(dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    5: while(dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    6: while(dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    7: while(dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    8: while(dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    9: while(dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    10: while(dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    11: while(dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    12: while(dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    13: while(dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    14: while(dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
+                    15: while(dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.axi_tg_wide_out.r_last != 1) begin dma_r_first_burst[cl_id] = 0; @(posedge `CLK_SIGNAL); end
                   endcase
                   dma_r_first_burst[cl_id] = 1;
                 end
@@ -504,25 +500,24 @@ module tb_picobello_fpga
                 @(posedge `CLK_SIGNAL);
 
                 // DMA-in: wait for completion
-                // $display ("\nTest #%0d-------------DMA-in: wait for completion", NTest);
                 dma_in_idle_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
                   case (cl_id)
                     0:  while(dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                     1:  while(dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                     2:  while(dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                     3:  while(dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 4:  while(dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 5:  while(dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 6:  while(dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 7:  while(dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 8:  while(dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 9:  while(dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 10: while(dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 11: while(dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 12: while(dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 13: while(dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 14: while(dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 15: while(dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    4:  while(dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    5:  while(dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    6:  while(dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    7:  while(dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    8:  while(dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    9:  while(dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    10: while(dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    11: while(dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    12: while(dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    13: while(dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    14: while(dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    15: while(dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                   endcase
                   // Store timer value as dma read terminates
                   dma_r_timer_1[cl_id] = tb_timer_cnt_value;
@@ -535,110 +530,105 @@ module tb_picobello_fpga
 
               // Do not need to iterate on computations because these are running in parallel inside the cluster as soon as data arrive
 
-              // // Compute: run
-              // // $display ("\nTest #%0d-------------Compute: run", NTest);
-              // compute_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-              //   if(dma_r_first_burst[cl_id]) begin
-              //     comp_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as computation starts
-              //   end
-              // end
+              // Compute: run
+              compute_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+                if(dma_r_first_burst[cl_id]) begin
+                  comp_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as computation starts
+                end
+              end
 
-              // `wait_n_clk(`t_periph_bus); // Overhead: accelerator programming time (cluster peripheral bus)
+              `wait_n_clk(`t_periph_bus); // Overhead: accelerator programming time (cluster peripheral bus)
 
-              // // Compute: wait for computation of first data burst
-              // // $display ("\nTest #%0d-------------Compute: wait for computation of first data burst", NTest);
-              // compute_first_burst_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-              //   while(!compute_first_burst[cl_id]) begin
+              // Compute: wait for computation of first data burst
+              compute_first_burst_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+                while(!compute_first_burst[cl_id]) begin
                   
-              //     // Store timer value as computation of first data burst terminates
-              //     comp_timer_1[cl_id] = tb_timer_cnt_value;
-              //     comp_timer_val[cl_id] = comp_timer_1[cl_id] - comp_timer_0[cl_id];
+                  // Store timer value as computation of first data burst terminates
+                  comp_timer_1[cl_id] = tb_timer_cnt_value;
+                  comp_timer_val[cl_id] = comp_timer_1[cl_id] - comp_timer_0[cl_id];
 
-              //     @(posedge `CLK_SIGNAL);
+                  @(posedge `CLK_SIGNAL);
 
-              //     // Set flag after computation
-              //     if(comp_timer_val[cl_id] >= TgBurstLength) begin
-              //       compute_first_burst[cl_id] = 1'b1; 
-              //     end
-              //   end
-              // end
+                  // Set flag after computation
+                  if(comp_timer_val[cl_id] >= TgBurstLength) begin
+                    compute_first_burst[cl_id] = 1'b1; 
+                  end
+                end
+              end
 
-              // @(posedge `CLK_SIGNAL);
+              @(posedge `CLK_SIGNAL);
 
-              // // Compute: wait for completion
-              // // $display ("\nTest #%0d-------------Compute: wait for completion", NTest);
-              // compute_idle_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-              //   while(!compute_done[cl_id]) begin
+              // Compute: wait for completion
+              compute_idle_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+                while(!compute_done[cl_id]) begin
                   
-              //     // Store timer value as computation terminates
-              //     comp_timer_1[cl_id] = tb_timer_cnt_value;
-              //     comp_timer_val[cl_id] = comp_timer_1[cl_id] - comp_timer_0[cl_id];
+                  // Store timer value as computation terminates
+                  comp_timer_1[cl_id] = tb_timer_cnt_value;
+                  comp_timer_val[cl_id] = comp_timer_1[cl_id] - comp_timer_0[cl_id];
 
-              //     @(posedge `CLK_SIGNAL);
+                  @(posedge `CLK_SIGNAL);
 
-              //     // Set done flag after computation
-              //     if(comp_timer_val[cl_id] >= (tb_tg_cfg_read.TrafficGenComputeDim)) begin
-              //       compute_done[cl_id] = 1'b1; 
-              //       @(posedge `CLK_SIGNAL);
-              //     end
-              //   end
-              // end
+                  // Set done flag after computation
+                  if(comp_timer_val[cl_id] >= (tb_tg_cfg_read.TrafficGenComputeDim)) begin
+                    compute_done[cl_id] = 1'b1; 
+                    @(posedge `CLK_SIGNAL);
+                  end
+                end
+              end
 
               @(posedge `CLK_SIGNAL);
 
               // Iterate over the accelerators per cluster
               dma_out_set_acc_x_cl_loop: for (int acc_cl_id = 0; acc_cl_id < NAccxCl; acc_cl_id++) begin
 
-                // // DMA-out: write data from L2 memory
-                // $display ("\nTest #%0d-------------DMA-out: write data from L2 memory", NTest);
-                // dma_out_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-                  // case (cl_id)
-                  //   0:  dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                  //   1:  dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                  //   2:  dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                  //   3:  dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 4:  dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 5:  dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 6:  dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 7:  dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 8:  dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 9:  dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 10: dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 11: dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 12: dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 13: dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 14: dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                    // 15: dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
-                  // endcase
-                //   dma_w_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma write starts
-                // end
+                // DMA-out: write data from L2 memory
+                dma_out_start_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
+                  case (cl_id)
+                    0:  dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    1:  dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    2:  dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    3:  dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    4:  dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    5:  dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    6:  dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    7:  dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    8:  dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    9:  dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    10: dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    11: dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    12: dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    13: dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    14: dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                    15: dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.int_ap_start = 1'h1;
+                  endcase
+                  dma_w_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma write starts
+                end
 
-                // `wait_n_clk(`t_periph_bus); // Overhead: dma programming time (cluster peripheral bus)
+                `wait_n_clk(`t_periph_bus); // Overhead: dma programming time (cluster peripheral bus)
 
                 // DMA-out: wait for completion
-                // $display ("\nTest #%0d-------------DMA-out: wait for completion", NTest);
                 dma_out_idle_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
-                  // case (cl_id)
-                  //   0:  while(dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                  //   1:  while(dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                  //   2:  while(dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                  //   3:  while(dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 4:  while(dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 5:  while(dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 6:  while(dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 7:  while(dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 8:  while(dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 9:  while(dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 10: while(dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 11: while(dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 12: while(dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 13: while(dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 14: while(dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                    // 15: while(dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                  // endcase
-                  // // Store timer value as dma write terminates
-                  // dma_w_timer_1[cl_id] = tb_timer_cnt_value;
-                  // dma_w_timer_val[cl_id] = dma_w_timer_1[cl_id] - dma_w_timer_0[cl_id];
+                  case (cl_id)
+                    0:  while(dut.gen_clusters[0].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    1:  while(dut.gen_clusters[1].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    2:  while(dut.gen_clusters[2].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    3:  while(dut.gen_clusters[3].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    4:  while(dut.gen_clusters[4].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    5:  while(dut.gen_clusters[5].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    6:  while(dut.gen_clusters[6].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    7:  while(dut.gen_clusters[7].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    8:  while(dut.gen_clusters[8].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    9:  while(dut.gen_clusters[9].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    10: while(dut.gen_clusters[10].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    11: while(dut.gen_clusters[11].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    12: while(dut.gen_clusters[12].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    13: while(dut.gen_clusters[13].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    14: while(dut.gen_clusters[14].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                    15: while(dut.gen_clusters[15].i_cluster_tg_tile.i_axi_hls_tg_wrapper.i_axi_hls_tg_write.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                  endcase
+                  // Store timer value as dma write terminates
+                  dma_w_timer_1[cl_id] = tb_timer_cnt_value;
+                  dma_w_timer_val[cl_id] = dma_w_timer_1[cl_id] - dma_w_timer_0[cl_id];
 
                   @(posedge `CLK_SIGNAL);
 
