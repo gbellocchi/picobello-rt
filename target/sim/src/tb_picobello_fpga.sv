@@ -105,7 +105,12 @@ module tb_picobello_fpga
   string filePath;
   string fileDir;
 
-  // Exploration variables 
+  // DPI-C
+  ClusterController<16> cl_ctrl; // 16 clusters
+
+  ///////////////////////////////
+  // TB exploration variables  //
+  ///////////////////////////////
 
   // Number of performed tests
   int NTest = 0;
@@ -175,6 +180,14 @@ module tb_picobello_fpga
   ) i_clk_gen (
     .clk_o            (clk),
     .rst_no           (rst_n)
+  );
+
+  ////////////////
+  // RT toolkit //
+  ////////////////
+
+  rt_toolkit rt (
+    .*
   );
 
   ///////////
@@ -771,6 +784,12 @@ module tb_picobello_fpga
     end // n_accxmem_loop
 
     #1us; 
+    $finish();
+  end
+
+  initial begin
+    #1us;
+    rt.hello_world();
     $finish();
   end
 
