@@ -85,6 +85,13 @@ module tg_realm_tile
   floo_picobello_noc_pkg::axi_wide_in_req_t chimney_wide_in_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t chimney_wide_in_rsp;
 
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (AxiCfgN.AddrWidth),
+    .AXI_DATA_WIDTH (AxiCfgN.DataWidth),
+    .AXI_ID_WIDTH   (AxiCfgN.OutIdWidth),
+    .AXI_USER_WIDTH (AxiCfgN.UserWidth)
+  ) chimney_narrow_out[0:0]();
+
   localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b1, 1'b0);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(ChimneyDefaultCfg, 1'b0, 1'b1);
 
@@ -135,17 +142,26 @@ module tg_realm_tile
     .floo_wide_i         (router_floo_wide_out[Eject])
   );
 
-  /////////////////////////////////////////////
-  // Route AXI4 narrow inputs to destination //
-  /////////////////////////////////////////////
+  `AXI_ASSIGN_FROM_REQ(chimney_narrow_out[0], chimney_narrow_out_req)
+  `AXI_ASSIGN_TO_RESP(chimney_narrow_out_rsp, chimney_narrow_out[0])
 
-  // Narrow inputs must be re-routed for:
+  ////////////////////////////////
+  // AXI4 Chimney => AXI4 Cores //
+  ////////////////////////////////
+
+  // Each NI output is routed toward a specific core for configuration
+
+  ///////////////////////////////////////////
+  // AXI4 Cores => AXI4 Core Register Files //
+  ///////////////////////////////////////////
+
+  // Each core can be configured independently accessing the following registers:
   // - Traffic generator read configuration (from the Host processor)
   // - Traffic generator write configuration (from the Host processor)
   // - Traffic generator compute configuration (from the Host processor)
   // - AXI-Realm wide port configuration (from the Host processor)
 
-  localparam int unsigned NTileCfg = 4;
+  localparam int unsigned NCoreCfg = 4;
 
   // Number of address map rules
   localparam int unsigned NTrafficGenRules  = 3;
@@ -190,7 +206,7 @@ module tg_realm_tile
 
   localparam axi_pkg::xbar_cfg_t PicobelloTgXbarCfg = '{
     NoSlvPorts:         1,
-    NoMstPorts:         NTileCfg,
+    NoMstPorts:         NCoreCfg,
     MaxMstTrans:        4,
     MaxSlvTrans:        4,
     FallThrough:        1'b0,
@@ -203,6 +219,13 @@ module tg_realm_tile
     AxiDataWidth:       AxiCfgN.DataWidth,
     NoAddrRules:        NTileCfgRules
   };
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (AxiCfgN.AddrWidth),
+    .AXI_DATA_WIDTH (AxiCfgN.DataWidth),
+    .AXI_ID_WIDTH   (AxiCfgN.OutIdWidth),
+    .AXI_USER_WIDTH (AxiCfgN.UserWidth)
+  ) axi_tg_tile_cfg [NCoreCfg-1:0]();
 
   // AXI-Realm wide configuration
   assign tg_cfg_in_addr_map[0] = '{
@@ -232,45 +255,6 @@ module tg_realm_tile
     end_addr:   tg_base_addr_i + cluster_tile_compute_addr_offset + cluster_tile_compute_addr_dim
   };
 
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (AxiCfgN.AddrWidth),
-    .AXI_DATA_WIDTH (AxiCfgN.DataWidth),
-    .AXI_ID_WIDTH   (AxiCfgN.OutIdWidth),
-    .AXI_USER_WIDTH (AxiCfgN.UserWidth)
-  ) chimney_narrow_out[0:0]();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (AxiCfgN.AddrWidth),
-    .AXI_DATA_WIDTH (AxiCfgN.DataWidth),
-    .AXI_ID_WIDTH   (AxiCfgN.OutIdWidth),
-    .AXI_USER_WIDTH (AxiCfgN.UserWidth)
-  ) axi_tg_tile_cfg [NTileCfg-1:0]();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (AxiCfgDataDownsized.AddrWidth),
-    .AXI_DATA_WIDTH (AxiCfgDataDownsized.DataWidth),
-    .AXI_ID_WIDTH   (AxiCfgDataDownsized.OutIdWidth),
-    .AXI_USER_WIDTH (AxiCfgDataDownsized.UserWidth)
-  ) axi_tg_tile_cfg_data_downsized [NTileCfg-1:0]();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (AxiCfgAddrDownsized.AddrWidth),
-    .AXI_DATA_WIDTH (AxiCfgAddrDownsized.DataWidth),
-    .AXI_ID_WIDTH   (AxiCfgAddrDownsized.OutIdWidth),
-    .AXI_USER_WIDTH (AxiCfgAddrDownsized.UserWidth)
-  ) axi_tg_tile_cfg_addr_downsized [NTileCfg-1:0]();
-
-  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_aw_addr[NTileCfg-1:0];
-  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_ar_addr[NTileCfg-1:0];
-
-  AXI_LITE #(
-    .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
-    .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
-  ) axi_lite_tile_tg_cfg [NTileCfg-1:0]();
-
-  `AXI_ASSIGN_FROM_REQ(chimney_narrow_out[0], chimney_narrow_out_req)
-  `AXI_ASSIGN_TO_RESP(chimney_narrow_out_rsp, chimney_narrow_out[0])
-
   axi_xbar_intf #(
     .AXI_USER_WIDTH (AxiCfgN.UserWidth),
     .Cfg            (PicobelloTgXbarCfg),
@@ -287,7 +271,33 @@ module tg_realm_tile
     .default_mst_port_i     ('0)
   );
 
-  for (genvar i = 0; i < NTileCfg; i++) begin : gen_tg_tile_cfg_axi_lite
+  ///////////////////////////////////////////////////////////////
+  // AXI4 Core Register Files => AXI4-Lite Core Register Files //
+  ///////////////////////////////////////////////////////////////
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (AxiCfgDataDownsized.AddrWidth),
+    .AXI_DATA_WIDTH (AxiCfgDataDownsized.DataWidth),
+    .AXI_ID_WIDTH   (AxiCfgDataDownsized.OutIdWidth),
+    .AXI_USER_WIDTH (AxiCfgDataDownsized.UserWidth)
+  ) axi_tg_tile_cfg_data_downsized [NCoreCfg-1:0]();
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (AxiCfgAddrDownsized.AddrWidth),
+    .AXI_DATA_WIDTH (AxiCfgAddrDownsized.DataWidth),
+    .AXI_ID_WIDTH   (AxiCfgAddrDownsized.OutIdWidth),
+    .AXI_USER_WIDTH (AxiCfgAddrDownsized.UserWidth)
+  ) axi_tg_tile_cfg_addr_downsized [NCoreCfg-1:0]();
+
+  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_aw_addr[NCoreCfg-1:0];
+  axi_narrow_out_addr_downsized_addr_t axi_tg_tile_cfg_addr_downsized_ar_addr[NCoreCfg-1:0];
+
+  AXI_LITE #(
+    .AXI_ADDR_WIDTH (AxiLiteCfg.AddrWidth),
+    .AXI_DATA_WIDTH (AxiLiteCfg.DataWidth)
+  ) axi_lite_tile_tg_cfg [NCoreCfg-1:0]();
+
+  for (genvar i = 0; i < NCoreCfg; i++) begin : gen_tg_tile_cfg_axi_lite
 
     axi_dw_converter_intf #(
       .AXI_ID_WIDTH             (AxiCfgDataDownsized.OutIdWidth),
@@ -368,7 +378,7 @@ module tg_realm_tile
   // AXI RT IDs
   slv_id_t reg_cfg_rt_wide_id;
 
-  // Convert AXI Lite to custom register interface fr RT wide configuration bus
+  // Convert AXI4-Lite to custom register interface for the RT wide configuration bus
   axi_lite_to_reg #(
     .ADDR_WIDTH     (AxiCfgAddrDownsized.AddrWidth),
     .DATA_WIDTH     (AxiCfgAddrDownsized.DataWidth),
