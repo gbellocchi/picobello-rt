@@ -149,10 +149,10 @@ module tg_realm_tile
   localparam int unsigned NTileCfgRules     = NTrafficGenRules + NAxiRealmRules;
 
   // Indices
-  localparam int unsigned IdxPortTgRead     = 0;
-  localparam int unsigned IdxPortTgWrite    = 1;
-  localparam int unsigned IdxPortTgCompute  = 2;
-  localparam int unsigned IdxPortAxiRealm   = 3;
+  localparam int unsigned IdxPortAxiRealm   = 0;
+  localparam int unsigned IdxPortTgRead     = 1;
+  localparam int unsigned IdxPortTgWrite    = 2;
+  localparam int unsigned IdxPortTgCompute  = 3;
 
   // AXI4-Lite interfaces - traffic generator configuration
   axi_lite_host_req_t  axi_lite_read_cfg_req;
@@ -170,8 +170,19 @@ module tg_realm_tile
   // Address map
   axi_pkg::xbar_rule_64_t [NTileCfgRules-1:0] tg_cfg_in_addr_map;
 
-  logic [AxiCfgN.AddrWidth-1:0] tile_partition_len; 
-  assign tile_partition_len = 64'h0000_2000;
+  // Cluster peripheral address map
+  axi_narrow_out_addr_downsized_addr_t mst_cfg_partition_dim = 32'h0000_1000; // Max number of addressable masters = 64
+  axi_narrow_out_addr_downsized_addr_t multi_mst_cfg_partition_dim = mst_cfg_partition_dim * NumMasters;
+
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_0000;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_offset = 32'h0000_0800;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_offset = 32'h0000_0830;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_offset = 32'h0000_0860; // not used
+  
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_dim = 32'h0000_0800;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_dim = 32'h0000_0030;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_dim = 32'h0000_0030;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_dim = 32'h0000_0030; // not used
 
   localparam axi_pkg::xbar_cfg_t PicobelloTgXbarCfg = '{
     NoSlvPorts:         1,
@@ -189,33 +200,33 @@ module tg_realm_tile
     NoAddrRules:        NTileCfgRules
   };
 
-  // Wide read
+  // AXI-Realm wide configuration
   assign tg_cfg_in_addr_map[0] = '{
+    idx:        IdxPortAxiRealm,
+    start_addr: tg_base_addr_i + cluster_tile_rt_addr_offset,
+    end_addr:   tg_base_addr_i + cluster_tile_rt_addr_offset + cluster_tile_rt_addr_dim
+  };
+
+  // Wide read
+  assign tg_cfg_in_addr_map[1] = '{
     idx:        IdxPortTgRead,
-    start_addr: tg_base_addr_i + 0 * tile_partition_len,
-    end_addr:   tg_base_addr_i + 1 * tile_partition_len
+    start_addr: tg_base_addr_i + cluster_tile_dma_r_addr_offset,
+    end_addr:   tg_base_addr_i + cluster_tile_dma_r_addr_offset + cluster_tile_dma_r_addr_dim
   };
 
   // Wide write
-  assign tg_cfg_in_addr_map[1] = '{
+  assign tg_cfg_in_addr_map[2] = '{
     idx:        IdxPortTgWrite,
-    start_addr: tg_base_addr_i + 1 * tile_partition_len,
-    end_addr:   tg_base_addr_i + 2 * tile_partition_len
+    start_addr: tg_base_addr_i + cluster_tile_dma_w_addr_offset,
+    end_addr:   tg_base_addr_i + cluster_tile_dma_w_addr_offset + cluster_tile_dma_w_addr_dim
   };
 
   // Timer (compute)
-  assign tg_cfg_in_addr_map[2] = '{
-    idx:        IdxPortTgCompute,
-    start_addr: tg_base_addr_i + 2 * tile_partition_len,
-    end_addr:   tg_base_addr_i + 3 * tile_partition_len
-  };
-
-  // AXI-Realm wide configuration
   assign tg_cfg_in_addr_map[3] = '{
-    idx:        IdxPortAxiRealm,
-    start_addr: tg_base_addr_i + 3 * tile_partition_len,
-    end_addr:   tg_base_addr_i + 4 * tile_partition_len
-  }; 
+    idx:        IdxPortTgCompute,
+    start_addr: tg_base_addr_i + cluster_tile_compute_addr_offset,
+    end_addr:   tg_base_addr_i + cluster_tile_compute_addr_offset + cluster_tile_compute_addr_dim
+  };
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (AxiCfgN.AddrWidth),
@@ -322,18 +333,18 @@ module tg_realm_tile
     );
   end
 
-  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_read_cfg_req, axi_lite_tile_tg_cfg[0])
-  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[0], axi_lite_read_cfg_rsp)
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_realm_wide_cfg_req, axi_lite_tile_tg_cfg[0])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[0], axi_lite_realm_wide_cfg_rsp)
 
-  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_write_cfg_req, axi_lite_tile_tg_cfg[1])
-  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[1], axi_lite_write_cfg_rsp)
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_read_cfg_req, axi_lite_tile_tg_cfg[1])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[1], axi_lite_read_cfg_rsp)
 
-  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_comp_cfg_req, axi_lite_tile_tg_cfg[2])
-  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[2], axi_lite_comp_cfg_rsp)
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_write_cfg_req, axi_lite_tile_tg_cfg[2])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[2], axi_lite_write_cfg_rsp)
 
-  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_realm_wide_cfg_req, axi_lite_tile_tg_cfg[3])
-  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[3], axi_lite_realm_wide_cfg_rsp)
-  
+  `AXI_LITE_ASSIGN_TO_REQ(axi_lite_comp_cfg_req, axi_lite_tile_tg_cfg[3])
+  `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_tile_tg_cfg[3], axi_lite_comp_cfg_rsp)
+
   ///////////////
   // AXI-Realm //
   ///////////////

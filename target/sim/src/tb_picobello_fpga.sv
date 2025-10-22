@@ -40,6 +40,10 @@ module tb_picobello_fpga
   `include "tb_picobello_fpga_tasks.svh"
   `include "tb_picobello_rt_tasks.svh"
 
+  ////////////////
+  // TB signals //
+  ////////////////
+
   logic [picobello_pkg::NumClusters-1:0] end_of_sim;
   
   // Timer configuration
@@ -83,10 +87,18 @@ module tb_picobello_fpga
   floo_picobello_noc_pkg::id_t cluster_idx;
 
   // Cluster peripheral address map
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_offset = 32'h0000_0000;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_offset = 32'h0000_2000;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_offset = 32'h0000_4000;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_6000;
+  axi_narrow_out_addr_downsized_addr_t mst_cfg_partition_dim = 32'h0000_1000; // Max number of addressable masters = 64
+  axi_narrow_out_addr_downsized_addr_t multi_mst_cfg_partition_dim = mst_cfg_partition_dim * NumMasters;
+
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_0000;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_offset = 32'h0000_0800;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_offset = 32'h0000_0830;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_offset = 32'h0000_0860; // not used
+  
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_dim = 32'h0000_0800;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_dim = 32'h0000_0030;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_dim = 32'h0000_0030;
+  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_dim = 32'h0000_0030; // not used
 
   // File IO
   int fileDescriptor;
