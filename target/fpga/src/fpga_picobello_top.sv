@@ -61,20 +61,20 @@ module fpga_picobello_top
     localparam int Y = int'(ClusterId.y);
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
-    tg_realm_tile #(
-      .NumCores           (NumCores)
-    ) i_cluster_tg_tile (
+    cluster_rt_tile #(
+      .NumCores         (NumCores)
+    ) i_cluster_rt_tile (
       .clk_i,
       .rst_ni,
-      .test_enable_i      (test_mode_i),
-      .tg_base_addr_i     (ClusterBaseAddr),
-      .id_i               (ClusterId),
-      .floo_req_o         (floo_req_out[X][Y]),
-      .floo_rsp_i         (floo_rsp_in[X][Y]),
-      .floo_wide_o        (floo_wide_out[X][Y]),
-      .floo_req_i         (floo_req_in[X][Y]),
-      .floo_rsp_o         (floo_rsp_out[X][Y]),
-      .floo_wide_i        (floo_wide_in[X][Y])
+      .test_enable_i    (test_mode_i),
+      .base_addr_i      (ClusterBaseAddr),
+      .id_i             (ClusterId),
+      .floo_req_o       (floo_req_out[X][Y]),
+      .floo_rsp_i       (floo_rsp_in[X][Y]),
+      .floo_wide_o      (floo_wide_out[X][Y]),
+      .floo_req_i       (floo_req_in[X][Y]),
+      .floo_rsp_o       (floo_rsp_out[X][Y]),
+      .floo_wide_i      (floo_wide_in[X][Y])
       );
   end
 
@@ -109,20 +109,20 @@ module fpga_picobello_top
   localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
   localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
 
-  tg_realm_tile #(
-    .NumCores           (1)
+  cluster_rt_tile #(
+    .NumCores         (1)
     ) i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
-    .test_enable_i      (test_mode_i),
-    .tg_base_addr_i     (FhgSpuAddr),
-    .id_i               (FhgSpuId),
-    .floo_req_o         (floo_req_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_rsp_i         (floo_rsp_in[FhgSpuId.x][FhgSpuId.y]),
-    .floo_wide_o        (floo_wide_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_req_i         (floo_req_in[FhgSpuId.x][FhgSpuId.y]),
-    .floo_rsp_o         (floo_rsp_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_wide_i        (floo_wide_in[FhgSpuId.x][FhgSpuId.y])
+    .test_enable_i    (test_mode_i),
+    .base_addr_i      (FhgSpuAddr),
+    .id_i             (FhgSpuId),
+    .floo_req_o       (floo_req_out[FhgSpuId.x][FhgSpuId.y]),
+    .floo_rsp_i       (floo_rsp_in[FhgSpuId.x][FhgSpuId.y]),
+    .floo_wide_o      (floo_wide_out[FhgSpuId.x][FhgSpuId.y]),
+    .floo_req_i       (floo_req_in[FhgSpuId.x][FhgSpuId.y]),
+    .floo_rsp_o       (floo_rsp_out[FhgSpuId.x][FhgSpuId.y]),
+    .floo_wide_i      (floo_wide_in[FhgSpuId.x][FhgSpuId.y])
   );
 
   //////////////
