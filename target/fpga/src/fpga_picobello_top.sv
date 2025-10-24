@@ -110,8 +110,8 @@ module fpga_picobello_top
   localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
 
   cluster_rt_tile #(
-    .NumCores         (1)
-    ) i_fhg_spu_tile (
+    .NumCores         (NumCores)
+  ) i_fhg_spu_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i    (test_mode_i),
