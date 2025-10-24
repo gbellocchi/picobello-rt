@@ -31,6 +31,10 @@ module axi_hls_tg_rw_wrapper #(
     import picobello_pkg::*;
     import fpga_picobello_pkg::*;
 
+    //////////////////////
+    // Wire definitions //
+    //////////////////////
+
     AXI_BUS #(
         .AXI_ADDR_WIDTH (AxiCfgW.AddrWidth),
         .AXI_DATA_WIDTH (AxiCfgW.DataWidth),
@@ -65,6 +69,10 @@ module axi_hls_tg_rw_wrapper #(
     // Output
     floo_picobello_noc_pkg::axi_wide_out_req_t axi_tg_wide_dummy_req;
     floo_picobello_noc_pkg::axi_wide_out_rsp_t axi_tg_wide_dummy_rsp;
+
+    ////////////////////////////
+    // R/W traffic generators //
+    ////////////////////////////
 
     // Join read / write generators into output
 
@@ -144,8 +152,6 @@ module axi_hls_tg_rw_wrapper #(
             axi_tg_wide_dummy_rsp.r_valid <= 1'b1;
         end
     end
-
-    // AXI4 TG - Wide Read
 
     `AXI_ASSIGN_TO_REQ(axi_tg_wide_out_r_req, axi_tg_wide_rw_out[0])
     `AXI_ASSIGN_FROM_RESP(axi_tg_wide_rw_out[0], axi_tg_wide_out_r_rsp)
@@ -257,8 +263,6 @@ module axi_hls_tg_rw_wrapper #(
         // Interrupt
         .interrupt                  (                                       )
     );
-
-    // AXI4 TG - Wide Write
 
     `AXI_ASSIGN_TO_REQ(axi_tg_wide_out_w_req, axi_tg_wide_rw_out[1])
     `AXI_ASSIGN_FROM_RESP(axi_tg_wide_rw_out[1], axi_tg_wide_out_w_rsp)
