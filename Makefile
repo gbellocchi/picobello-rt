@@ -145,7 +145,7 @@ picobello-hw-clean clean: sn-hw-clean floo-clean
 # Simulation #
 ##############
 
-TB_DUT ?= tb_picobello_fpga
+TB_DUT ?= tb_picobello_fpga_fair
 
 include $(PB_ROOT)/target/sim/vsim/vsim.mk
 include $(PB_ROOT)/target/sim/traces.mk

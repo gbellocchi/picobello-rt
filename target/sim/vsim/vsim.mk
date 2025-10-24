@@ -5,6 +5,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 VSIM ?= vsim
+VSIM_SRC = $(PB_ROOT)/target/sim/src
 VSIM_DIR = $(PB_ROOT)/target/sim/vsim
 VSIM_WORK = $(VSIM_DIR)/work
 VSIM_LOG = $(VSIM_DIR)/log
@@ -58,6 +59,7 @@ vsim-log:
 $(VSIM_DIR)/compile.tcl: $(BENDER_YML) $(BENDER_LOCK)
 	bender script vsim --compilation-mode common $(COMMON_TARGS) $(SIM_TARGS) --vlog-arg="$(VLOG_ARGS)"> $@
 	echo 'vlog -work $(VSIM_WORK) "$(realpath $(CHS_ROOT))/target/sim/src/elfloader.cpp" -ccflags "-std=c++11"' >> $@
+	echo 'vlog -work $(VSIM_WORK) "$(realpath $(VSIM_SRC))/dpi/hello_world.cpp" -ccflags "-std=c++11"' >> $@
 
 vsim-run:
 	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
