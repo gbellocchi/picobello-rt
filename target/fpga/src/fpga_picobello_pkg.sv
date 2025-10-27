@@ -131,9 +131,9 @@ package fpga_picobello_pkg;
   ///////////////
 
   // Number of masters
-  localparam int unsigned NumMasters      = 32'd1;
+  localparam int unsigned NumManagers     = NumCores;
   // Number of slaves
-  localparam int unsigned NumSlaves       = 32'd1;
+  localparam int unsigned NumSubordinates = 32'd1;
   // Number of regions per master
   localparam int unsigned NumRegions      = 32'd1;
   // Max burst length
@@ -147,9 +147,9 @@ package fpga_picobello_pkg;
   localparam int unsigned BudgetWidth     = 32'd32;
 
   // RT ID
-  localparam int unsigned AxiSlvIdWidth = (NumMasters == 32'd1 & NumSlaves == 32'd1) ?
+  localparam int unsigned AxiSlvIdWidth = (NumManagers == 32'd1 & NumSubordinates == 32'd1) ?
                                             AxiCfgW.OutIdWidth :
-                                            AxiCfgW.OutIdWidth + cf_math_pkg::idx_width(NumMasters);
+                                            AxiCfgW.OutIdWidth + cf_math_pkg::idx_width(NumManagers);
 
   typedef logic [AxiSlvIdWidth-1 :0] slv_id_t;
 
