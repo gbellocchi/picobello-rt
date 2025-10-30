@@ -159,11 +159,14 @@ package fpga_picobello_pkg;
   typedef struct packed {
     // Register file base address
     axi_host_addr_t rt_reg_addr_base;
+    // Register file base address offset
     axi_host_addr_t rt_reg_addr_offset;
-    // Address region
-    int addr_reg_id;
-    // Address region
-    int mrg_id;
+    // Manager ID
+    int mgr_id;
+    // Manager address space dimension
+    axi_host_addr_t mgr_addr_space_dim;
+    // Subordinate address region ID
+    int sbr_addr_reg_id;
     // Configuration registers
     axi_rt_reg_pkg::axi_rt_reg2hw_t rt_regfile_cfg;
   } rt_cfg_t;
