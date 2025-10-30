@@ -97,6 +97,7 @@ task automatic picobello_rt_guard_init(
   axi_host_rsp_t int_rsp;
 
   // Special guard register
+  localparam axi_host_addr_t rt_guard_addr_auth = ('1 << 2);
   int excl_w, excl_r, valid;
 
   // Check input RT configuration validity
@@ -106,7 +107,8 @@ task automatic picobello_rt_guard_init(
   // Bit 0 = 1: enables write exclusion (excl_w)
   // Bit 1 = 1: enables read exclusion (excl_r)
   // Bit 2 = 1: sets the valid bit (valid)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + 11'h7FC;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + rt_guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
+
   excl_w = 0;
   excl_r = 0;
   valid  = 1;
@@ -116,7 +118,7 @@ task automatic picobello_rt_guard_init(
 
   // Read guard register
   // Note: ID is not readable at present
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + 11'h7FC;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + rt_guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
   picobello_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY); 
 `ifdef VERBOSE
