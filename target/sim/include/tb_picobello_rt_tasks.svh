@@ -206,21 +206,66 @@ task automatic picobello_rt_set_burst_length(
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  int num_bytes_len_limit_reg = $bits(32)/8;
-  int len_limit_reg_offset = tb_rt_cfg.mrg_id/num_bytes_len_limit_reg;
+  // Each 32-bit len_limit register contains 4 entries of 8-bits to set len_limit values.
+  // Each entry corresponds to a len_limit value for a different manager.
+  // A len_limit value requires 8 bits to be represented, given AXI4 bursts can be up to 256 beats long.
+  //
+  // The following scheme refers to a configuration with 16 managers:
+  //
+  //  AXI_RT_LEN_LIMIT_0 (32-bit)                    
+  //  ┌───────────┬───────────┬───────────┬───────────┐
+  //  │  Mgr 3    │  Mgr 2    │  Mgr 1    │  Mgr 0    │
+  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
+  //  └───────────┴───────────┴───────────┴───────────┘
+                                                    
+  //  AXI_RT_LEN_LIMIT_1 (32-bit)                     
+  //  ┌───────────┬───────────┬───────────┬───────────┐
+  //  │  Mgr 7    │  Mgr 6    │  Mgr 5    │  Mgr 4    │
+  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
+  //  └───────────┴───────────┴───────────┴───────────┘
+                                                    
+  //  AXI_RT_LEN_LIMIT_2 (32-bit)                      
+  //  ┌───────────┬───────────┬───────────┬───────────┐
+  //  │  Mgr 11   │  Mgr 10   │  Mgr 9    │  Mgr 8    │
+  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
+  //  └───────────┴───────────┴───────────┴───────────┘
+                                                    
+  //  AXI_RT_LEN_LIMIT_3 (32-bit)                      
+  //  ┌───────────┬───────────┬───────────┬───────────┐
+  //  │  Mgr 15   │  Mgr 14   │  Mgr 13   │  Mgr 12   │
+  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
+  //  └───────────┴───────────┴───────────┴───────────┘
+
+  // A 32-bit register stores 4 len_limit entries each.
+  int num_bytes_len_limit_reg = 4;
+
+  // Calculate manager entry in the len_limit register.
+  int len_limit_reg_entry_bytes = tb_rt_cfg.mgr_id % num_bytes_len_limit_reg;
+  int len_limit_reg_entry_bits = 8 * len_limit_reg_entry_bytes;
+
+  // Calculate the len_limit register offset based on the manager ID.
+  int len_limit_reg_offset = tb_rt_cfg.mgr_id/num_bytes_len_limit_reg;
 
   // Check input RT configuration validity
   picobello_rt_check_cfg(tb_rt_cfg);
 
-  // Length limit (8b)
   // len_limit values are stored in groups of 4 within each 32-bit register. Therefore, a different 
   // register offset is used to calculate the destination address for each group of 4 len_limit entries.
   case (len_limit_reg_offset)
     0: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_0_OFFSET;
     1: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_1_OFFSET;
+    2: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_2_OFFSET;
+    3: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_3_OFFSET;
   endcase
-  int_write_data = (tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mrg_id] & 8'hFF) 
-                   << (8 * (tb_rt_cfg.mrg_id % num_bytes_len_limit_reg));
+
+  // Read old len_limit register value to preserve other manager entries
+  picobello_read(int_addr, int_read_data, int_rsp);
+  assert(int_rsp == axi_pkg::RESP_OKAY);
+
+  // Preserve past entries and clear the 8-bit field to overwrite using a mask.
+  // Then, overwrite the len_limit subfield with a new value and write back.
+  int_write_data = (int_read_data & ~(32'hFF << len_limit_reg_entry_bits)) | 
+                   ((tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id] & 32'hFF) << len_limit_reg_entry_bits);
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
