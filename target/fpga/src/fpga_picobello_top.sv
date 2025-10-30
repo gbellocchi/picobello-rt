@@ -75,7 +75,7 @@ module fpga_picobello_top
       .floo_req_i       (floo_req_in[X][Y]),
       .floo_rsp_o       (floo_rsp_out[X][Y]),
       .floo_wide_i      (floo_wide_in[X][Y])
-      );
+    );
   end
 
   ////////////////////
