@@ -15,7 +15,7 @@ module cluster_rt_tile
 #(
   /// Number of cores in the tile.
   parameter int unsigned NumCores = 1,
-  parameter int unsigned NumCoresMax = 64
+  parameter int unsigned NumCoresMax = 32
 ) (
   input  logic                                    clk_i,
   input  logic                                    rst_ni,
@@ -152,8 +152,9 @@ module cluster_rt_tile
   // Each narrow NI output is routed toward a specific core for configuration
 
   // Core address map
-  axi_narrow_out_addr_downsized_addr_t core_addr_space_dim = 32'h0000_1000; // Max number of addressable masters = 64
-  axi_narrow_out_addr_downsized_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCores;
+  axi_narrow_out_addr_t core_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
+
+  axi_narrow_out_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCores;
 
   // Address map
   axi_pkg::xbar_rule_64_t [NumCores-1:0] ni2cores_addr_map;
@@ -231,15 +232,15 @@ module cluster_rt_tile
   localparam int unsigned IdxPortTgCompute  = 3;
 
   // Core register files address map
-  axi_narrow_out_addr_downsized_addr_t core_rt_addr_offset = 32'h0000_0000;
-  axi_narrow_out_addr_downsized_addr_t core_dma_r_addr_offset = 32'h0000_0800;
-  axi_narrow_out_addr_downsized_addr_t core_dma_w_addr_offset = 32'h0000_0830;
-  axi_narrow_out_addr_downsized_addr_t core_compute_addr_offset = 32'h0000_0860; // not used
-  
-  axi_narrow_out_addr_downsized_addr_t core_rt_addr_dim = 32'h0000_0800;
-  axi_narrow_out_addr_downsized_addr_t core_dma_r_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_downsized_addr_t core_dma_w_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_downsized_addr_t core_compute_addr_dim = 32'h0000_0030; // not used
+  axi_narrow_out_addr_t cluster_rt_addr_dim = 32'h0000_1000;
+  axi_narrow_out_addr_t cluster_dma_r_addr_dim = 32'h0000_0030;
+  axi_narrow_out_addr_t cluster_dma_w_addr_dim = 32'h0000_0030;
+  axi_narrow_out_addr_t cluster_compute_addr_dim = 32'h0000_0030; // not used
+
+  axi_narrow_out_addr_t cluster_rt_addr_offset = 32'h0000_0000;
+  axi_narrow_out_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
+  axi_narrow_out_addr_t cluster_dma_w_addr_offset = cluster_dma_r_addr_offset + cluster_dma_r_addr_dim;
+  axi_narrow_out_addr_t cluster_compute_addr_offset = cluster_dma_w_addr_offset + cluster_dma_w_addr_dim;
 
   // AXI4 core register files
   AXI_BUS #(
@@ -250,7 +251,7 @@ module cluster_rt_tile
   ) axi_core_regfile [NumCores-1:0][NumCoreRegFiles-1:0]();
 
   // Address map
-  axi_pkg::xbar_rule_64_t [NumRulesCore2RegFile-1:0] core2regfile_addr_map;
+  axi_pkg::xbar_rule_64_t [NumCores-1:0][NumRulesCore2RegFile-1:0] core2regfile_addr_map;
 
   localparam axi_pkg::xbar_cfg_t XbarCfgCore2RegFile = '{
     NoSlvPorts:         1, // Thus no ID expansion for outputs
@@ -268,35 +269,36 @@ module cluster_rt_tile
     NoAddrRules:        NumRulesCore2RegFile
   };
 
-  // AXI-Realm wide configuration
-  assign core2regfile_addr_map[0] = '{
-    idx:        IdxPortAxiRealm,
-    start_addr: base_addr_i + core_rt_addr_offset,
-    end_addr:   base_addr_i + core_rt_addr_offset + core_rt_addr_dim
-  };
-
-  // Wide read
-  assign core2regfile_addr_map[1] = '{
-    idx:        IdxPortTgRead,
-    start_addr: base_addr_i + core_dma_r_addr_offset,
-    end_addr:   base_addr_i + core_dma_r_addr_offset + core_dma_r_addr_dim
-  };
-
-  // Wide write
-  assign core2regfile_addr_map[2] = '{
-    idx:        IdxPortTgWrite,
-    start_addr: base_addr_i + core_dma_w_addr_offset,
-    end_addr:   base_addr_i + core_dma_w_addr_offset + core_dma_w_addr_dim
-  };
-
-  // Timer (compute)
-  assign core2regfile_addr_map[3] = '{
-    idx:        IdxPortTgCompute,
-    start_addr: base_addr_i + core_compute_addr_offset,
-    end_addr:   base_addr_i + core_compute_addr_offset + core_compute_addr_dim
-  };
-
   for (genvar i = 0; i < NumCores; i++) begin : gen_rt_tile_core2regfile_xbar
+
+    // AXI-Realm wide configuration
+    assign core2regfile_addr_map[i][0] = '{
+      idx:        IdxPortAxiRealm,
+      start_addr: base_addr_i + i * core_addr_space_dim + cluster_rt_addr_offset,
+      end_addr:   base_addr_i + i * core_addr_space_dim + cluster_rt_addr_offset + cluster_rt_addr_dim
+    };
+
+    // Wide read
+    assign core2regfile_addr_map[i][1] = '{
+      idx:        IdxPortTgRead,
+      start_addr: base_addr_i + i * core_addr_space_dim + cluster_dma_r_addr_offset,
+      end_addr:   base_addr_i + i * core_addr_space_dim + cluster_dma_r_addr_offset + cluster_dma_r_addr_dim
+    };
+
+    // Wide write
+    assign core2regfile_addr_map[i][2] = '{
+      idx:        IdxPortTgWrite,
+      start_addr: base_addr_i + i * core_addr_space_dim + cluster_dma_w_addr_offset,
+      end_addr:   base_addr_i + i * core_addr_space_dim + cluster_dma_w_addr_offset + cluster_dma_w_addr_dim
+    };
+
+    // Timer (compute)
+    assign core2regfile_addr_map[i][3] = '{
+      idx:        IdxPortTgCompute,
+      start_addr: base_addr_i + i * core_addr_space_dim + cluster_compute_addr_offset,
+      end_addr:   base_addr_i + i * core_addr_space_dim + cluster_compute_addr_offset + cluster_compute_addr_dim
+    };
+
     axi_xbar_intf #(
       .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth),
       .Cfg            (XbarCfgCore2RegFile),
@@ -308,7 +310,7 @@ module cluster_rt_tile
       .test_i                 (1'b0),
       .slv_ports              (axi_core[i:i]),
       .mst_ports              (axi_core_regfile[i]),
-      .addr_map_i             (core2regfile_addr_map),
+      .addr_map_i             (core2regfile_addr_map[i]),
       .en_default_mst_port_i  ('0),
       .default_mst_port_i     ('0)
     );
@@ -600,7 +602,7 @@ module cluster_rt_tile
     .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
   ) axi_lite_comp_regfile [NumCores-1:0]();
 
-  for (genvar i = 0; i < NumCores; i++) begin : gen_core
+  for (genvar i = 0; i < NumCores; i++) begin : gen_cores
     `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_read_regfile[i], axi_lite_read_regfile_req[i])
     `AXI_LITE_ASSIGN_TO_RESP(axi_lite_read_regfile_rsp[i], axi_lite_read_regfile[i])
 

@@ -44,7 +44,7 @@ module tb_picobello_fpga_fair
   // TB signals //
   ////////////////
 
-  logic [picobello_pkg::NumClusters-1:0] end_of_sim;
+  logic [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0] end_of_sim;
   
   // Timer configuration
   fpga_picobello_pkg::timer_cfg_t tb_timer_cfg;
@@ -86,21 +86,21 @@ module tb_picobello_fpga_fair
   floo_picobello_noc_pkg::sam_rule_t cluster_sam;
   floo_picobello_noc_pkg::id_t cluster_idx;
 
-  localparam int unsigned NumCoresActive = 1; // active cores per cluster tile
-
   // Cluster peripheral address map
-  axi_narrow_out_addr_downsized_addr_t mst_cfg_partition_dim = 32'h0000_1000; // Max number of addressable masters = 64
-  axi_narrow_out_addr_downsized_addr_t multi_mst_cfg_partition_dim = mst_cfg_partition_dim * NumCores;
+  axi_host_addr_t core_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
 
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_offset = 32'h0000_0000;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_offset = 32'h0000_0800;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_offset = 32'h0000_0830;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_offset = 32'h0000_0860; // not used
-  
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_rt_addr_dim = 32'h0000_0800;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_r_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_dma_w_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_downsized_addr_t cluster_tile_compute_addr_dim = 32'h0000_0030; // not used
+  axi_host_addr_t cluster_addr_space_dim = ep_addr_size(floo_picobello_noc_pkg::ClusterX0Y0SamIdx);
+  axi_host_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCores;
+
+  axi_host_addr_t cluster_rt_addr_dim = 32'h0000_1000;
+  axi_host_addr_t cluster_dma_r_addr_dim = 32'h0000_0030;
+  axi_host_addr_t cluster_dma_w_addr_dim = 32'h0000_0030;
+  axi_host_addr_t cluster_compute_addr_dim = 32'h0000_0030; // not used
+
+  axi_host_addr_t cluster_rt_addr_offset = 32'h0000_0000;
+  axi_host_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
+  axi_host_addr_t cluster_dma_w_addr_offset = cluster_dma_r_addr_offset + cluster_dma_r_addr_dim;
+  axi_host_addr_t cluster_compute_addr_offset = cluster_dma_w_addr_offset + cluster_dma_w_addr_dim;
 
   // File IO
   int fileDescriptor;
