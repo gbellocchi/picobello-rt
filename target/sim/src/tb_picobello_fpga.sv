@@ -355,46 +355,46 @@ module tb_picobello_fpga
             rt_cfg_loop: for (int cl_id = 0; cl_id < NTestCl; cl_id++) begin
 
               // Set address base
-              tb_rt_cfg.rt_reg_addr_offset                                          = cluster_tile_rt_addr_offset;
-              tb_rt_cfg.rt_reg_addr_base                                            = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
+              tb_rt_cfg.rt_reg_addr_offset                                            = cluster_tile_rt_addr_offset;
+              tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
 
               // Set address region - Memory tile
 
-              tb_rt_cfg.addr_reg_id                                                 = 0;
+              tb_rt_cfg.sbr_addr_reg_id                                               = 0;
 
               // Set the read budget (32b)
-              tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.addr_reg_id]           = 4 * TrafficDim;
+              tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
               // Set the write budget (32b)
-              tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.addr_reg_id]          = 4 * TrafficDim;
+              tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
 
               // Set the read period (32b)
-              tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.addr_reg_id]           = 4 * TrafficDim;
+              tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
               // Set the write period (32b)
-              tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.addr_reg_id]          = 4 * TrafficDim;
+              tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
               
               // Set the start address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.addr_reg_id]    = tb_tg_cfg_read.mem_addr_base;
+              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = tb_tg_cfg_read.mem_addr_base;
               // Set the start address (32b, high)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.addr_reg_id]   = '0;
+              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
               // Set the end address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.addr_reg_id]      = tb_tg_cfg_write.mem_addr_base + 32'h0010_0000;
+              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = tb_tg_cfg_write.mem_addr_base + 32'h0010_0000;
               // Set the end address (32b, high)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.addr_reg_id]     = '0;
+              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
 
               // Set AXI4 manager - Wide NoC interface 
 
-              tb_rt_cfg.mrg_id                                                      = 0;
+              tb_rt_cfg.mgr_id                                                      = 0;
 
               // Set the burst length limit (8b)
-              tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mrg_id]                  = (BurstLength - 1) & 8'hFF;
+              tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                  = (BurstLength - 1) & 8'hFF;
 
               // Set IMTU abort (1b)
-              tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mrg_id]                 = '0;
+              tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]                 = '0;
               // Set IMTU enable (1b)
-              tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mrg_id]                = '0;
+              tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]                = '0;
               
               // Enable real-time mode (1b)
-              tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mrg_id]                  = '1;
+              tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                  = '1;
 
               picobello_rt_guard_init(tb_rt_cfg);
               picobello_rt_set_addr_reg(tb_rt_cfg);
