@@ -320,10 +320,17 @@ task automatic picobello_rt_enable_rt(
   // Check input RT configuration validity
   picobello_rt_check_cfg(tb_rt_cfg);
 
-  // RT enable (1b)
+  // RT enable base address
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_RT_ENABLE_OFFSET;
-  int_write_data = (tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mrg_id] & 1'b1) 
-                   << tb_rt_cfg.mrg_id;
+
+  // Read old enable register value to preserve other manager entries
+  picobello_read(int_addr, int_read_data, int_rsp);
+  assert(int_rsp == axi_pkg::RESP_OKAY);
+
+  // Preserve past entries and clear the 8-bit field to overwrite using a mask.
+  // Then, overwrite the enable subfield with a new value and write back.
+  int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) | 
+                   ((tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
