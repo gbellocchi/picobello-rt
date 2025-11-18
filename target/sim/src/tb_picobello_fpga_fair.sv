@@ -626,24 +626,33 @@ module tb_picobello_fpga_fair
             $display (" - ExecTime:       %8d", experimental_stats.t_exec_time_ck);
 
             // Print BW monitor statistics
-            bw_monitor_display_loop: for (int i = 0; i < NTestCl; i++) begin
+            bw_monitor_display_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
               automatic int cl_id = IdTestCl[i];
-              $display(
-                "[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
-                $sformatf("cl_bw_monitor_%0d", cl_id), 
-                bw_rt_cl_stats[cl_id].r_latency_mean, 
-                bw_rt_cl_stats[cl_id].r_latency_stddev, 
-                bw_rt_cl_stats[cl_id].r_bw_mean, 
-                bw_rt_cl_stats[cl_id].r_util_mean
-              );
-              $display(
-                "[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
-                $sformatf("cl_bw_monitor_%0d", cl_id), 
-                bw_rt_cl_stats[cl_id].w_latency_mean, 
-                bw_rt_cl_stats[cl_id].w_latency_stddev, 
-                bw_rt_cl_stats[cl_id].w_bw_mean, 
-                bw_rt_cl_stats[cl_id].w_util_mean
-              );
+
+              bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                automatic int core_id = j;
+
+                $display(
+                  "[Monitor %s][Read] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
+                  $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
+                  bw_rt_cl_stats[cl_id][core_id].r_latency_mean, 
+                  bw_rt_cl_stats[cl_id][core_id].r_latency_stddev, 
+                  bw_rt_cl_stats[cl_id][core_id].r_bw_mean, 
+                  bw_rt_cl_stats[cl_id][core_id].r_bw_stddev,
+                  bw_rt_cl_stats[cl_id][core_id].r_util_mean,
+                  bw_rt_cl_stats[cl_id][core_id].r_util_stddev
+                );
+                $display(
+                  "[Monitor %s][Write] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
+                  $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
+                  bw_rt_cl_stats[cl_id][core_id].w_latency_mean, 
+                  bw_rt_cl_stats[cl_id][core_id].w_latency_stddev, 
+                  bw_rt_cl_stats[cl_id][core_id].w_bw_mean, 
+                  bw_rt_cl_stats[cl_id][core_id].w_bw_stddev,
+                  bw_rt_cl_stats[cl_id][core_id].w_util_mean,
+                  bw_rt_cl_stats[cl_id][core_id].w_util_stddev
+                );
+              end
             end
 
             ///////////////////////////////////////
@@ -669,43 +678,63 @@ module tb_picobello_fpga_fair
 
             // Save BW statistics to file
             if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
-              f_bw_stats_loop: for (int i = 0; i < NTestCl; i++) begin
+
+              f_bw_stats_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
-                // BW stats - Open file
-                $sformat(filePath, "%s/test%0d_bw_stats_cl%0d.txt", fileDir, experimental_stats.id_test, cl_id);
-                $display("Writing results to file: %s", filePath);
-                fileDescriptor = $fopen(filePath, "w"); 
-                // BW stats - Write values
-                $fwrite(fileDescriptor, "id_test: %0d\n", experimental_stats.id_test);
-                $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id].r_latency_mean);
-                $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id].r_latency_stddev);
-                $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id].r_bw_mean);
-                $fwrite(fileDescriptor, "r_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id].r_util_mean);
-                $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id].w_latency_mean);
-                $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id].w_latency_stddev);
-                $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id].w_bw_mean);
-                $fwrite(fileDescriptor, "w_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id].w_util_mean);
-                // BW stats - Close file
-                $fclose(fileDescriptor);
+
+                f_bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+                  
+                  // BW stats - Open file
+                  $sformat(filePath, "%s/test%0d_bw_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
+                  $display("Writing results to file: %s", filePath);
+                  fileDescriptor = $fopen(filePath, "w"); 
+
+                  // BW stats - Write values
+                  $fwrite(fileDescriptor, "id_test: %0d\n", experimental_stats.id_test);
+                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_latency_mean);
+                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_latency_stddev);
+                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_bw_mean);
+                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_bw_stddev);
+                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_util_mean);
+                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_util_stddev);
+                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_latency_mean);
+                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_latency_stddev);
+                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_bw_mean);
+                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_bw_stddev);
+                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_util_mean);
+                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_util_stddev);
+
+                  // BW stats - Close file
+                  $fclose(fileDescriptor);
+                end
               end
             end
 
             // Save BW inst to file
             if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
-              f_bw_inst_loop: for (int i = 0; i < NTestCl; i++) begin
+              f_bw_inst_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
-                // BW inst - Open file
-                $sformat(filePath, "%s/test%0d_bw_inst_cl%0d.txt", fileDir, experimental_stats.id_test, cl_id);
-                $display("Writing results to file: %s", filePath);
-                fileDescriptor = $fopen(filePath, "w"); 
-                // BW inst - Write header
-                $fwrite(fileDescriptor, "time, bw\n");
-                // BW inst - Write values
-                foreach (bw_rt_cl_stats[cl_id].r_bw_val[i]) begin
-                  $fwrite(fileDescriptor, "%0.2f, %0.2f\n", bw_rt_cl_stats[cl_id].r_bw_t[i], bw_rt_cl_stats[cl_id].r_bw_val[i]);
+
+                f_bw_inst_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+
+                  // BW inst - Open file
+                  $sformat(filePath, "%s/test%0d_bw_inst_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
+                  $display("Writing results to file: %s", filePath);
+                  fileDescriptor = $fopen(filePath, "w"); 
+
+                  // BW inst - Write header
+                  $fwrite(fileDescriptor, "time, bw\n");
+
+                  // BW inst - Write values
+                  foreach (bw_rt_cl_stats[cl_id][core_id].r_bw_val[i]) begin
+                    $fwrite(fileDescriptor, "%0.2f, %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_bw_t[i], bw_rt_cl_stats[cl_id][core_id].r_bw_val[i]);
+                  end
+
+                  // BW inst - Close file
+                  $fclose(fileDescriptor);
                 end
-                // BW inst - Close file
-                $fclose(fileDescriptor);
               end
             end
 

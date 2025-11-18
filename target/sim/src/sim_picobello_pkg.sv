@@ -40,19 +40,25 @@ package sim_picobello_pkg;
   typedef struct {
     // string name;
     // Read channel
-    real r_latency_mean;
-    real r_latency_stddev;
     real r_bw_t [$];
     real r_bw_val [$];
+    real r_util_val [$];
+    real r_latency_mean;
+    real r_latency_stddev;
     real r_bw_mean;
+    real r_bw_stddev;
     real r_util_mean;
+    real r_util_stddev;
     // Write channel
-    real w_latency_mean;
-    real w_latency_stddev;
     real w_bw_t [$];
     real w_bw_val [$];
+    real w_util_val [$];
+    real w_latency_mean;
+    real w_latency_stddev;
     real w_bw_mean;
+    real w_bw_stddev;
     real w_util_mean;
+    real w_util_stddev;
   } bw_monitor_stats_t;
 
 endpackage
