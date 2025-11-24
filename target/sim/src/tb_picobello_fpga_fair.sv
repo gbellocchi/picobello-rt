@@ -211,12 +211,13 @@ module tb_picobello_fpga_fair
       assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_in_rsp[core_id];
 
       axi_bw_monitor #(
-        .req_t      ( fpga_picobello_pkg::axi_wide_tg_req_t           ),
-        .rsp_t      ( fpga_picobello_pkg::axi_wide_tg_rsp_t           ),
-        .cfg_t      ( sim_picobello_pkg::bw_monitor_cfg_t             ),
-        .stat_t     ( sim_picobello_pkg::bw_monitor_stats_t           ),
-        .AxiIdWidth ( fpga_picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
-        .Name       ( BwMonitorName                                   )
+        .req_t        ( fpga_picobello_pkg::axi_wide_tg_req_t           ),
+        .rsp_t        ( fpga_picobello_pkg::axi_wide_tg_rsp_t           ),
+        .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
+        .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
+        .AxiDataWidth ( fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
+        .AxiIdWidth   ( fpga_picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
+        .Name         ( BwMonitorName                                   )
       ) i_axi_bw_monitor (
         .clk_i          ( clk                             ),
         .rst_ni         ( rst_n                           ),
@@ -676,7 +677,7 @@ module tb_picobello_fpga_fair
               $fclose(fileDescriptor);
             end
 
-            // Save BW statistics to file
+            // Save experiment statistics to file
             if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
 
               f_bw_stats_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
@@ -686,7 +687,7 @@ module tb_picobello_fpga_fair
                   automatic int core_id = j;
                   
                   // BW stats - Open file
-                  $sformat(filePath, "%s/test%0d_bw_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
+                  $sformat(filePath, "%s/test%0d_statistics_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
                   $display("Writing results to file: %s", filePath);
                   fileDescriptor = $fopen(filePath, "w"); 
 
@@ -711,28 +712,36 @@ module tb_picobello_fpga_fair
               end
             end
 
-            // Save BW inst to file
+            // Save burst timestamps to file
             if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
-              f_bw_inst_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+              f_latency_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
 
-                f_bw_inst_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                f_latency_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                   automatic int core_id = j;
 
-                  // BW inst - Open file
-                  $sformat(filePath, "%s/test%0d_bw_inst_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
+                  // Latency - Open file
+                  $sformat(filePath, "%s/test%0d_burst_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
                   $display("Writing results to file: %s", filePath);
                   fileDescriptor = $fopen(filePath, "w"); 
 
-                  // BW inst - Write header
-                  $fwrite(fileDescriptor, "time, bw\n");
+                  // Latency - Write header
+                  $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
 
-                  // BW inst - Write values
-                  foreach (bw_rt_cl_stats[cl_id][core_id].r_bw_val[i]) begin
-                    $fwrite(fileDescriptor, "%0.2f, %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_bw_t[i], bw_rt_cl_stats[cl_id][core_id].r_bw_val[i]);
+                  // Latency - Write values
+                  foreach (bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i]) begin
+                    $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+                      i,
+                      bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i], 
+                      bw_rt_cl_stats[cl_id][core_id].r_burst_t1[i], 
+                      bw_rt_cl_stats[cl_id][core_id].r_latency_val[i], 
+                      bw_rt_cl_stats[cl_id][core_id].r_bw_val[i], 
+                      bw_rt_cl_stats[cl_id][core_id].r_burst_n_beats[i], 
+                      bw_rt_cl_stats[cl_id][core_id].r_burst_dw[i]
+                    );
                   end
 
-                  // BW inst - Close file
+                  // Latency - Close file
                   $fclose(fileDescriptor);
                 end
               end
