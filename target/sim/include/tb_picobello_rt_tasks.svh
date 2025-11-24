@@ -34,7 +34,6 @@ task automatic picobello_start_bw_r_monitor(
 );
   bw_monitor[cl_idx][core_idx].en_r_cnt = 1'b1;
   bw_monitor[cl_idx][core_idx].rst_r_cnt = 1'b0;
-  @(posedge `CLK_SIGNAL);
 endtask
 
 // Start BW monitor on write channels
@@ -45,7 +44,6 @@ task automatic picobello_start_bw_w_monitor(
 );
   bw_monitor[cl_idx][core_idx].en_w_cnt = 1'b1;
   bw_monitor[cl_idx][core_idx].rst_w_cnt = 1'b0;
-  @(posedge `CLK_SIGNAL);
 endtask
 
 // Stop BW monitor on read channels
@@ -56,7 +54,6 @@ task automatic picobello_stop_bw_r_monitor(
 );
   bw_monitor[cl_idx][core_idx].en_r_cnt = 1'b0;
   bw_monitor[cl_idx][core_idx].rst_r_cnt = 1'b0;
-  @(posedge `CLK_SIGNAL);
 endtask
 
 // Stop BW monitor on write channels
@@ -65,10 +62,8 @@ task automatic picobello_stop_bw_w_monitor(
   input int cl_idx,
   input int core_idx
 );
-  @(posedge `CLK_SIGNAL);
   bw_monitor[cl_idx][core_idx].en_w_cnt = 1'b0;
   bw_monitor[cl_idx][core_idx].rst_w_cnt = 1'b0;
-  @(posedge `CLK_SIGNAL);
 endtask
 
 ///////////////
