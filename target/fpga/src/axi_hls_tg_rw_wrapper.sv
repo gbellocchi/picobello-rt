@@ -36,10 +36,10 @@ module axi_hls_tg_rw_wrapper #(
     //////////////////////
 
     AXI_BUS #(
-        .AXI_ADDR_WIDTH (AxiCfgW.AddrWidth),
-        .AXI_DATA_WIDTH (AxiCfgW.DataWidth),
-        .AXI_ID_WIDTH   (AxiCfgW.OutIdWidth),
-        .AXI_USER_WIDTH (AxiCfgW.UserWidth)
+        .AXI_ADDR_WIDTH (AXI_ADDR_WIDTH),
+        .AXI_DATA_WIDTH (AXI_DATA_WIDTH),
+        .AXI_ID_WIDTH   (AXI_ID_WIDTH),
+        .AXI_USER_WIDTH (AXI_USER_WIDTH)
     ) axi_tg_wide_rw_out[1:0](); // 0: read, 1: write
 
     // Read generator
