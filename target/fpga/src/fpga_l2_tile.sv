@@ -40,7 +40,7 @@ module fpga_l2_tile
 
   floo_nw_router #(
     .AxiCfgN     (floo_picobello_noc_pkg::AxiCfgN),
-    .AxiCfgW     (floo_picobello_noc_pkg::AxiCfgW),
+    .AxiCfgW     (picobello_pkg::AxiCfgWL2),
     .RouteAlgo   (floo_picobello_noc_pkg::RouteCfg.RouteAlgo),
     .NumRoutes   (5),
     .InFifoDepth (picobello_pkg::RouterInFifoDepth),
@@ -83,7 +83,7 @@ module fpga_l2_tile
 
   floo_nw_chimney #(
     .AxiCfgN             (floo_picobello_noc_pkg::AxiCfgN),
-    .AxiCfgW             (floo_picobello_noc_pkg::AxiCfgW),
+    .AxiCfgW             (picobello_pkg::AxiCfgWL2),
     .ChimneyCfgN         (ChimneyCfgN),
     .ChimneyCfgW         (ChimneyCfgW),
     .RouteCfg            (floo_picobello_noc_pkg::RouteCfg),
@@ -133,23 +133,23 @@ module fpga_l2_tile
   ///////////////
 
   AXI_BUS #(
-    .AXI_ADDR_WIDTH ( L2AddrWidth ),
-    .AXI_DATA_WIDTH ( L2DataWidth ),
-    .AXI_ID_WIDTH   ( L2IdWidth ),
-    .AXI_USER_WIDTH ( L2UserWidth )
+    .AXI_ADDR_WIDTH ( picobello_pkg::AxiCfgWL2.AddrWidth ),
+    .AXI_DATA_WIDTH ( picobello_pkg::AxiCfgWL2.DataWidth ),
+    .AXI_ID_WIDTH   ( picobello_pkg::AxiCfgWL2.OutIdWidth ),
+    .AXI_USER_WIDTH ( picobello_pkg::AxiCfgWL2.UserWidth )
   ) axi_l2_slv();
 
   AXI_BUS #(
-    .AXI_ADDR_WIDTH ( L2AddrWidth ),
-    .AXI_DATA_WIDTH ( L2DataWidth ),
-    .AXI_ID_WIDTH   ( L2IdWidth ),
-    .AXI_USER_WIDTH ( L2UserWidth )
+    .AXI_ADDR_WIDTH ( picobello_pkg::AxiCfgWL2.AddrWidth ),
+    .AXI_DATA_WIDTH ( picobello_pkg::AxiCfgWL2.DataWidth ),
+    .AXI_ID_WIDTH   ( picobello_pkg::AxiCfgWL2.OutIdWidth ),
+    .AXI_USER_WIDTH ( picobello_pkg::AxiCfgWL2.UserWidth )
   ) axi_l2_slv_cut();
 
   // Types for entire memory array
-  typedef logic [L2AddrWidth-1:0] arr_addr_t;
-  typedef logic [L2DataWidth-1:0] arr_data_t;
-  typedef logic [L2DataWidth/8-1:0] arr_strb_t;
+  typedef logic [picobello_pkg::AxiCfgWL2.AddrWidth-1:0] arr_addr_t;
+  typedef logic [picobello_pkg::AxiCfgWL2.DataWidth-1:0] arr_data_t;
+  typedef logic [picobello_pkg::AxiCfgWL2.DataWidth/8-1:0] arr_strb_t;
 
   // Interface from AXI to memory array
   logic      l2_req, l2_req_q, l2_we;
@@ -162,10 +162,10 @@ module fpga_l2_tile
 
   axi_cut_intf #(
     .BYPASS     ( 1'b0 ),
-    .ADDR_WIDTH ( L2AddrWidth ),
-    .DATA_WIDTH ( L2DataWidth ),
-    .ID_WIDTH   ( L2IdWidth ),
-    .USER_WIDTH ( L2UserWidth )
+    .ADDR_WIDTH ( picobello_pkg::AxiCfgWL2.AddrWidth ),
+    .DATA_WIDTH ( picobello_pkg::AxiCfgWL2.DataWidth ),
+    .ID_WIDTH   ( picobello_pkg::AxiCfgWL2.OutIdWidth ),
+    .USER_WIDTH ( picobello_pkg::AxiCfgWL2.UserWidth )
   ) i_l2_slv_cut (
     .clk_i,
     .rst_ni,
@@ -174,10 +174,10 @@ module fpga_l2_tile
   );
 
   axi2mem_wrap #(
-    .AddrWidth  ( L2AddrWidth ),
-    .DataWidth  ( L2DataWidth ),
-    .IdWidth    ( L2IdWidth ),
-    .UserWidth  ( L2UserWidth ),
+    .AddrWidth  ( picobello_pkg::AxiCfgWL2.AddrWidth ),
+    .DataWidth  ( picobello_pkg::AxiCfgWL2.DataWidth ),
+    .IdWidth    ( picobello_pkg::AxiCfgWL2.OutIdWidth ),
+    .UserWidth  ( picobello_pkg::AxiCfgWL2.UserWidth ),
     .NumBanks   ( 1 ),
     .BufDepth   ( 32 )
   ) i_axi2mem (
@@ -198,11 +198,11 @@ module fpga_l2_tile
 
 `ifdef TARGET_XILINX
   // Synthesis for Xilinx FPGAs can optimize SRAM tiling itself.
-  localparam NWords = picobello_pkg::MemTileSize / (L2DataWidth/8);
-  localparam LineOff = $clog2(L2DataWidth/8);
+  localparam NWords = picobello_pkg::MemTileSize / (picobello_pkg::AxiCfgWL2.DataWidth/8);
+  localparam LineOff = $clog2(picobello_pkg::AxiCfgWL2.DataWidth/8);
   tc_sram #(
     .NumWords   ( NWords ), // specify explicitly for aegis!
-    .DataWidth  ( L2DataWidth ), // specify explicitly for aegis!
+    .DataWidth  ( picobello_pkg::AxiCfgWL2.DataWidth ), // specify explicitly for aegis!
     .ByteWidth  ( 8 ), // specify explicitly for aegis!
     .NumPorts   ( 1 )  // specify explicitly for aegis!
   ) i_tc_sram (
@@ -223,7 +223,7 @@ module fpga_l2_tile
   localparam int unsigned CutNBits = CutDw * CutNWords; // = 32 * 1024 = 32768
 
   // Derived properties of memory array
-  localparam int unsigned NParCuts = L2DataWidth / CutDw; // = 64 / 32 = 2
+  localparam int unsigned NParCuts = picobello_pkg::AxiCfgWL2.DataWidth / CutDw; // = 64 / 32 = 2
   localparam int unsigned ParCutsNBytes = NParCuts * CutNBits / 8; // = 2 * 32768 / 8 = 8192
   localparam int unsigned NSerCuts = picobello_pkg::MemTileSize / ParCutsNBytes; // = 131072 / 8192 = 16
 
@@ -233,7 +233,7 @@ module fpga_l2_tile
   typedef logic [CutDw/8-1:0]            cut_strb_t;
 
   // Interface from memory array to memory cuts
-  localparam int unsigned WordIdxOff = $clog2(L2DataWidth/8);
+  localparam int unsigned WordIdxOff = $clog2(picobello_pkg::AxiCfgWL2.DataWidth/8);
   localparam int unsigned WordIdxWidth = $clog2(CutNWords);
   localparam int unsigned RowIdxOff = WordIdxOff + WordIdxWidth;
   localparam int unsigned RowIdxWidth = $clog2(NSerCuts);
@@ -294,15 +294,15 @@ module fpga_l2_tile
   // Validate parameters and properties.
   // pragma translate_off
   initial begin
-    assert (L2AddrWidth > 0);
-    assert (L2AddrWidth % (2**$clog2(L2AddrWidth)) == 0);
-    assert (L2DataWidth > 0);
-    assert (L2DataWidth % (2**$clog2(L2DataWidth)) == 0);
+    assert (picobello_pkg::AxiCfgWL2.AddrWidth > 0);
+    assert (picobello_pkg::AxiCfgWL2.AddrWidth % (2**$clog2(picobello_pkg::AxiCfgWL2.AddrWidth)) == 0);
+    assert (picobello_pkg::AxiCfgWL2.DataWidth > 0);
+    assert (picobello_pkg::AxiCfgWL2.DataWidth % (2**$clog2(picobello_pkg::AxiCfgWL2.DataWidth)) == 0);
     assert (picobello_pkg::MemTileSize > 0);
     assert (picobello_pkg::MemTileSize % (2**$clog2(picobello_pkg::MemTileSize)) == 0);
     assert (CutDw % (2**$clog2(CutDw)) == 0);
     assert (CutDw >= 8);
-    assert (L2DataWidth >= CutDw);
+    assert (picobello_pkg::AxiCfgWL2.DataWidth >= CutDw);
     assert (CutNWords % 2**$clog2(CutNWords) == 0);
     assert (picobello_pkg::MemTileSize % ParCutsNBytes == 0);
   end
