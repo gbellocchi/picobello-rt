@@ -52,13 +52,25 @@ package fpga_picobello_pkg;
                       axi_host_user_t)
 
   /////////////
+  // FlooNoC //
+  /////////////
+
+  // Router
+  localparam int unsigned RouterInFifoDepth = 32;
+  localparam int unsigned RouterOutFifoDepth = 32;
+
+  // NI
+  localparam int unsigned NIInFifoDepth = 32;
+  localparam int unsigned NIOutFifoDepth = 32;
+
+  /////////////
   // RT Tile //
   /////////////
 
   // Number of cores per tile
   localparam int unsigned NumCores = 8; // cores per cluster tile
 
-  // AXI4 wide traffic (Traffic generator => AXI-Realm => MUX)
+  // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
   localparam axi_cfg_t AxiCfgWTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
