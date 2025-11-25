@@ -25,6 +25,7 @@ module axi_to_obi #(
   parameter int unsigned       AxiUserWidth = 0,
 
   parameter int unsigned MaxTrans = 0,
+  parameter int unsigned OutFifoDepth = 0,
   /// The request struct of the AXI port
   parameter type axi_req_t = logic,
   /// The response struct of the AXI port
@@ -144,7 +145,7 @@ module axi_to_obi #(
     .NumBanks      (NumBanks),
     .BufDepth      (MaxTrans),
     .HideStrb      (1'b1),
-    .OutFifoDepth  (2),
+    .OutFifoDepth  (OutFifoDepth),
     .PropagateWUser(1'b0),
     .RUserExtra    (IdRuserWidth)
   ) i_axi_to_mem_read (
@@ -199,7 +200,7 @@ module axi_to_obi #(
     .NumBanks      (NumBanks),
     .BufDepth      (MaxTrans),
     .HideStrb      (1'b1),
-    .OutFifoDepth  (2),
+    .OutFifoDepth  (OutFifoDepth),
     .PropagateWUser(1'b1),
     .RUserExtra    (IdRuserWidth)
   ) i_axi_to_mem_write (
