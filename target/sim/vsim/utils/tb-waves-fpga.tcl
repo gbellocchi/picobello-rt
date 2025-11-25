@@ -35,7 +35,10 @@ add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_fpga_fair/dut/i
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set tile_path "/tb_picobello_fpga_fair/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
 
+    add wave -noupdate -group "cluster_tile[$cl]" -group {top} ${tile_path}/*
+
     add wave -noupdate -group "cluster_tile[$cl]" -group {router} -group {top} ${tile_path}/i_router/*
+
     add wave -noupdate -group "cluster_tile[$cl]" -group {ni} -group {top} ${tile_path}/i_chimney/*
 
     add wave -noupdate -group "cluster_tile[$cl]" -group {ni} -group {narrow_r_rob} ${tile_path}/i_chimney/i_narrow_r_rob/*
@@ -94,14 +97,51 @@ for {set mem 0} {$mem < $n_mem} {incr mem} {
     set tile_path "/tb_picobello_fpga_fair/dut/gen_memtile\[$mem\]/i_mem_tile"
 
     add wave -noupdate -group "mem_tile[$mem]" -group {top} ${tile_path}/*
+
     add wave -noupdate -group "mem_tile[$mem]" -group {router} -group {top} ${tile_path}/i_router/*
+
     add wave -noupdate -group "mem_tile[$mem]" -group {router} -group {req_floo_router} ${tile_path}/i_router/i_req_floo_router/*
     add wave -noupdate -group "mem_tile[$mem]" -group {router} -group {rsp_floo_router} ${tile_path}/i_router/i_rsp_floo_router/*
     add wave -noupdate -group "mem_tile[$mem]" -group {router} -group {wide_req_floo_router} ${tile_path}/i_router/i_wide_req_floo_router/*
+
     add wave -noupdate -group "mem_tile[$mem]" -group {ni} -group {top} ${tile_path}/i_chimney/*
-    add wave -noupdate -group "mem_tile[$mem]" -group {ni} -group {top} -group {wide_meta_buffer} ${tile_path}/i_chimney/gen_wide_mgr_port/i_wide_meta_buffer/*
-    add wave -noupdate -group "mem_tile[$mem]" -group {l2_slv_cut} ${tile_path}/i_l2_slv_cut/*
-    add wave -noupdate -group "mem_tile[$mem]" -group {axi2mem} ${tile_path}/i_axi2mem/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {ni} -group {wide_wormhole_arbiter} ${tile_path}/i_chimney/i_wide_wormhole_arbiter/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {ni} -group {wide_meta_buffer} ${tile_path}/i_chimney/gen_wide_mgr_port/i_wide_meta_buffer/*
+
+    # # FPGA L2 memory interface
+    # add wave -noupdate -group "mem_tile[$mem]" -group {l2_slv_cut} ${tile_path}/i_l2_slv_cut/*
+    # add wave -noupdate -group "mem_tile[$mem]" -group {axi2mem} ${tile_path}/i_axi2mem/*
+
+    # Picobello L2 memory interface
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {top} ${tile_path}/i_floo_nw_join/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_narrow_iw_converter} ${tile_path}/i_floo_nw_join/i_axi_narrow_iw_converter/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_narrow_dw_converter} ${tile_path}/i_floo_nw_join/i_axi_narrow_dw_converter/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_wide_iw_converter} ${tile_path}/i_floo_nw_join/i_axi_wide_iw_converter/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_wide_dw_converter} ${tile_path}/i_floo_nw_join/i_axi_wide_dw_converter/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_mux} -group {top} ${tile_path}/i_floo_nw_join/i_axi_mux/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_mux} -group {axi_id_prepend[0]} ${tile_path}/i_floo_nw_join/i_axi_mux/gen_mux/gen_id_prepend[0]/i_id_prepend/gen_id_prepend[0]/gen_prepend/#ALWAYS#86/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_mux} -group {axi_id_prepend[1]} ${tile_path}/i_floo_nw_join/i_axi_mux/gen_mux/gen_id_prepend[1]/i_id_prepend/gen_id_prepend[0]/gen_prepend/#ALWAYS#86/*
+
+    # keep both as top
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_mux} -group {ar_rr_arbiter} -group {top} ${tile_path}/i_floo_nw_join/i_axi_mux/gen_mux/i_ar_arbiter/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_mux} -group {ar_rr_arbiter} -group {top} ${tile_path}/i_floo_nw_join/i_axi_mux/gen_mux/i_ar_arbiter/gen_arbiter/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {floo_nw_join} -group {axi_mux} -group {ar_spill_reg} ${tile_path}/i_floo_nw_join/i_axi_mux/gen_mux/i_ar_spill_reg/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {axi_to_obi} -group {top} ${tile_path}/i_axi_to_obi/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {axi_to_obi} -group {read_write_demux} ${tile_path}/i_axi_to_obi/i_read_write_demux/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {axi_to_obi} -group {axi_to_mem_read} ${tile_path}/i_axi_to_obi/i_axi_to_mem_read/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {axi_to_obi} -group {axi_to_mem_write} ${tile_path}/i_axi_to_obi/i_axi_to_mem_write/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {axi_to_obi} -group {mux_banks} ${tile_path}/i_axi_to_obi/i_mux_banks/*
+
+    add wave -noupdate -group "mem_tile[$mem]" -group {obi_atop_resolver} ${tile_path}/i_obi_atop_resolver/*
+    add wave -noupdate -group "mem_tile[$mem]" -group {sram_shim_bank} ${tile_path}/i_sram_shim_bank/*
 }
 
 TreeUpdate [SetDefaultTree]
