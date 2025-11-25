@@ -105,11 +105,14 @@ module mem_tile
   floo_picobello_noc_pkg::axi_wide_out_req_t   axi_wide_req;
   floo_picobello_noc_pkg::axi_wide_out_rsp_t   axi_wide_rsp;
 
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b0, 1'b0);
+  localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b1, 1'b0);
+
   floo_nw_chimney #(
     .AxiCfgN             (AxiCfgN),
     .AxiCfgW             (AxiCfgW),
-    .ChimneyCfgN         (set_ports(ChimneyDefaultCfg, 1'b1, 1'b0)),
-    .ChimneyCfgW         (set_ports(ChimneyDefaultCfg, 1'b1, 1'b0)),
+    .ChimneyCfgN         (ChimneyCfgN),
+    .ChimneyCfgW         (ChimneyCfgW),
     .RouteCfg            (RouteCfg),
     .AtopSupport         (1'b1),
     .MaxAtomicTxns       (1),

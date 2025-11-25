@@ -157,4 +157,28 @@ package picobello_pkg;
   // The L2 SPM memory size of every mem tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
 
+  // AXI4 wide configuration for L2 memory
+  localparam axi_cfg_t AxiCfgWL2 = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.OutIdWidth,
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.OutIdWidth
+  };
+
+  // NI configuration
+  localparam chimney_cfg_t ChimneyL2Cfg = '{
+    EnSbrPort: 1'b1, // Further customized within memory tile
+    EnMgrPort: 1'b1, // Further customized within memory tile
+    MaxTxns: 32, // Number of DMAs per fair diamond
+    MaxUniqueIds: 8, // Number of DMAs per cluster tile
+    MaxTxnsPerId: 4, // Number of DMAs with same AXI4 ID
+    BRoBType: NoRoB,
+    BRoBSize: 0,
+    RRoBType: NoRoB,
+    RRoBSize: 0,
+    CutAx: 1'b0,
+    CutRsp: 1'b0
+  };
+
 endpackage
