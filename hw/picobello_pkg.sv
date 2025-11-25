@@ -19,6 +19,10 @@ package picobello_pkg;
   //  FlooNoC  //
   ///////////////
 
+  // Router
+  localparam int unsigned RouterInFifoDepth = 32;
+  localparam int unsigned RouterOutFifoDepth = 32;
+
   typedef struct packed {
     int unsigned x;
     int unsigned y;

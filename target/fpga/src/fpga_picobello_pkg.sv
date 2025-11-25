@@ -52,18 +52,6 @@ package fpga_picobello_pkg;
                       axi_host_user_t)
 
   /////////////
-  // FlooNoC //
-  /////////////
-
-  // Router
-  localparam int unsigned RouterInFifoDepth = 32;
-  localparam int unsigned RouterOutFifoDepth = 32;
-
-  // NI
-  localparam int unsigned NIInFifoDepth = 32;
-  localparam int unsigned NIOutFifoDepth = 32;
-
-  /////////////
   // RT Tile //
   /////////////
 
