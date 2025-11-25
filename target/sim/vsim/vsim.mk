@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 VSIM ?= vsim
 VSIM_SRC = $(PB_ROOT)/target/sim/src
@@ -24,6 +25,8 @@ VSIM_FLAGS += -suppress 8386
 VSIM_FLAGS += -suppress 13314
 VSIM_FLAGS += -quiet
 VSIM_FLAGS += -64
+VSIM_FLAGS += -voptargs=+acc
+VSIM_FLAGS += -voptargs=+vpi
 
 VSIM_FLAGS_GUI = -voptargs=+acc
 
@@ -59,7 +62,9 @@ vsim-log:
 $(VSIM_DIR)/compile.tcl: $(BENDER_YML) $(BENDER_LOCK)
 	bender script vsim --compilation-mode common $(COMMON_TARGS) $(SIM_TARGS) --vlog-arg="$(VLOG_ARGS)"> $@
 	echo 'vlog -work $(VSIM_WORK) "$(realpath $(CHS_ROOT))/target/sim/src/elfloader.cpp" -ccflags "-std=c++11"' >> $@
-	echo 'vlog -work $(VSIM_WORK) "$(realpath $(VSIM_SRC))/dpi/hello_world.cpp" -ccflags "-std=c++11"' >> $@
+	@for DPI_FILE in $(realpath $(VSIM_SRC))/dpi/*.cpp; do \
+		echo "vlog -work $(VSIM_WORK) \"$$DPI_FILE\" -ccflags \"-std=c++11\"" >> $@; \
+	done
 
 vsim-run:
 	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null

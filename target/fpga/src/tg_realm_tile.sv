@@ -46,8 +46,8 @@ module cluster_rt_tile
     .AxiCfgW     (floo_picobello_noc_pkg::AxiCfgW),
     .RouteAlgo   (floo_picobello_noc_pkg::RouteCfg.RouteAlgo),
     .NumRoutes   (5),
-    .InFifoDepth (2),
-    .OutFifoDepth(2),
+    .InFifoDepth (picobello_pkg::RouterInFifoDepth),
+    .OutFifoDepth(picobello_pkg::RouterOutFifoDepth),
     .id_t        (floo_picobello_noc_pkg::id_t),
     .hdr_t       (floo_picobello_noc_pkg::hdr_t),
     .floo_req_t  (floo_req_t),
@@ -92,8 +92,8 @@ module cluster_rt_tile
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
   ) chimney_narrow_out[0:0]();
 
-  localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b1, 1'b0);
-  localparam chimney_cfg_t ChimneyCfgW = set_ports(ChimneyDefaultCfg, 1'b0, 1'b1);
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b0);
+  localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b0, 1'b1);
 
   floo_nw_chimney #(
     .AxiCfgN             (floo_picobello_noc_pkg::AxiCfgN),
@@ -101,8 +101,8 @@ module cluster_rt_tile
     .ChimneyCfgN         (ChimneyCfgN),
     .ChimneyCfgW         (ChimneyCfgW),
     .RouteCfg            (floo_picobello_noc_pkg::RouteCfg),
-    .AtopSupport         (1'b1),
-    .MaxAtomicTxns       (1),
+    .AtopSupport         (picobello_pkg::ClusterRtAtopSupport), 
+    .MaxAtomicTxns       (picobello_pkg::ClusterRtMaxAtomicTxns),
     .Sam                 (floo_picobello_noc_pkg::Sam),
     .id_t                (floo_picobello_noc_pkg::id_t),
     .rob_idx_t           (floo_picobello_noc_pkg::rob_idx_t),
@@ -233,9 +233,9 @@ module cluster_rt_tile
 
   // Core register files address map
   axi_narrow_out_addr_t cluster_rt_addr_dim = 32'h0000_1000;
-  axi_narrow_out_addr_t cluster_dma_r_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_t cluster_dma_w_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_t cluster_compute_addr_dim = 32'h0000_0030; // not used
+  axi_narrow_out_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
+  axi_narrow_out_addr_t cluster_dma_w_addr_dim = 32'h0000_0100;
+  axi_narrow_out_addr_t cluster_compute_addr_dim = 32'h0000_0100; // not used
 
   axi_narrow_out_addr_t cluster_rt_addr_offset = 32'h0000_0000;
   axi_narrow_out_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
@@ -613,13 +613,13 @@ module cluster_rt_tile
     `AXI_LITE_ASSIGN_TO_RESP(axi_lite_comp_regfile_rsp[i], axi_lite_comp_regfile[i])
 
     axi_hls_tg_rw_wrapper #(
-      .AXI_ADDR_WIDTH       (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-      .AXI_DATA_WIDTH       (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-      .AXI_ID_WIDTH         (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-      .AXI_USER_WIDTH       (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
-      .AXI_LOCK             (1),
-      .AXI_LITE_ADDR_WIDTH  (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
-      .AXI_LITE_DATA_WIDTH  (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
+      .AxiAddrWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+      .AxiDataWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+      .AxiIdWidth         (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
+      .AxiUserWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
+      .AxiLock            (1),
+      .AxiLiteAddrWidth   (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
+      .AxiLiteDataWidth   (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
     ) i_axi_hls_tg_wrapper (
       .clk_i                    (clk_i),
       .rst_ni                   (rst_ni),

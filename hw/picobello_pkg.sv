@@ -19,6 +19,10 @@ package picobello_pkg;
   //  FlooNoC  //
   ///////////////
 
+  // Router
+  localparam int unsigned RouterInFifoDepth = 32;
+  localparam int unsigned RouterOutFifoDepth = 32;
+
   typedef struct packed {
     int unsigned x;
     int unsigned y;
@@ -146,11 +150,76 @@ package picobello_pkg;
 
   localparam cheshire_cfg_t CheshireCfg = gen_cheshire_cfg();
 
+  ////////////////////
+  //  Cluster Tile  //
+  ////////////////////
+
+  // Atop support is removed since not used.
+  // Moreover, there is an inconsistency when using MaxUniqueIds > 1 in the meta buffer with AtopSupport.
+  // To meet the conditions of the assertion TooFewIdBits2, OutIdWidth > InIdWidth is needed. However, this breaks ID queues that are expecting ID width = IdMinWidth = OutIdWidth (e.g., i_aw_no_atop_id_queue).
+  localparam bit ClusterRtAtopSupport = 1'b0;
+  localparam int unsigned ClusterRtMaxAtomicTxns = 0;
+
+  // AXI4 wide configuration for cluster
+  localparam chimney_cfg_t ChimneyClusterRtCfg = '{
+    EnSbrPort: 1'b1,
+    EnMgrPort: 1'b1,
+    MaxTxns: 32,
+    MaxUniqueIds: 8,
+    MaxTxnsPerId: 32,
+    BRoBType: NoRoB,
+    BRoBSize: 0,
+    RRoBType: NoRoB,
+    RRoBSize: 0,
+    CutAx: 1'b0,
+    CutRsp: 1'b0
+  };
+
   ////////////////
   //  Mem Tile  //
   ////////////////
 
   // The L2 SPM memory size of every mem tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
+
+  // Atop support
+  localparam bit MemAtopSupport = 1'b0;
+  localparam int unsigned MemMaxAtomicTxns = 0;
+
+  // AXI4 wide configuration for L2 memory
+  localparam axi_cfg_t AxiCfgWL2 = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth,
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.OutIdWidth
+  };
+
+  // NI configuration
+  localparam chimney_cfg_t ChimneyL2Cfg = '{
+    EnSbrPort: 1'b1, // Further customized within memory tile
+    EnMgrPort: 1'b1, // Further customized within memory tile
+    MaxTxns: 32, // Max outstanding transactions handled by meta buffer 
+    MaxUniqueIds: 8, // Max unique non-atomic IDs handled by meta buffer
+    MaxTxnsPerId: 4, // Used by RoB
+    BRoBType: NoRoB,
+    BRoBSize: 0,
+    RRoBType: NoRoB,
+    RRoBSize: 0,
+    CutAx: 1'b0,
+    CutRsp: 1'b0
+  };
+
+  // Memory delay parameters
+  localparam int unsigned MemRttInputExpected = 128; // [Ck] AW, W, AR channels
+  localparam int unsigned MemRttOutputExpected = 0; // [Ck] R, B channels
+  localparam int unsigned MemRttBase = 4; // [Ck] Baseline memory round-trip time (calculated @NI)
+  localparam int unsigned MemDelayOverhead = 0; // [Ck] AXI delay overhead.
+  localparam int unsigned MemDelayInput = (MemRttInputExpected > MemRttBase + MemDelayOverhead) ? (MemRttInputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] AW, W, AR channels
+  localparam int unsigned MemDelayOutput = (MemRttOutputExpected > MemRttBase + MemDelayOverhead) ? (MemRttOutputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] R, B channels
+
+  // Max number of outstanding transactions
+  // This should be larger than round-trip latency from converter to SRAM (approx 2Ck)
+  localparam int unsigned ObiMaxTxns = 32;
 
 endpackage

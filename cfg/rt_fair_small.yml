@@ -37,7 +37,7 @@ protocols:
     protocol: "AXI4"
     data_width: 128
     addr_width: 64
-    id_width: 1
+    id_width: 4 # necessary for multi-core rt tile
     user_width: 1
 
 endpoints:

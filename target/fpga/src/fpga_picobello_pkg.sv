@@ -21,20 +21,11 @@ package fpga_picobello_pkg;
   localparam int unsigned NumFpgaHostPorts = 1;
   localparam int unsigned NumFpgaDummyTiles = 2;
 
-  ///////////////
-  // L2 Memory //
-  ///////////////
-
-  localparam int unsigned L2AddrWidth = floo_picobello_noc_pkg::AxiCfgW.AddrWidth;
-  localparam int unsigned L2DataWidth = floo_picobello_noc_pkg::AxiCfgW.DataWidth;
-  localparam int unsigned L2IdWidth   = floo_picobello_noc_pkg::AxiCfgW.OutIdWidth;
-  localparam int unsigned L2UserWidth = floo_picobello_noc_pkg::AxiCfgW.UserWidth;
-
   //////////
   // Host //
   //////////
 
-  // Host AXI4 parameters and typedefs
+  // AXI4 wide configuration for host processor
   localparam axi_cfg_t AxiCfgHost = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
@@ -58,13 +49,13 @@ package fpga_picobello_pkg;
   // Number of cores per tile
   localparam int unsigned NumCores = 8; // cores per cluster tile
 
-  // AXI4 wide traffic (Traffic generator => AXI-Realm => MUX)
+  // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
   localparam axi_cfg_t AxiCfgWTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: 1,
-    OutIdWidth: 1
+    InIdWidth: 5,
+    OutIdWidth: 5
   };
 
   typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_tg_addr_t;
