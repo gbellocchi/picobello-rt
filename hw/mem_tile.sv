@@ -256,7 +256,7 @@ module mem_tile
 
   // Number of outstanding transactions should be larger than round-trip
   // latency from converter to SRAM
-  localparam int unsigned ObiLatency = 32;
+  localparam int unsigned ObiLatency = picobello_pkg::ObiMaxTxns;
 
   logic [AxiCfgJoin.OutIdWidth-1:0] axi_in_aw_id, axi_in_ar_id;
   logic [AxiCfgJoin.UserWidth-1:0] axi_in_aw_user, axi_in_ar_user;

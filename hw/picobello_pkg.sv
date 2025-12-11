@@ -162,7 +162,7 @@ package picobello_pkg;
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.OutIdWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth,
     OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.OutIdWidth
   };
 
@@ -170,9 +170,9 @@ package picobello_pkg;
   localparam chimney_cfg_t ChimneyL2Cfg = '{
     EnSbrPort: 1'b1, // Further customized within memory tile
     EnMgrPort: 1'b1, // Further customized within memory tile
-    MaxTxns: 32, // Number of DMAs per fair diamond
-    MaxUniqueIds: 8, // Number of DMAs per cluster tile
-    MaxTxnsPerId: 4, // Number of DMAs with same AXI4 ID
+    MaxTxns: 32, // Max outstanding transactions handled by meta buffer 
+    MaxUniqueIds: 8, // Max unique non-atomic IDs handled by meta buffer
+    MaxTxnsPerId: 4, // Used by RoB
     BRoBType: NoRoB,
     BRoBSize: 0,
     RRoBType: NoRoB,
@@ -180,5 +180,9 @@ package picobello_pkg;
     CutAx: 1'b0,
     CutRsp: 1'b0
   };
+
+  // Max number of beats per transaction
+  // This should be larger than round-trip latency from converter to SRAM (approx 5Ck)
+  localparam int unsigned ObiMaxTxns = 32;
 
 endpackage
