@@ -6,21 +6,31 @@
 
 package sim_picobello_pkg;
 
+  import floo_pkg::*;
+
   ////////////////////////
   // Experimental Setup //
   ////////////////////////
 
   typedef struct {
-    // string name;
     // Setup parameters
-    real id_test; // Test ID
-    real n_test_cl; // Number of test clusters
-    real n_accx_cl; // Number of accelerators per cluster
-    real n_clx_mem; // Number of clusters per memory tile
+    int unsigned id_test; // Test ID
+    // SoC parameters
+    int unsigned n_cl_critical; // Number of critical task clusters
+    int unsigned n_cl_interf; // Number of interferer clusters
+    int unsigned n_acc_cl; // Number of accelerators per cluster
+    int unsigned n_clx_mem; // Number of clusters per memory tile
+    // NoC parameters
+    int unsigned router_fifo_in_depth; // Router input FIFO depth
+    int unsigned router_fifo_out_depth; // Router output FIFO depth
+    int unsigned ni_max_oustanding_txns; // Network interface max outstanding transactions
+    int unsigned ni_max_unique_ids; // Network interface max unique IDs
+    // Realm tile parameters
     real traffic_gen_traffic_dim; // Traffic generator traffic dimension
     real traffic_gen_compute_dim; // Traffic generator compute dimension
-    real burst_length; // Burst length
-    real t_exec_time_ck; // Execution time [clock cycles]
+    int unsigned burst_length; // Burst length
+    // Results
+    int unsigned t_exec_time_ck; // Execution time [clock cycles]
   } experimental_stats_t;
 
   /////////////////////
@@ -38,7 +48,6 @@ package sim_picobello_pkg;
   } bw_monitor_cfg_t;
 
   typedef struct {
-    // string name;
     // Read channel
     int unsigned r_burst_t0 [$];
     int unsigned r_burst_t1 [$];

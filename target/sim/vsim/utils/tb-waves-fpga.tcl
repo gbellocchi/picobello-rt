@@ -8,7 +8,7 @@
 set n_cl 8
 set n_core 8
 set n_core_regfiles 4
-set n_mem 1
+set n_mem 5
 
 # TB top
 add wave -noupdate -group {tb} {/tb_picobello_fpga_fair/*}

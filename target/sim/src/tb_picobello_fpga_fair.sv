@@ -114,10 +114,9 @@ module tb_picobello_fpga_fair
 
   // Number of clusters and cores under test
   localparam int unsigned NumClustersActive = 4;
-  localparam int unsigned NumCoresActive = 2;
-
-  // Target cluster ID list
-  localparam int unsigned IdTestCl[NumClustersActive] = '{1, 3, 4, 6};
+  localparam int unsigned NumClustersInterf = 4;
+  localparam int unsigned NumClustersInterfActive = 4;
+  localparam int unsigned NumCoresActive = 8;
 
   // Traffic dimension (hardwired)
   int TrafficDim = 128 * 32; // hardwired in traffic generator design
@@ -134,10 +133,34 @@ module tb_picobello_fpga_fair
   int NAccxClMin = 1; // accelerator per cluster tile (most performant case)
   int NAccxClMax = 1; // <= NAccxClMax <= NumClusters
 
-  // Burst length
+  ///////////////////
+  // Critical task //
+  ///////////////////
+
+  // Cluster ID list for critical tasks
+  // localparam int unsigned IdTestCl[NumClustersActive] = '{1, 3, 4, 6};
+  localparam int unsigned IdTestCl[NumClustersActive] = '{0, 1, 2, 3};
+
+  // Memory ID list for critical tasks
+  localparam int unsigned IdTestMem = '{L2Spm0SamIdx};
+
+  // Burst length for critical tasks
   int BurstLengthMin = 32'd1; // burstless (single-beat)
   int BurstLengthMax = 32'd128; // max allowed by axi4
 
+  /////////////////
+  // Interferers //
+  /////////////////
+
+  // Cluster ID list for interferers
+  localparam int unsigned IdTestClInterf[NumClustersInterf] = '{4, 5, 6, 7};
+
+  // Memory ID list for interferers
+  localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm1SamIdx, L2Spm2SamIdx, L2Spm3SamIdx, L2Spm4SamIdx};
+
+  // Burst length for interferers
+  int BurstLengthInterf = 32'd1; // burstless (single-beat)
+  
   /////////
   // DUT //
   /////////
@@ -260,9 +283,17 @@ module tb_picobello_fpga_fair
     // Initialize AXI-Realm //
     //////////////////////////
 
-    // Initialize AXI-Realm IDs
+    // Initialize AXI-Realm IDs for critical tasks
     rt_init_id_loop: for (int i = 0; i < NumClustersActive; i++) begin
       automatic int cl_id = IdTestCl[i];
+      cluster_sam = floo_picobello_noc_pkg::Sam[cl_id + cluster_sam_offset];
+      cluster_idx = cluster_sam.idx;
+      rt_reg_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
+    end
+
+    // Initialize AXI-Realm IDs for interferers
+    rt_interf_init_id_loop: for (int i = 0; i < NumClustersInterfActive; i++) begin
+      automatic int cl_id = IdTestClInterf[i];
       cluster_sam = floo_picobello_noc_pkg::Sam[cl_id + cluster_sam_offset];
       cluster_idx = cluster_sam.idx;
       rt_reg_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
@@ -289,7 +320,7 @@ module tb_picobello_fpga_fair
 
           @(posedge `CLK_SIGNAL);
 
-          // Program traffic generators
+          // Program traffic generators of critical tasks
           cl_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
             automatic int cl_id = IdTestCl[i];
 
@@ -297,9 +328,33 @@ module tb_picobello_fpga_fair
               automatic int core_id = j;
 
               // Configure read traffic generator
-              tb_tg_cfg_read.mem_port_id               = 0;  
+              tb_tg_cfg_read.mem_port_id               = IdTestMem;  
               tb_tg_cfg_read.mem_addr_offset           = 0;   
-              tb_tg_cfg_read.mem_addr_base             = Sam[L2Spm0SamIdx].start_addr;
+              tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMem].start_addr;
+
+              tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
+              tb_tg_cfg_read.TrafficGenIdx             = cl_id;
+              tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
+              tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
+              
+              picobello_tg_cfg(tb_tg_cfg_read);
+
+              @(posedge `CLK_SIGNAL);
+            end
+          end
+
+          // Program traffic generators of interferers
+          cl_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+            automatic int cl_id = IdTestClInterf[i];
+
+            rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+              automatic int core_id = j;
+
+
+              // Configure read traffic generator
+              tb_tg_cfg_read.mem_port_id               = IdTestMemInterf[i];  
+              tb_tg_cfg_read.mem_addr_offset           = 0;   
+              tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMemInterf[i]].start_addr;
 
               tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
               tb_tg_cfg_read.TrafficGenIdx             = cl_id;
@@ -315,7 +370,7 @@ module tb_picobello_fpga_fair
           // Loop over burst length values (geometric progression)
           burst_length_loop: for (int BurstLength = BurstLengthMin; BurstLength <= BurstLengthMax; BurstLength = BurstLength * 2) begin
 
-            // Configure AXI-Realm
+            // Configure AXI-Realm for critical tasks
             rt_cfg_loop_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
               automatic int cl_id = IdTestCl[i];
 
@@ -346,11 +401,11 @@ module tb_picobello_fpga_fair
               tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
 
               // Set the start address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[L2Spm0SamIdx].start_addr;
+              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMem].start_addr;
               // Set the start address (32b, high)
               tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
               // Set the end address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[L2Spm0SamIdx].start_addr + 32'h0010_0000;
+              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMem].start_addr + 32'h0010_0000;
               // Set the end address (32b, high)
               tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
 
@@ -386,13 +441,86 @@ module tb_picobello_fpga_fair
               end
             end
 
+            // Configure AXI-Realm for interferers
+            rt_interf_cfg_loop_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+              automatic int cl_id = IdTestClInterf[i];
+
+              // Set register file address offset
+              tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
+
+              // Set register file base address
+              tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
+
+              // Initialize manager ID
+              tb_rt_cfg.mgr_id                                                        = 0;
+
+              // Set manager address space dimension
+              tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
+
+              // Set address region - Memory tile
+
+              tb_rt_cfg.sbr_addr_reg_id                                               = 0;
+
+              // Set the read budget (32b)
+              tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
+              // Set the write budget (32b)
+              tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
+
+              // Set the read period (32b)
+              tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
+              // Set the write period (32b)
+              tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
+
+              // Set the start address (32b, low)
+              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMemInterf[i]].start_addr;
+              // Set the start address (32b, high)
+              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
+              // Set the end address (32b, low)
+              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMemInterf[i]].start_addr + 32'h0010_0000;
+              // Set the end address (32b, high)
+              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
+
+              // Configure AXI-Realm guard registers
+              picobello_rt_guard_init(tb_rt_cfg);
+
+              // Configure AXI-Realm subordinate address regions
+              picobello_rt_set_addr_reg(tb_rt_cfg);
+
+              // Configure AXI-Realm period-budget QoS service
+              picobello_rt_set_period_budget(tb_rt_cfg);
+
+              // Set and configure AXI-Realm manager registers
+              rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                automatic int core_id = j;
+
+                // Set manager ID
+                tb_rt_cfg.mgr_id                                                    = core_id;
+
+                // Set the burst length limit (8b)
+                tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (BurstLengthInterf - 1) & 8'hFF;
+
+                // Set IMTU abort (1b)
+                tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
+                // Set IMTU enable (1b)
+                tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = '0;
+
+                // Enable real-time mode (1b)
+                tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+
+                picobello_rt_set_burst_length(tb_rt_cfg);
+                picobello_rt_enable_rt(tb_rt_cfg);
+              end
+            end
+
             `wait_n_clk(`t_tb_wait);
 
-            // Initialize runtime signals
+            // Initialize end_of_sim flag
             end_of_sim = '{default: '1};
 
             @(posedge `CLK_SIGNAL);
 
+            // Set end_of_sim flag to 0 for active critical tasks
+            // Only the critical task is monitored, interferers run in background
             init_end_of_sim_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
               automatic int cl_id = IdTestCl[i];
 
@@ -408,11 +536,23 @@ module tb_picobello_fpga_fair
             // Initialize timer
             picobello_reset_timer(tb_timer_cfg);
 
-            // Initialize BW monitor
+            // Initialize BW monitor for critical tasks
             bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
               automatic int cl_id = IdTestCl[i];
 
               bw_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                automatic int core_id = j;
+
+                picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
+              
+              end
+            end
+
+            // Initialize BW monitor for interferers
+            bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+              automatic int cl_id = IdTestClInterf[i];
+
+              bw_interf_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                 automatic int core_id = j;
 
                 picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
@@ -446,8 +586,14 @@ module tb_picobello_fpga_fair
                 dma_r_timer_val = '{default: '0};
 
                 // DMA-in: read data from L2 memory
-                dma_in_start_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-                  automatic int cl_id = IdTestCl[i];
+                dma_in_start_loop_0: for (int i = 0; i < (NumClustersActive + NumClustersInterfActive); i++) begin
+
+                  automatic int cl_id;
+                  if(i < NumClustersActive) begin
+                    cl_id = IdTestCl[i];
+                  end else begin
+                    cl_id = IdTestClInterf[i - NumClustersActive];
+                  end
 
                   dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
@@ -459,6 +605,15 @@ module tb_picobello_fpga_fair
                     end
 
                     case (cluster_core_idx)
+                      // Cluster 0
+                      000:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      001:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      002:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      003:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      004:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      005:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      006:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      007:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       // Cluster 1
                       100:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       101:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
@@ -468,6 +623,15 @@ module tb_picobello_fpga_fair
                       105:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       106:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       107:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      // Cluster 2
+                      200:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      201:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      202:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      203:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      204:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      205:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      206:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      207:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       // Cluster 3
                       300:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       301:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
@@ -486,6 +650,15 @@ module tb_picobello_fpga_fair
                       405:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       406:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       407:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      // Cluster 5
+                      500:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      501:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      502:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      503:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      504:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      505:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      506:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      507:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       // Cluster 6
                       600:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       601:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
@@ -495,6 +668,15 @@ module tb_picobello_fpga_fair
                       605:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       606:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       607:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      // Cluster 7
+                      700:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      701:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      702:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      703:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      704:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      705:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      706:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
+                      707:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
                       // Default
                       default: $warning("Unhandled cluster/core combination: cl=%0d, core=%0d", cl_id, core_id);
                     endcase
@@ -504,7 +686,7 @@ module tb_picobello_fpga_fair
 
                 `wait_n_clk(`t_periph_bus); // Overhead: dma programming time (cluster peripheral bus)
 
-                // DMA-in: wait for completion
+                // DMA-in: wait for completion (critical tasks only)
                 // $display ("\nTest #%0d-------------DMA-in: wait for completion", NTest);
                 dma_in_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                   automatic int cl_id = IdTestCl[i];
@@ -514,6 +696,15 @@ module tb_picobello_fpga_fair
                     automatic int cluster_core_idx = cl_id * 100 + core_id;
 
                     case (cluster_core_idx)
+                      // Cluster 0
+                      000:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      001:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      002:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      003:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      004:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      005:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      006:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      007:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       // Cluster 1
                       100:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       101:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
@@ -523,6 +714,15 @@ module tb_picobello_fpga_fair
                       105:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       106:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       107:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      // Cluster 2
+                      200:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      201:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      202:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      203:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      204:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      205:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      206:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      207:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       // Cluster 3
                       300:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       301:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
@@ -541,6 +741,15 @@ module tb_picobello_fpga_fair
                       405:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       406:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       407:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      // Cluster 5
+                      500:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      501:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      502:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      503:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      504:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      505:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      506:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      507:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       // Cluster 6
                       600:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       601:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
@@ -550,6 +759,15 @@ module tb_picobello_fpga_fair
                       605:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       606:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       607:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      // Cluster 7
+                      700:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      701:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      702:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      703:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      704:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      705:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      706:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
+                      707:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
                       // Default
                       default: $warning("Unhandled cluster/core combination: cl=%0d, core=%0d", cl_id, core_id);
                     endcase
@@ -566,6 +784,7 @@ module tb_picobello_fpga_fair
               @(posedge `CLK_SIGNAL);
 
               // Iterate over the accelerators per cluster
+              // Check only critical tasks, while interferers run in background
               check_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
                 
@@ -610,51 +829,62 @@ module tb_picobello_fpga_fair
             //////////////////////////////////
 
             // Print experimental setup statistics
-            experimental_stats.id_test = NTest;
-            experimental_stats.n_test_cl = NumClustersActive;
-            experimental_stats.n_accx_cl = NAccxCl;
-            experimental_stats.n_clx_mem = NClXMem;
-            experimental_stats.traffic_gen_traffic_dim = tb_tg_cfg_read.TrafficGenTrafficDim;
-            experimental_stats.traffic_gen_compute_dim = tb_tg_cfg_read.TrafficGenComputeDim;
-            experimental_stats.burst_length = BurstLength;
-            experimental_stats.t_exec_time_ck = tb_timer_cnt_value - tb_timer_cnt_value_old;
+            experimental_stats.id_test                  = NTest;
+            experimental_stats.n_cl_critical            = NumClustersActive;
+            experimental_stats.n_cl_interf              = NumClustersInterfActive;
+            experimental_stats.n_acc_cl                 = NAccxCl;
+            experimental_stats.n_clx_mem                = NClXMem;
+            experimental_stats.router_fifo_in_depth     = picobello_pkg::RouterInFifoDepth;
+            experimental_stats.router_fifo_out_depth    = picobello_pkg::RouterOutFifoDepth;
+            experimental_stats.ni_max_oustanding_txns   = picobello_pkg::ChimneyL2Cfg.MaxTxns;
+            experimental_stats.ni_max_unique_ids        = picobello_pkg::ChimneyL2Cfg.MaxUniqueIds;
+            experimental_stats.traffic_gen_traffic_dim  = tb_tg_cfg_read.TrafficGenTrafficDim;
+            experimental_stats.traffic_gen_compute_dim  = tb_tg_cfg_read.TrafficGenComputeDim;
+            experimental_stats.burst_length             = BurstLength;
+            experimental_stats.t_exec_time_ck           = tb_timer_cnt_value - tb_timer_cnt_value_old;
 
-            $display ("\n Test #%0d",           experimental_stats.id_test);
-            $display (" - NCl:            %8d", experimental_stats.n_test_cl);
-            $display (" - NAccxCl:        %8d", experimental_stats.n_accx_cl);
-            $display (" - NClXMem:        %8d", experimental_stats.n_clx_mem);
-            $display (" - BurstLength:    %8d", experimental_stats.burst_length);
-            $display (" - ExecTime:       %8d", experimental_stats.t_exec_time_ck);
+            $display ("\n Test #%0d",                       experimental_stats.id_test);
+            $display (" - SoC -- NClCritical:         %8d", experimental_stats.n_cl_critical);
+            $display (" - SoC -- NClInterf:           %8d", experimental_stats.n_cl_interf);
+            $display (" - SoC -- NAccCl:              %8d", experimental_stats.n_acc_cl);
+            $display (" - SoC -- NClXMem:             %8d", experimental_stats.n_clx_mem);
+            $display (" - NoC -- RouterInFifoDepth:   %8d", experimental_stats.router_fifo_in_depth);
+            $display (" - NoC -- RouterOutFifoDepth:  %8d", experimental_stats.router_fifo_out_depth);
+            $display (" - NoC -- NIMaxTxns:           %8d", experimental_stats.ni_max_oustanding_txns);
+            $display (" - NoC -- NIMaxUniqueIds:      %8d", experimental_stats.ni_max_unique_ids);
+            $display (" - Realm -- BurstLength:       %8d", experimental_stats.burst_length);
+            $display (" - Realm -- BurstLengthInterf: %8d", BurstLengthInterf);
+            $display (" - Results -- ExecTime:        %8d", experimental_stats.t_exec_time_ck);
 
-            // Print BW monitor statistics
-            bw_monitor_display_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-              automatic int cl_id = IdTestCl[i];
+            // // Print BW monitor statistics
+            // bw_monitor_display_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+            //   automatic int cl_id = IdTestCl[i];
 
-              bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
+            //   bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+            //     automatic int core_id = j;
 
-                $display(
-                  "[Monitor %s][Read] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
-                  $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
-                  bw_rt_cl_stats[cl_id][core_id].r_latency_mean, 
-                  bw_rt_cl_stats[cl_id][core_id].r_latency_stddev, 
-                  bw_rt_cl_stats[cl_id][core_id].r_bw_mean, 
-                  bw_rt_cl_stats[cl_id][core_id].r_bw_stddev,
-                  bw_rt_cl_stats[cl_id][core_id].r_util_mean,
-                  bw_rt_cl_stats[cl_id][core_id].r_util_stddev
-                );
-                $display(
-                  "[Monitor %s][Write] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
-                  $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
-                  bw_rt_cl_stats[cl_id][core_id].w_latency_mean, 
-                  bw_rt_cl_stats[cl_id][core_id].w_latency_stddev, 
-                  bw_rt_cl_stats[cl_id][core_id].w_bw_mean, 
-                  bw_rt_cl_stats[cl_id][core_id].w_bw_stddev,
-                  bw_rt_cl_stats[cl_id][core_id].w_util_mean,
-                  bw_rt_cl_stats[cl_id][core_id].w_util_stddev
-                );
-              end
-            end
+            //     $display(
+            //       "[Monitor %s][Read] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
+            //       $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
+            //       bw_rt_cl_stats[cl_id][core_id].r_latency_mean, 
+            //       bw_rt_cl_stats[cl_id][core_id].r_latency_stddev, 
+            //       bw_rt_cl_stats[cl_id][core_id].r_bw_mean, 
+            //       bw_rt_cl_stats[cl_id][core_id].r_bw_stddev,
+            //       bw_rt_cl_stats[cl_id][core_id].r_util_mean,
+            //       bw_rt_cl_stats[cl_id][core_id].r_util_stddev
+            //     );
+            //     $display(
+            //       "[Monitor %s][Write] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
+            //       $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
+            //       bw_rt_cl_stats[cl_id][core_id].w_latency_mean, 
+            //       bw_rt_cl_stats[cl_id][core_id].w_latency_stddev, 
+            //       bw_rt_cl_stats[cl_id][core_id].w_bw_mean, 
+            //       bw_rt_cl_stats[cl_id][core_id].w_bw_stddev,
+            //       bw_rt_cl_stats[cl_id][core_id].w_util_mean,
+            //       bw_rt_cl_stats[cl_id][core_id].w_util_stddev
+            //     );
+            //   end
+            // end
 
             ///////////////////////////////////////
             // Save experimental results to file //
@@ -664,15 +894,21 @@ module tb_picobello_fpga_fair
             if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
               // Experimental setup - Open file
               $sformat(filePath, "%s/test%0d_experimental.txt", fileDir, experimental_stats.id_test);
-              $display("Writing results to file: %s", filePath);
+              // $display("Writing results to file: %s", filePath);
               fileDescriptor = $fopen(filePath, "w"); 
               // Experimental setup - Write values
-              $fwrite(fileDescriptor, "id_test: %0d\n", experimental_stats.id_test);
-              $fwrite(fileDescriptor, "n_test_cl: %0d\n", experimental_stats.n_test_cl);
-              $fwrite(fileDescriptor, "n_accx_cl: %0d\n", experimental_stats.n_accx_cl);
-              $fwrite(fileDescriptor, "n_clx_mem: %0d\n", experimental_stats.n_clx_mem);
-              $fwrite(fileDescriptor, "burst_length: %0d\n", experimental_stats.burst_length);
-              $fwrite(fileDescriptor, "t_exec_time_ck: %0d\n", experimental_stats.t_exec_time_ck);
+              $fwrite(fileDescriptor, "id_test: %0d\n",                     experimental_stats.id_test);
+              $fwrite(fileDescriptor, "n_cl_critical: %0d\n",               experimental_stats.n_cl_critical);
+              $fwrite(fileDescriptor, "n_cl_interf: %0d\n",                 experimental_stats.n_cl_interf);
+              $fwrite(fileDescriptor, "n_acc_cl: %0d\n",                    experimental_stats.n_acc_cl);
+              $fwrite(fileDescriptor, "n_clx_mem: %0d\n",                   experimental_stats.n_clx_mem);
+              $fwrite(fileDescriptor, "noc_router_fifo_in_depth: %0d\n",    experimental_stats.router_fifo_in_depth);
+              $fwrite(fileDescriptor, "noc_router_fifo_out_depth: %0d\n",   experimental_stats.router_fifo_out_depth);
+              $fwrite(fileDescriptor, "noc_ni_max_oustanding_txns: %0d\n",  experimental_stats.ni_max_oustanding_txns);
+              $fwrite(fileDescriptor, "noc_ni_max_unique_ids: %0d\n",       experimental_stats.ni_max_unique_ids);
+              $fwrite(fileDescriptor, "burst_length: %0d\n",                experimental_stats.burst_length);
+              $fwrite(fileDescriptor, "burst_length_interf: %0d\n",         BurstLengthInterf);
+              $fwrite(fileDescriptor, "t_exec_time_ck: %0d\n",              experimental_stats.t_exec_time_ck);
               // Experimental setup - Close file
               $fclose(fileDescriptor);
             end
@@ -688,23 +924,23 @@ module tb_picobello_fpga_fair
                   
                   // BW stats - Open file
                   $sformat(filePath, "%s/test%0d_statistics_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
-                  $display("Writing results to file: %s", filePath);
+                  // $display("Writing results to file: %s", filePath);
                   fileDescriptor = $fopen(filePath, "w"); 
 
                   // BW stats - Write values
-                  $fwrite(fileDescriptor, "id_test: %0d\n", experimental_stats.id_test);
-                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_latency_mean);
-                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_latency_stddev);
-                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_bw_mean);
-                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_bw_stddev);
-                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_util_mean);
-                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].r_util_stddev);
-                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_latency_mean);
-                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_latency_stddev);
-                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_bw_mean);
-                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_bw_stddev);
-                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_util_mean);
-                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n", bw_rt_cl_stats[cl_id][core_id].w_util_stddev);
+                  $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
+                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].r_latency_mean);
+                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].r_latency_stddev);
+                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].r_bw_mean);
+                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_bw_stddev);
+                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_util_mean);
+                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].r_util_stddev);
+                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].w_latency_mean);
+                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].w_latency_stddev);
+                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].w_bw_mean);
+                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_bw_stddev);
+                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_util_mean);
+                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].w_util_stddev);
 
                   // BW stats - Close file
                   $fclose(fileDescriptor);
@@ -722,7 +958,7 @@ module tb_picobello_fpga_fair
 
                   // Latency - Open file
                   $sformat(filePath, "%s/test%0d_burst_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
-                  $display("Writing results to file: %s", filePath);
+                  // $display("Writing results to file: %s", filePath);
                   fileDescriptor = $fopen(filePath, "w"); 
 
                   // Latency - Write header
