@@ -613,13 +613,13 @@ module cluster_rt_tile
     `AXI_LITE_ASSIGN_TO_RESP(axi_lite_comp_regfile_rsp[i], axi_lite_comp_regfile[i])
 
     axi_hls_tg_rw_wrapper #(
-      .AXI_ADDR_WIDTH       (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-      .AXI_DATA_WIDTH       (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-      .AXI_ID_WIDTH         (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-      .AXI_USER_WIDTH       (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
-      .AXI_LOCK             (1),
-      .AXI_LITE_ADDR_WIDTH  (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
-      .AXI_LITE_DATA_WIDTH  (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
+      .AxiAddrWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+      .AxiDataWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+      .AxiIdWidth         (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
+      .AxiUserWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
+      .AxiLock            (1),
+      .AxiLiteAddrWidth   (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
+      .AxiLiteDataWidth   (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
     ) i_axi_hls_tg_wrapper (
       .clk_i                    (clk_i),
       .rst_ni                   (rst_ni),

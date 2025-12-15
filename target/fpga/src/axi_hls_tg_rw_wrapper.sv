@@ -8,13 +8,13 @@
 `include "axi/typedef.svh"
 
 module axi_hls_tg_rw_wrapper #(
-  parameter int unsigned  AXI_ADDR_WIDTH = 64,
-  parameter int unsigned  AXI_DATA_WIDTH = 64,
-  parameter int unsigned  AXI_ID_WIDTH = 1,
-  parameter int unsigned  AXI_USER_WIDTH = 1,
-  parameter int unsigned  AXI_LOCK = 1,
-  parameter int unsigned  AXI_LITE_ADDR_WIDTH = 32,
-  parameter int unsigned  AXI_LITE_DATA_WIDTH = 32
+  parameter int unsigned  AxiAddrWidth = 64,
+  parameter int unsigned  AxiDataWidth = 64,
+  parameter int unsigned  AxiIdWidth = 1,
+  parameter int unsigned  AxiUserWidth = 1,
+  parameter int unsigned  AxiLock = 1,
+  parameter int unsigned  AxiLiteAddrWidth = 32,
+  parameter int unsigned  AxiLiteDataWidth = 32
 ) (
     input logic             clk_i,
     input logic             rst_ni,
@@ -36,10 +36,10 @@ module axi_hls_tg_rw_wrapper #(
     //////////////////////
 
     AXI_BUS #(
-        .AXI_ADDR_WIDTH (AXI_ADDR_WIDTH),
-        .AXI_DATA_WIDTH (AXI_DATA_WIDTH),
-        .AXI_ID_WIDTH   (AXI_ID_WIDTH),
-        .AXI_USER_WIDTH (AXI_USER_WIDTH)
+        .AXI_ADDR_WIDTH (AxiAddrWidth),
+        .AXI_DATA_WIDTH (AxiDataWidth),
+        .AXI_ID_WIDTH   (AxiIdWidth),
+        .AXI_USER_WIDTH (AxiUserWidth)
     ) axi_tg_wide_rw_out[1:0](); // 0: read, 1: write
 
     // Read generator
@@ -175,24 +175,24 @@ module axi_hls_tg_rw_wrapper #(
 
     read #(
         // AXI4 wide
-        .C_M_AXI_WIDE_PORT_ID_WIDTH             (AXI_ID_WIDTH),
-        .C_M_AXI_WIDE_PORT_ADDR_WIDTH           (AXI_ADDR_WIDTH),
-        .C_M_AXI_WIDE_PORT_DATA_WIDTH           (AXI_DATA_WIDTH),
-        .C_M_AXI_WIDE_PORT_AWUSER_WIDTH         (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_ARUSER_WIDTH         (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_WUSER_WIDTH          (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_RUSER_WIDTH          (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_BUSER_WIDTH          (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_USER_VALUE           (AXI_USER_WIDTH),
+        .C_M_AXI_WIDE_PORT_ID_WIDTH             (AxiIdWidth),
+        .C_M_AXI_WIDE_PORT_ADDR_WIDTH           (AxiAddrWidth),
+        .C_M_AXI_WIDE_PORT_DATA_WIDTH           (AxiDataWidth),
+        .C_M_AXI_WIDE_PORT_AWUSER_WIDTH         (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_ARUSER_WIDTH         (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_WUSER_WIDTH          (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_RUSER_WIDTH          (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_BUSER_WIDTH          (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_USER_VALUE           (AxiUserWidth),
         .C_M_AXI_WIDE_PORT_PROT_VALUE           (0),
         .C_M_AXI_WIDE_PORT_CACHE_VALUE          (3),
         //
-        // .C_M_AXI_DATA_WIDTH                     (AXI_DATA_WIDTH),
-        // .C_M_AXI_LOCK                           (AXI_LOCK),
+        // .C_M_AXI_DATA_WIDTH                     (AxiDataWidth),
+        // .C_M_AXI_LOCK                           (AxiLock),
         // AXI4-Lite control
-        .C_S_AXI_CONTROL_DATA_WIDTH             (AXI_LITE_DATA_WIDTH),
-        .C_S_AXI_DATA_WIDTH                     (AXI_LITE_DATA_WIDTH),
-        .C_S_AXI_CONTROL_ADDR_WIDTH             (AXI_LITE_ADDR_WIDTH)
+        .C_S_AXI_CONTROL_DATA_WIDTH             (AxiLiteDataWidth),
+        .C_S_AXI_DATA_WIDTH                     (AxiLiteDataWidth),
+        .C_S_AXI_CONTROL_ADDR_WIDTH             (AxiLiteAddrWidth)
     ) i_axi_hls_tg_read (
         .ap_clk                     ( clk_i                                 ),
         .ap_rst_n                   ( rst_ni                                ),
@@ -286,24 +286,24 @@ module axi_hls_tg_rw_wrapper #(
 
     write #(
         // AXI4 wide
-        .C_M_AXI_WIDE_PORT_ID_WIDTH             (AXI_ID_WIDTH),
-        .C_M_AXI_WIDE_PORT_ADDR_WIDTH           (AXI_ADDR_WIDTH),
-        .C_M_AXI_WIDE_PORT_DATA_WIDTH           (AXI_DATA_WIDTH),
-        .C_M_AXI_WIDE_PORT_AWUSER_WIDTH         (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_ARUSER_WIDTH         (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_WUSER_WIDTH          (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_RUSER_WIDTH          (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_BUSER_WIDTH          (AXI_USER_WIDTH),
-        .C_M_AXI_WIDE_PORT_USER_VALUE           (AXI_USER_WIDTH),
+        .C_M_AXI_WIDE_PORT_ID_WIDTH             (AxiIdWidth),
+        .C_M_AXI_WIDE_PORT_ADDR_WIDTH           (AxiAddrWidth),
+        .C_M_AXI_WIDE_PORT_DATA_WIDTH           (AxiDataWidth),
+        .C_M_AXI_WIDE_PORT_AWUSER_WIDTH         (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_ARUSER_WIDTH         (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_WUSER_WIDTH          (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_RUSER_WIDTH          (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_BUSER_WIDTH          (AxiUserWidth),
+        .C_M_AXI_WIDE_PORT_USER_VALUE           (AxiUserWidth),
         .C_M_AXI_WIDE_PORT_PROT_VALUE           (0),
         .C_M_AXI_WIDE_PORT_CACHE_VALUE          (3),
         //
-        .C_M_AXI_DATA_WIDTH                     (AXI_DATA_WIDTH),
-        // .C_M_AXI_LOCK                           (AXI_LOCK),
+        .C_M_AXI_DATA_WIDTH                     (AxiDataWidth),
+        // .C_M_AXI_LOCK                           (AxiLock),
         // AXI4-Lite control
-        .C_S_AXI_CONTROL_DATA_WIDTH             (AXI_LITE_DATA_WIDTH),
-        .C_S_AXI_DATA_WIDTH                     (AXI_LITE_DATA_WIDTH),
-        .C_S_AXI_CONTROL_ADDR_WIDTH             (AXI_LITE_ADDR_WIDTH)
+        .C_S_AXI_CONTROL_DATA_WIDTH             (AxiLiteDataWidth),
+        .C_S_AXI_DATA_WIDTH                     (AxiLiteDataWidth),
+        .C_S_AXI_CONTROL_ADDR_WIDTH             (AxiLiteAddrWidth)
     ) i_axi_hls_tg_write (
         .ap_clk                     ( clk_i                                 ),
         .ap_rst_n                   ( rst_ni                                ),
