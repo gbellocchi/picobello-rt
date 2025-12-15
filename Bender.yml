@@ -92,7 +92,7 @@ sources:
       - target/fpga/src/axi_hls_tg_128b_rw/read.v
       - target/fpga/src/axi_hls_tg_128b_rw/write_ctrl.v
       - target/fpga/src/axi_hls_tg_128b_rw/write.v
-      - target/sim/src/rt_toolkit_picobello.sv
+      - target/sim/src/dpi_picobello_rt_toolkit.sv
       # Level 2
       - target/fpga/src/axi_hls_tg_rw_wrapper.sv
       # Level 3

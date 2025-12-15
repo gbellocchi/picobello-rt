@@ -203,6 +203,14 @@ module tb_picobello_fpga_fair
     .rst_no           (rst_n)
   );
 
+  /////////////////
+  // DPI toolkit //
+  /////////////////
+
+  dpi_picobello_rt_toolkit dpi_rt (
+    .*
+  );
+
   ///////////
   // Timer //
   ///////////
@@ -603,83 +611,9 @@ module tb_picobello_fpga_fair
                       // Start BW monitor
                       picobello_start_bw_r_monitor(bw_rt_cl_cfg, cl_id, core_id);
                     end
-
-                    case (cluster_core_idx)
-                      // Cluster 0
-                      000:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      001:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      002:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      003:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      004:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      005:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      006:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      007:  dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 1
-                      100:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      101:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      102:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      103:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      104:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      105:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      106:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      107:  dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 2
-                      200:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      201:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      202:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      203:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      204:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      205:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      206:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      207:  dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 3
-                      300:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      301:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      302:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      303:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      304:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      305:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      306:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      307:  dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 4
-                      400:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      401:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      402:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      403:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      404:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      405:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      406:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      407:  dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 5
-                      500:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      501:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      502:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      503:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      504:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      505:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      506:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      507:  dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 6
-                      600:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      601:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      602:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      603:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      604:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      605:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      606:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      607:  dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Cluster 7
-                      700:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      701:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      702:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      703:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      704:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      705:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      706:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      707:  dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.int_ap_start = 1'h1;
-                      // Default
-                      default: $warning("Unhandled cluster/core combination: cl=%0d, core=%0d", cl_id, core_id);
-                    endcase
+                    
+                    // Start DMA read
+                    dpi_rt.dma_read_start(cl_id, core_id, 1);
                   end
                   dma_r_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma read starts
                 end
