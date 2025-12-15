@@ -18,4 +18,5 @@ extern "C" {
     char hello_world();
     // dma control
     void dma_read_start(int cl_id, int core_id, int value);
+    int dma_read_get_idle(int cl_id, int core_id);
 }

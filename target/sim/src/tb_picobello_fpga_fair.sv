@@ -629,82 +629,8 @@ module tb_picobello_fpga_fair
                     automatic int core_id = j;
                     automatic int cluster_core_idx = cl_id * 100 + core_id;
 
-                    case (cluster_core_idx)
-                      // Cluster 0
-                      000:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      001:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      002:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      003:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      004:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      005:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      006:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      007:  while(dut.gen_clusters[0].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 1
-                      100:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      101:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      102:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      103:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      104:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      105:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      106:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      107:  while(dut.gen_clusters[1].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 2
-                      200:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      201:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      202:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      203:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      204:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      205:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      206:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      207:  while(dut.gen_clusters[2].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 3
-                      300:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      301:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      302:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      303:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      304:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      305:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      306:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      307:  while(dut.gen_clusters[3].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 4
-                      400:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      401:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      402:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      403:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      404:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      405:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      406:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      407:  while(dut.gen_clusters[4].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 5
-                      500:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      501:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      502:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      503:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      504:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      505:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      506:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      507:  while(dut.gen_clusters[5].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 6
-                      600:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      601:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      602:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      603:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      604:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      605:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      606:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      607:  while(dut.gen_clusters[6].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Cluster 7
-                      700:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[0].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      701:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[1].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      702:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[2].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      703:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[3].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      704:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[4].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      705:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[5].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      706:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[6].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      707:  while(dut.gen_clusters[7].i_cluster_rt_tile.gen_cores[7].i_axi_hls_tg_wrapper.i_axi_hls_tg_read.control_s_axi_U.ap_idle != 1) begin @(posedge `CLK_SIGNAL); end
-                      // Default
-                      default: $warning("Unhandled cluster/core combination: cl=%0d, core=%0d", cl_id, core_id);
-                    endcase
+                    // Wait for DMA read to be idle
+                    dpi_rt.dma_read_wait_idle(cl_id, core_id);
                   end
                   // Store timer value as dma read terminates
                   dma_r_timer_1[cl_id] = tb_timer_cnt_value;

@@ -20,11 +20,26 @@ module dpi_picobello_rt_toolkit (
 
   // DMA control
   import "DPI-C" function void dma_read_start(input int cl_id, input int core_id, input int value);
+  import "DPI-C" function int dma_read_get_idle(input int cl_id, input int core_id);
 
+  // Wait a certain number of clock cycles
   task sv_wait_clocks(
     input int unsigned num_clocks
   );
     repeat(num_clocks) @(posedge clk);
+  endtask
+
+  ////////////////////////////
+  //  DMA control wrappers  //
+  ////////////////////////////
+
+  // Wait for DMA read to become idle 
+  // DPI C++ handles signal monitoring
+  // SystemVerilog side handles time advancement
+  task dma_read_wait_idle(input int cl_id, input int core_id);
+    while (dma_read_get_idle(cl_id, core_id) != 1) begin
+      sv_wait_clocks(1);
+    end
   endtask
 
 endmodule
