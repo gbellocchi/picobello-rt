@@ -195,6 +195,34 @@ module mem_tile
     .axi_rsp_i       (axi_rsp)
   );
 
+  ///////////////
+  // axi delay //
+  ///////////////
+
+  axi_nw_join_req_t axi_req_delay;
+  axi_nw_join_rsp_t axi_rsp_delay;
+
+  axi_delayer #(
+    .aw_chan_t          (axi_nw_join_aw_chan_t),
+    .w_chan_t           (axi_nw_join_w_chan_t),
+    .b_chan_t           (axi_nw_join_b_chan_t),
+    .ar_chan_t          (axi_nw_join_ar_chan_t),
+    .r_chan_t           (axi_nw_join_r_chan_t),
+    .axi_req_t          (axi_nw_join_req_t),
+    .axi_resp_t         (axi_nw_join_rsp_t),
+    .StallRandomInput   (1'b0),
+    .StallRandomOutput  (1'b0),
+    .FixedDelayInput    (picobello_pkg::MemDelayInput),
+    .FixedDelayOutput   (picobello_pkg::MemDelayOutput)
+  ) i_mem_axi_delayer (
+    .clk_i           (clk_i),
+    .rst_ni          (rst_ni),
+    .slv_req_i       (axi_req),
+    .slv_resp_o      (axi_rsp),
+    .mst_req_o       (axi_req_delay),
+    .mst_resp_i      (axi_rsp_delay)
+  );
+
   ///////////////////////
   // axi2obi converter //
   ///////////////////////
@@ -314,8 +342,8 @@ module mem_tile
     .clk_i,
     .rst_ni,
     .testmode_i(test_enable_i),
-    .axi_req_i (axi_req),
-    .axi_rsp_o (axi_rsp),
+    .axi_req_i (axi_req_delay),
+    .axi_rsp_o (axi_rsp_delay),
     .obi_req_o (obi_req),
     .obi_rsp_i (obi_rsp),
 
