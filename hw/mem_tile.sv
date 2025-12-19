@@ -199,29 +199,130 @@ module mem_tile
   // axi delay //
   ///////////////
 
+  axi_nw_join_req_t axi_req_fifo;
+  axi_nw_join_rsp_t axi_rsp_fifo;
+
   axi_nw_join_req_t axi_req_delay;
   axi_nw_join_rsp_t axi_rsp_delay;
 
-  axi_delayer #(
-    .aw_chan_t          (axi_nw_join_aw_chan_t),
-    .w_chan_t           (axi_nw_join_w_chan_t),
-    .b_chan_t           (axi_nw_join_b_chan_t),
-    .ar_chan_t          (axi_nw_join_ar_chan_t),
-    .r_chan_t           (axi_nw_join_r_chan_t),
-    .axi_req_t          (axi_nw_join_req_t),
-    .axi_resp_t         (axi_nw_join_rsp_t),
-    .StallRandomInput   (1'b0),
-    .StallRandomOutput  (1'b0),
-    .FixedDelayInput    (picobello_pkg::MemDelayInput),
-    .FixedDelayOutput   (picobello_pkg::MemDelayOutput)
-  ) i_mem_axi_delayer (
-    .clk_i           (clk_i),
-    .rst_ni          (rst_ni),
-    .slv_req_i       (axi_req),
-    .slv_resp_o      (axi_rsp),
-    .mst_req_o       (axi_req_delay),
-    .mst_resp_i      (axi_rsp_delay)
+  // Delay AR channel
+  typedef enum logic [1:0] {
+      Idle, Valid, Ready
+  } state_e;
+
+  state_e state_d, state_q;
+
+  logic load;
+  logic [31:0] count_out;
+  logic enable;
+
+  logic [31:0] counter_load;
+
+  logic ar_fifo_empty, ar_fifo_full;
+
+  assign axi_req_fifo.ar_valid  = ~ar_fifo_empty;
+  assign axi_rsp.ar_ready = ~ar_fifo_full;
+
+  // Buffer before delay to understand when multiple AR requests arrive back-to-back
+  fifo_v3 #(
+    .dtype              (axi_nw_join_ar_chan_t),     
+    .DEPTH              (picobello_pkg::ChimneyL2Cfg.MaxTxns),
+    .FALL_THROUGH       (1'b0)
+  ) i_ar_fifo_pre_delay (
+    .clk_i            (clk_i),
+    .rst_ni           (rst_ni),
+    .flush_i          (1'b0),
+    .testmode_i       (test_enable_i),
+    .full_o           (ar_fifo_full),
+    .empty_o          (ar_fifo_empty),
+    .usage_o          (),
+    .data_i           (axi_req.ar),
+    .push_i           (axi_req.ar_valid && axi_rsp.ar_ready),
+    .data_o           (axi_req_fifo.ar),
+    .pop_i            (axi_req_fifo.ar_valid && axi_rsp_fifo.ar_ready)
   );
+
+  assign axi_req_delay.ar = axi_req_fifo.ar;
+  assign counter_load = picobello_pkg::MemDelayInput;
+
+  always_comb begin
+    state_d = state_q;
+    load    = 1'b0;
+    enable  = 1'b0;
+    axi_req_delay.ar_valid = 1'b0;
+    axi_rsp_fifo.ar_ready = 1'b0;
+
+    unique case (state_q)
+
+      Idle: begin
+        if (axi_req_fifo.ar_valid) begin
+          load = 1'b1;
+          state_d = Valid;
+          // Just one cycle delay
+          if (picobello_pkg::MemDelayInput == 1) begin
+            state_d = Ready;
+          end
+        end
+      end
+
+      Valid: begin
+        enable = 1'b1;
+        if (count_out == 0) begin
+          state_d = Ready;
+        end
+      end
+
+      Ready: begin
+        axi_req_delay.ar_valid = 1'b1;
+        axi_rsp_fifo.ar_ready = axi_rsp_delay.ar_ready;
+        if (axi_rsp_delay.ar_ready) state_d = Idle;
+      end
+
+      default : /* default */;
+    endcase
+  end
+
+  counter #(
+    .WIDTH      (32)
+  ) i_ar_counter (
+    .clk_i      (clk_i),
+    .rst_ni     (rst_ni),
+    .clear_i    (1'b0),
+    .en_i       (enable),
+    .load_i     (load),
+    .down_i     (1'b1),
+    .d_i        (counter_load),
+    .q_o        (count_out),
+    .overflow_o ()
+  );
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (~rst_ni) begin
+      state_q <= Idle;
+    end else begin
+      state_q <= state_d;
+    end
+  end
+
+  // Bypass AW
+  assign axi_req_delay.aw       = axi_req.aw;
+  assign axi_req_delay.aw_valid = axi_req.aw_valid;
+  assign axi_rsp.aw_ready       = axi_rsp.aw_ready;
+
+  // Bypass W
+  assign axi_req_delay.w        = axi_req.w;
+  assign axi_req_delay.w_valid  = axi_req.w_valid;
+  assign axi_rsp.w_ready        = axi_rsp_delay.w_ready;
+
+  // Bypass R
+  assign axi_rsp.r              = axi_rsp_delay.r;
+  assign axi_rsp.r_valid        = axi_rsp_delay.r_valid;
+  assign axi_req_delay.r_ready  = axi_req.r_ready;
+
+  // Bypass B
+  assign axi_rsp.b              = axi_rsp_delay.b;
+  assign axi_rsp.b_valid        = axi_rsp_delay.b_valid;
+  assign axi_req_delay.b_ready  = axi_req.b_ready;
 
   ///////////////////////
   // axi2obi converter //
