@@ -19,6 +19,7 @@ module dpi_picobello_rt_toolkit (
   import "DPI-C" context task hello_world();
 
   // DMA control
+  import "DPI-C" function void dma_read_set_arid(input int cl_id, input int core_id, input int value); 
   import "DPI-C" function void dma_read_start(input int cl_id, input int core_id, input int value);
   import "DPI-C" function int dma_read_get_idle(input int cl_id, input int core_id);
 

@@ -144,6 +144,11 @@ module tb_picobello_fpga_fair
   // Memory ID list for critical tasks
   localparam int unsigned IdTestMem = '{L2Spm0SamIdx};
 
+  // Number of AXI IDs per cluster
+  localparam int unsigned NAxiIds = 1; 
+  localparam int unsigned NAxiIdsMin = 1; // When each DMA is assigned with the same ID.
+  localparam int unsigned NAxiIdsMax = NumCoresActive * NumClustersActive; // When each DMA is assigned with a unique ID.
+
   // Burst length for critical tasks
   int BurstLengthMin = 32'd1; // burstless (single-beat)
   int BurstLengthMax = 32'd128; // max allowed by axi4
@@ -334,6 +339,11 @@ module tb_picobello_fpga_fair
 
             rt_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
               automatic int core_id = j;
+              automatic int core_axi_id;
+
+              // Set AXI ID for DMA read
+              core_axi_id = (cl_id * NumCoresActive + core_id) * NAxiIds / (NumClustersActive * NumCoresActive);
+              dpi_rt.dma_read_set_arid(cl_id, core_id, core_axi_id);
 
               // Configure read traffic generator
               tb_tg_cfg_read.mem_port_id               = IdTestMem;  
@@ -605,7 +615,6 @@ module tb_picobello_fpga_fair
 
                   dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
-                    automatic int cluster_core_idx = cl_id * 100 + core_id;
 
                     if(test_id==0) begin
                       // Start BW monitor
@@ -627,7 +636,6 @@ module tb_picobello_fpga_fair
 
                   dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
-                    automatic int cluster_core_idx = cl_id * 100 + core_id;
 
                     // Wait for DMA read to be idle
                     dpi_rt.dma_read_wait_idle(cl_id, core_id);
