@@ -12,6 +12,11 @@
 `define t_periph_bus 10 // core - peripheral bus - peripheral (10)
 `define t_multi_cl_displacement 16 + 96 // assuming protocol conversion (10) + sequential transmission (x16) x worst-case assumption (6)
 
+`define PRINT_RESULTS
+`define SAVE_EXPERIMENT_GENERAL
+// `define SAVE_EXPERIMENT_STATS
+// `define SAVE_BURST_TIMESTAMPS
+
 import fpga_picobello_pkg::*;
 import sim_picobello_pkg::*;
 
@@ -711,6 +716,7 @@ module tb_picobello_fpga_fair
             experimental_stats.burst_length             = BurstLength;
             experimental_stats.t_exec_time_ck           = tb_timer_cnt_value - tb_timer_cnt_value_old;
 
+`ifdef PRINT_RESULTS
             $display ("\n Test #%0d",                       experimental_stats.id_test);
             $display (" - SoC -- NClCritical:         %8d", experimental_stats.n_cl_critical);
             $display (" - SoC -- NClInterf:           %8d", experimental_stats.n_cl_interf);
@@ -753,13 +759,15 @@ module tb_picobello_fpga_fair
             //     );
             //   end
             // end
+`endif
 
             ///////////////////////////////////////
             // Save experimental results to file //
             ///////////////////////////////////////
 
+`ifdef SAVE_EXPERIMENT_GENERAL
             // Save experimental setup statistics to file
-            if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
+            if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
               // Experimental setup - Open file
               $sformat(filePath, "%s/test%0d_experimental.txt", fileDir, experimental_stats.id_test);
               // $display("Writing results to file: %s", filePath);
@@ -780,9 +788,10 @@ module tb_picobello_fpga_fair
               // Experimental setup - Close file
               $fclose(fileDescriptor);
             end
-
+`endif
+`ifdef SAVE_EXPERIMENT_STATS
             // Save experiment statistics to file
-            if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
+            if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
 
               f_bw_stats_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
@@ -815,9 +824,10 @@ module tb_picobello_fpga_fair
                 end
               end
             end
-
+`endif
+`ifdef SAVE_BURST_TIMESTAMPS
             // Save burst timestamps to file
-            if ($value$plusargs("VSIM_LOG_CFG=%s", fileDir)) begin
+            if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
               f_latency_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
 
@@ -850,6 +860,7 @@ module tb_picobello_fpga_fair
                 end
               end
             end
+`endif
 
             NTest = NTest + 1;
             tb_timer_cnt_value_old = tb_timer_cnt_value; // Store old counter value
