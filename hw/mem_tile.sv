@@ -202,18 +202,15 @@ module mem_tile
   axi_nw_join_req_t axi_req_delay;
   axi_nw_join_rsp_t axi_rsp_delay;
 
-  axi_ar_delay #(
+  axi_delay #(
     .AxiCfg          (AxiCfgJoin),
     .DelayInput      (picobello_pkg::MemDelayInput),
-    .DelayOutput     (picobello_pkg::MemDelayOutput),
-    .ArNumTxns       (picobello_pkg::MemDelayInput),
-    .ArFifoDepth     (picobello_pkg::MemDelayInput),
     .axi_in_req_t    (axi_nw_join_req_t),
     .axi_in_rsp_t    (axi_nw_join_rsp_t),
     .axi_out_req_t   (axi_nw_join_req_t),
     .axi_out_rsp_t   (axi_nw_join_rsp_t),
     .axi_ar_chan_t   (axi_nw_join_ar_chan_t)
-  ) i_axi_ar_delay (
+  ) i_axi_delay (
     .clk_i           (clk_i),
     .rst_ni          (rst_ni),
     .test_enable_i   (test_enable_i),

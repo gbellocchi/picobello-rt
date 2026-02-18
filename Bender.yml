@@ -45,7 +45,7 @@ sources:
   - hw/cheshire_tile.sv
   - hw/mem_tile.sv
   - hw/dummy_tile.sv
-  - hw/axi_ar_delay.sv
+  - hw/axi_delay.sv
 
   - target: not(asic)
     files:
