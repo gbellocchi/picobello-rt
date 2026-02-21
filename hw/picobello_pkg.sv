@@ -150,12 +150,41 @@ package picobello_pkg;
 
   localparam cheshire_cfg_t CheshireCfg = gen_cheshire_cfg();
 
+  ////////////////////
+  //  Cluster Tile  //
+  ////////////////////
+
+  // Atop support is removed since not used.
+  // Moreover, there is an inconsistency when using MaxUniqueIds > 1 in the meta buffer with AtopSupport.
+  // To meet the conditions of the assertion TooFewIdBits2, OutIdWidth > InIdWidth is needed. However, this breaks ID queues that are expecting ID width = IdMinWidth = OutIdWidth (e.g., i_aw_no_atop_id_queue).
+  localparam bit ClusterRtAtopSupport = 1'b0;
+  localparam int unsigned ClusterRtMaxAtomicTxns = 0;
+
+  // AXI4 wide configuration for cluster
+  localparam chimney_cfg_t ChimneyClusterRtCfg = '{
+    EnSbrPort: 1'b1,
+    EnMgrPort: 1'b1,
+    MaxTxns: 32,
+    MaxUniqueIds: 8,
+    MaxTxnsPerId: 32,
+    BRoBType: NoRoB,
+    BRoBSize: 0,
+    RRoBType: NoRoB,
+    RRoBSize: 0,
+    CutAx: 1'b0,
+    CutRsp: 1'b0
+  };
+
   ////////////////
   //  Mem Tile  //
   ////////////////
 
   // The L2 SPM memory size of every mem tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
+
+  // Atop support
+  localparam bit MemAtopSupport = 1'b0;
+  localparam int unsigned MemMaxAtomicTxns = 0;
 
   // AXI4 wide configuration for L2 memory
   localparam axi_cfg_t AxiCfgWL2 = '{

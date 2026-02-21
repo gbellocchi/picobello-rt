@@ -54,8 +54,8 @@ package fpga_picobello_pkg;
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: 1,
-    OutIdWidth: 1
+    InIdWidth: 5,
+    OutIdWidth: 5
   };
 
   typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_tg_addr_t;

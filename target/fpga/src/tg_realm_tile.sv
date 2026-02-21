@@ -92,8 +92,8 @@ module cluster_rt_tile
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
   ) chimney_narrow_out[0:0]();
 
-  localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b1, 1'b0);
-  localparam chimney_cfg_t ChimneyCfgW = set_ports(ChimneyDefaultCfg, 1'b0, 1'b1);
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b0);
+  localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b0, 1'b1);
 
   floo_nw_chimney #(
     .AxiCfgN             (floo_picobello_noc_pkg::AxiCfgN),
@@ -101,8 +101,8 @@ module cluster_rt_tile
     .ChimneyCfgN         (ChimneyCfgN),
     .ChimneyCfgW         (ChimneyCfgW),
     .RouteCfg            (floo_picobello_noc_pkg::RouteCfg),
-    .AtopSupport         (1'b1),
-    .MaxAtomicTxns       (1),
+    .AtopSupport         (picobello_pkg::ClusterRtAtopSupport), 
+    .MaxAtomicTxns       (picobello_pkg::ClusterRtMaxAtomicTxns),
     .Sam                 (floo_picobello_noc_pkg::Sam),
     .id_t                (floo_picobello_noc_pkg::id_t),
     .rob_idx_t           (floo_picobello_noc_pkg::rob_idx_t),
