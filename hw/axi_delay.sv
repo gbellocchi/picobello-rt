@@ -28,71 +28,34 @@ module axi_shift #(
   output logic axi_valid_o,
   input  logic axi_ready_i
 );
-  // Shift enable
-  logic [DelayInput-1:0] shift_en_d;
-  logic [DelayInput-1:0] shift_en_q;
 
-  // Shifted valid and payload
-  logic [DelayInput-1:0] valid_shift;
-  axi_chan_t [DelayInput-1:0] payload_shift;
-    
-  // Compute shift enables:
-  // -- Last stage shifts when downstream memory is ready or if there is a bubble 
-  // -- Intermediate stage shifts when next stage shifts or if there is a bubble
-  for (genvar i = 0; i < DelayInput; i++) begin : gen_shift_en
-    assign shift_en_d[i] = (i == DelayInput-1) ? (axi_ready_i | ~valid_shift[i]) : (shift_en_q[i+1] | ~valid_shift[i]);
+  axi_chan_t [DelayInput:0] axi_ch_shift;
+  logic [DelayInput:0] axi_valid_shift;
+  logic [DelayInput:0] axi_ready_shift;
 
-    always_ff @(posedge clk_i or negedge rst_ni) begin
-      if (~rst_ni) begin
-        shift_en_q[i] <= '1;
-      end else begin
-        shift_en_q[i] <= shift_en_d[i];
-      end
-    end
+  assign axi_ch_shift[0] = axi_ch_i;
+  assign axi_valid_shift[0] = axi_valid_i;
+  assign axi_ready_o = axi_ready_shift[0];
+
+  for (genvar i = 0; i < DelayInput; i++) begin
+    spill_register #(
+      .T       ( axi_chan_t ),
+      .Bypass  ( 1'b0       )
+    ) i_reg_aw (
+      .clk_i   ( clk_i                ),
+      .rst_ni  ( rst_ni               ),
+      .valid_i ( axi_valid_shift[i]     ),
+      .ready_o ( axi_ready_shift[i]     ),
+      .data_i  ( axi_ch_shift[i]        ),
+      .valid_o ( axi_valid_shift[i+1]   ),
+      .ready_i ( axi_ready_shift[i+1]   ),
+      .data_o  ( axi_ch_shift[i+1]      )
+    );
   end
 
-  // Valid shift register
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (~rst_ni) begin
-      valid_shift <= '0;
-    end else begin
-      // Each stage shifts independently when its shift_en is active
-      if (shift_en_q[0]) begin
-        valid_shift[0] <= axi_valid_i;
-      end
-      for (int i = 1; i < DelayInput; i++) begin
-        if (shift_en_q[i]) begin
-          valid_shift[i] <= valid_shift[i-1];
-        end else begin
-          valid_shift[i] <= valid_shift[i];
-        end
-      end
-    end
-  end
-  
-  // Payload shift register 
-  always_ff @(posedge clk_i) begin
-    // Payload shifts when corresponding valid shifts
-    if (shift_en_q[0]) begin
-      payload_shift[0] <= axi_ch_i;
-    end
-    for (int i = 1; i < DelayInput; i++) begin
-      if (shift_en_q[i]) begin
-        payload_shift[i] <= payload_shift[i-1];
-      end else begin
-        payload_shift[i] <= payload_shift[i];
-      end
-    end
-  end
-
-  // Route delayed axi channel payload from last stage of shift register to output
-  assign axi_ch_o = payload_shift[DelayInput-1];
-  
-  // Route output ready that is high when shift register can accept new values
-  assign axi_ready_o = shift_en_q[0];
-  
-  // Route delayed valid to output
-  assign axi_valid_o = valid_shift[DelayInput-1];
+  assign axi_ch_o = axi_ch_shift[DelayInput];
+  assign axi_valid_o = axi_valid_shift[DelayInput];
+  assign axi_ready_shift[DelayInput] = axi_ready_i;
 
 endmodule
 
@@ -145,23 +108,9 @@ module axi_delay #(
       .axi_ch_i    (axi_req_i.ar),
       .axi_valid_i (axi_req_i.ar_valid),
       .axi_ready_o (axi_rsp_o.ar_ready),
-      .axi_ch_o    (axi_req_delay.ar),
-      .axi_valid_o (axi_req_delay.ar_valid),
-      .axi_ready_i (axi_rsp_delay.ar_ready)
-    );
-
-    spill_register #(
-      .T       (axi_ar_chan_t),
-      .Bypass  (1'b0)
-    ) i_ar_spill_reg (
-      .clk_i,
-      .rst_ni,
-      .valid_i (axi_req_delay.ar_valid),
-      .ready_o (axi_rsp_delay.ar_ready),
-      .data_i  (axi_req_delay.ar),
-      .valid_o (axi_req_o.ar_valid),
-      .ready_i (axi_rsp_i.ar_ready),
-      .data_o  (axi_req_o.ar)
+      .axi_ch_o    (axi_req_o.ar),
+      .axi_valid_o (axi_req_o.ar_valid),
+      .axi_ready_i (axi_rsp_i.ar_ready)
     );
   end else begin : gen_bypass_ar_channel
     assign axi_req_o.ar = axi_req_i.ar;
@@ -186,23 +135,9 @@ module axi_delay #(
       .axi_ch_i    (axi_req_i.aw),
       .axi_valid_i (axi_req_i.aw_valid),
       .axi_ready_o (axi_rsp_o.aw_ready),
-      .axi_ch_o    (axi_req_delay.aw),
-      .axi_valid_o (axi_req_delay.aw_valid),
-      .axi_ready_i (axi_rsp_delay.aw_ready)
-    );
-
-    spill_register #(
-      .T       (axi_aw_chan_t),
-      .Bypass  (1'b0)
-    ) i_aw_spill_reg (
-      .clk_i,
-      .rst_ni,
-      .valid_i (axi_req_delay.aw_valid),
-      .ready_o (axi_rsp_delay.aw_ready),
-      .data_i  (axi_req_delay.aw),
-      .valid_o (axi_req_o.aw_valid),
-      .ready_i (axi_rsp_i.aw_ready),
-      .data_o  (axi_req_o.aw)
+      .axi_ch_o    (axi_req_o.aw),
+      .axi_valid_o (axi_req_o.aw_valid),
+      .axi_ready_i (axi_rsp_i.aw_ready)
     );
   end else begin : gen_bypass_aw_channel
     assign axi_req_o.aw = axi_req_i.aw;
@@ -227,23 +162,9 @@ module axi_delay #(
       .axi_ch_i    (axi_req_i.w),
       .axi_valid_i (axi_req_i.w_valid),
       .axi_ready_o (axi_rsp_o.w_ready),
-      .axi_ch_o    (axi_req_delay.w),
-      .axi_valid_o (axi_req_delay.w_valid),
-      .axi_ready_i (axi_rsp_delay.w_ready)
-    );
-    
-    spill_register #(
-      .T       (axi_w_chan_t),
-      .Bypass  (1'b0)
-    ) i_w_spill_reg (
-      .clk_i,
-      .rst_ni,
-      .valid_i (axi_req_delay.w_valid),
-      .ready_o (axi_rsp_delay.w_ready),
-      .data_i  (axi_req_delay.w),
-      .valid_o (axi_req_o.w_valid),
-      .ready_i (axi_rsp_i.w_ready),
-      .data_o  (axi_req_o.w)
+      .axi_ch_o    (axi_req_o.w),
+      .axi_valid_o (axi_req_o.w_valid),
+      .axi_ready_i (axi_rsp_i.w_ready)
     );
   end else begin : gen_bypass_w_channel
     assign axi_req_o.w = axi_req_i.w;
