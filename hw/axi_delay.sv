@@ -8,6 +8,95 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
+module axi_shift #(
+  /// Delay value to model memory access cost (in clock cycles)
+  parameter int unsigned DelayInput = 0, // Ck
+  /// AXI channel type
+  parameter type axi_chan_t  = logic,
+  parameter bit ChTypeAr = 1'b0,
+  parameter bit ChTypeAw = 1'b0,
+  parameter bit ChTypeW = 1'b0
+) (
+  input  logic clk_i,
+  input  logic rst_ni,
+  // Input AXI channel
+  input  axi_chan_t axi_ch_i,
+  input  logic axi_valid_i,
+  output logic axi_ready_o,
+  // Output AXI channel
+  output axi_chan_t axi_ch_o,
+  output logic axi_valid_o,
+  input  logic axi_ready_i
+);
+  // Shift enable
+  logic [DelayInput-1:0] shift_en_d;
+  logic [DelayInput-1:0] shift_en_q;
+
+  // Shifted valid and payload
+  logic [DelayInput-1:0] valid_shift;
+  axi_chan_t [DelayInput-1:0] payload_shift;
+    
+  // Compute shift enables:
+  // -- Last stage shifts when downstream memory is ready or if there is a bubble 
+  // -- Intermediate stage shifts when next stage shifts or if there is a bubble
+  for (genvar i = 0; i < DelayInput; i++) begin : gen_shift_en
+    assign shift_en_d[i] = (i == DelayInput-1) ? (axi_ready_i | ~valid_shift[i]) : (shift_en_q[i+1] | ~valid_shift[i]);
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (~rst_ni) begin
+        shift_en_q[i] <= '1;
+      end else begin
+        shift_en_q[i] <= shift_en_d[i];
+      end
+    end
+  end
+
+  // Valid shift register
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (~rst_ni) begin
+      valid_shift <= '0;
+    end else begin
+      // Each stage shifts independently when its shift_en is active
+      if (shift_en_q[0]) begin
+        valid_shift[0] <= axi_valid_i;
+      end
+      for (int i = 1; i < DelayInput; i++) begin
+        if (shift_en_q[i]) begin
+          valid_shift[i] <= valid_shift[i-1];
+        end else begin
+          valid_shift[i] <= valid_shift[i];
+        end
+      end
+    end
+  end
+  
+  // Payload shift register 
+  always_ff @(posedge clk_i) begin
+    // Payload shifts when corresponding valid shifts
+    if (shift_en_q[0]) begin
+      payload_shift[0] <= axi_ch_i;
+    end
+    for (int i = 1; i < DelayInput; i++) begin
+      if (shift_en_q[i]) begin
+        payload_shift[i] <= payload_shift[i-1];
+      end else begin
+        payload_shift[i] <= payload_shift[i];
+      end
+    end
+  end
+
+  // Route delayed axi channel payload from last stage of shift register to output
+  assign axi_ch_o = payload_shift[DelayInput-1];
+  
+  // Route output ready that is high when shift register can accept new values
+  assign axi_ready_o = shift_en_q[0];
+  
+  // Route delayed valid to output
+  assign axi_valid_o = valid_shift[DelayInput-1];
+
+endmodule
+
+// Delay module for forward AXI channels (AR, AW, W).
 module axi_delay #(
   /// AXI bus configuration
   parameter floo_pkg::axi_cfg_t AxiCfg = '0,
