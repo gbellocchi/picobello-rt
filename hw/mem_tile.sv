@@ -222,6 +222,35 @@ module mem_tile
   );
 
   ///////////////////////
+  // axi id flattening //
+  ///////////////////////
+
+  axi_nw_join_req_t axi_req_id_flatten;
+  axi_nw_join_rsp_t axi_rsp_id_flatten;
+
+  axi_id_flattening #(
+    .ReadEnable      (1'b0),
+    .ReadIdValue     ('0),
+    .WriteEnable     (1'b0),
+    .WriteIdValue    ('0),
+    .axi_in_req_t    (axi_nw_join_req_t),
+    .axi_in_rsp_t    (axi_nw_join_rsp_t),
+    .axi_out_req_t   (axi_nw_join_req_t),
+    .axi_out_rsp_t   (axi_nw_join_rsp_t),
+    .axi_ar_chan_t   (axi_nw_join_ar_chan_t),
+    .axi_aw_chan_t   (axi_nw_join_aw_chan_t),
+    .axi_w_chan_t    (axi_nw_join_w_chan_t)
+  ) i_axi_id_flattening (
+    .clk_i           (clk_i),
+    .rst_ni          (rst_ni),
+    .test_enable_i   (test_enable_i),
+    .axi_req_i       (axi_req_delay),
+    .axi_rsp_o       (axi_rsp_delay),
+    .axi_req_o       (axi_req_id_flatten),
+    .axi_rsp_i       (axi_rsp_id_flatten)
+  );
+
+  ///////////////////////
   // axi2obi converter //
   ///////////////////////
 
@@ -340,8 +369,8 @@ module mem_tile
     .clk_i,
     .rst_ni,
     .testmode_i(test_enable_i),
-    .axi_req_i (axi_req_delay),
-    .axi_rsp_o (axi_rsp_delay),
+    .axi_req_i (axi_req_id_flatten),
+    .axi_rsp_o (axi_rsp_id_flatten),
     .obi_req_o (obi_req),
     .obi_rsp_i (obi_rsp),
 
