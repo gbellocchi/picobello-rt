@@ -114,7 +114,11 @@ module axi_delay #(
   /// AXI out response channel
   parameter type axi_out_rsp_t  = logic,
   /// AXI AR channel
-  parameter type axi_ar_chan_t  = logic
+  parameter type axi_ar_chan_t  = logic,
+  /// AXI AW channel
+  parameter type axi_aw_chan_t  = logic,
+  /// AXI W channel
+  parameter type axi_w_chan_t  = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -125,84 +129,47 @@ module axi_delay #(
   input  axi_out_rsp_t axi_rsp_i
 );
 
-  // AR shift register
-  logic [DelayInput-1:0] ar_valid_shift; // AR valid
-  axi_ar_chan_t [DelayInput-1:0] ar_payload_shift; // AR payload
-  logic [DelayInput-1:0] ar_shift_en; // Shift enable
+  // Local AXI4 signals
+  axi_out_req_t axi_req_delay;
+  axi_out_rsp_t axi_rsp_delay;
 
-  //////////////////
-  // AXI AR Delay //
-  //////////////////
+  ////////////////
+  // AR channel //
+  ////////////////
 
-  // Delay AR channel
   if(DelayInput > 0) begin : gen_delay_ar_channel
-    
-    // Shift enable is computed backwards from output to input
-    // Last stage shifts when downstream memory is ready or if there is a bubble 
-    assign ar_shift_en[DelayInput-1] = axi_rsp_i.ar_ready | ~ar_valid_shift[DelayInput-1];
-    
-    // Compute shift enables for intermediate stages
-    if (DelayInput > 1) begin : gen_multi_stage
-      for (genvar i = DelayInput-2; i >= 0; i--) begin : gen_shift_en
-        // Intermediate stage shifts when next stage shifts or if there is a bubble
-        assign ar_shift_en[i] = ar_shift_en[i+1] | ~ar_valid_shift[i];
-      end
-    end
-    
-    // Shift register for AR valid signals
-    always_ff @(posedge clk_i or negedge rst_ni) begin
-      if (~rst_ni) begin
-        ar_valid_shift <= '0;
-      end else begin
-        // Each stage shifts independently when its shift_en is active
-        if (ar_shift_en[0]) begin
-          ar_valid_shift[0] <= axi_req_i.ar_valid;
-        end
-        for (int i = 1; i < DelayInput; i++) begin
-          if (ar_shift_en[i]) begin
-            ar_valid_shift[i] <= ar_valid_shift[i-1];
-          end
-        end
-      end
-    end
-    
-    // Shift register for AR payloads
-    always_ff @(posedge clk_i) begin
-      // Payload shifts when corresponding valid shifts
-      if (ar_shift_en[0]) begin
-        ar_payload_shift[0] <= axi_req_i.ar;
-      end
-      for (int i = 1; i < DelayInput; i++) begin
-        if (ar_shift_en[i]) begin
-          ar_payload_shift[i] <= ar_payload_shift[i-1];
-        end
-      end
-    end
-    
-    // Input ready when first stage can accept
-    assign axi_rsp_o.ar_ready = ar_shift_en[0];
-    
-    // Route delayed AR valid
-    assign axi_req_o.ar_valid = ar_valid_shift[DelayInput-1];
-    
-    // Route delayed AR channel
-    always_comb begin
-      `__AXI_TO_AR(, axi_req_o.ar, ., ar_payload_shift[DelayInput-1], .)
-      axi_req_o.ar.id = ArIdFlatteningValue;
-      if (ArIdFlatteningEnable) begin
-        axi_req_o.ar.id = ArIdFlatteningValue;
-      end
-    end
+    axi_shift #(
+      .DelayInput (DelayInput),
+      .axi_chan_t (axi_ar_chan_t),
+      .ChTypeAr (1'b1),
+      .ChTypeAw (1'b0),
+      .ChTypeW  (1'b0)
+    ) i_axi_shift_ar (
+      .clk_i       (clk_i),
+      .rst_ni      (rst_ni),
+      .axi_ch_i    (axi_req_i.ar),
+      .axi_valid_i (axi_req_i.ar_valid),
+      .axi_ready_o (axi_rsp_o.ar_ready),
+      .axi_ch_o    (axi_req_delay.ar),
+      .axi_valid_o (axi_req_delay.ar_valid),
+      .axi_ready_i (axi_rsp_delay.ar_ready)
+    );
 
+    spill_register #(
+      .T       (axi_ar_chan_t),
+      .Bypass  (1'b0)
+    ) i_ar_spill_reg (
+      .clk_i,
+      .rst_ni,
+      .valid_i (axi_req_delay.ar_valid),
+      .ready_o (axi_rsp_delay.ar_ready),
+      .data_i  (axi_req_delay.ar),
+      .valid_o (axi_req_o.ar_valid),
+      .ready_i (axi_rsp_i.ar_ready),
+      .data_o  (axi_req_o.ar)
+    );
   end else begin : gen_bypass_ar_channel
-    always_comb begin
-      `__AXI_TO_AR(, axi_req_o.ar, ., axi_req_i.ar, .)
-      axi_req_o.ar.id = ArIdFlatteningValue;
-      if (ArIdFlatteningEnable) begin
-        axi_req_o.ar.id = ArIdFlatteningValue;
-      end
-    end
-
+    assign axi_req_o.ar = axi_req_i.ar;
     assign axi_req_o.ar_valid = axi_req_i.ar_valid;
     assign axi_rsp_o.ar_ready = axi_rsp_i.ar_ready;
   end
