@@ -14,27 +14,27 @@ module mem_tile
   import picobello_pkg::*;
   import obi_pkg::*;
 #(
-  // The maximum data width of the instantiated SRAMs
-  parameter int unsigned SramDataWidth  = 256,   // in bits
-  // The number of words in the instantiated SRAMs
-  parameter int unsigned SramNumWords   = 512,   // in #words
-  parameter bit          AxiUserAtop    = 1'b1,
-  parameter int unsigned AxiUserAtopMsb = 3,
-  parameter int unsigned AxiUserAtopLsb = 0,
-  parameter int unsigned MemTileId      = 0
+    // The maximum data width of the instantiated SRAMs
+    parameter int unsigned SramDataWidth  = 256,   // in bits
+    // The number of words in the instantiated SRAMs
+    parameter int unsigned SramNumWords   = 512,   // in #words
+    parameter bit          AxiUserAtop    = 1'b1,
+    parameter int unsigned AxiUserAtopMsb = 3,
+    parameter int unsigned AxiUserAtopLsb = 0,
+    parameter int unsigned MemTileId      = 0
 ) (
-  input  logic                    clk_i,
-  input  logic                    rst_ni,
-  input  logic                    test_enable_i,
-  // Chimney ports
-  input  id_t                     id_i,
-  // Router ports
-  output floo_req_t  [West:North] floo_req_o,
-  input  floo_rsp_t  [West:North] floo_rsp_i,
-  output floo_wide_t [West:North] floo_wide_o,
-  input  floo_req_t  [West:North] floo_req_i,
-  output floo_rsp_t  [West:North] floo_rsp_o,
-  input  floo_wide_t [West:North] floo_wide_i
+    input  logic                    clk_i,
+    input  logic                    rst_ni,
+    input  logic                    test_enable_i,
+    // Chimney ports
+    input  id_t                     id_i,
+    // Router ports
+    output floo_req_t  [West:North] floo_req_o,
+    input  floo_rsp_t  [West:North] floo_rsp_i,
+    output floo_wide_t [West:North] floo_wide_o,
+    input  floo_req_t  [West:North] floo_req_i,
+    output floo_rsp_t  [West:North] floo_rsp_o,
+    input  floo_wide_t [West:North] floo_wide_i
 );
 
   // The number of banks required to store a wide word
@@ -65,29 +65,29 @@ module mem_tile
   floo_wide_t [Eject:North] router_floo_wide_out, router_floo_wide_in;
 
   floo_nw_router #(
-    .AxiCfgN     (AxiCfgN),
-    .AxiCfgW     (picobello_pkg::AxiCfgWL2),
-    .RouteAlgo   (RouteCfg.RouteAlgo),
-    .NumRoutes   (5),
-    .InFifoDepth (picobello_pkg::RouterInFifoDepth),
-    .OutFifoDepth(picobello_pkg::RouterOutFifoDepth),
-    .id_t        (id_t),
-    .hdr_t       (hdr_t),
-    .floo_req_t  (floo_req_t),
-    .floo_rsp_t  (floo_rsp_t),
-    .floo_wide_t (floo_wide_t)
+      .AxiCfgN     (AxiCfgN),
+      .AxiCfgW     (picobello_pkg::AxiCfgWL2),
+      .RouteAlgo   (RouteCfg.RouteAlgo),
+      .NumRoutes   (5),
+      .InFifoDepth (picobello_pkg::RouterInFifoDepth),
+      .OutFifoDepth(picobello_pkg::RouterOutFifoDepth),
+      .id_t        (id_t),
+      .hdr_t       (hdr_t),
+      .floo_req_t  (floo_req_t),
+      .floo_rsp_t  (floo_rsp_t),
+      .floo_wide_t (floo_wide_t)
   ) i_router (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i,
-    .id_i,
-    .id_route_map_i('0),
-    .floo_req_i    (router_floo_req_in),
-    .floo_rsp_o    (router_floo_rsp_out),
-    .floo_req_o    (router_floo_req_out),
-    .floo_rsp_i    (router_floo_rsp_in),
-    .floo_wide_i   (router_floo_wide_in),
-    .floo_wide_o   (router_floo_wide_out)
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .id_i,
+      .id_route_map_i('0),
+      .floo_req_i    (router_floo_req_in),
+      .floo_rsp_o    (router_floo_rsp_out),
+      .floo_req_o    (router_floo_req_out),
+      .floo_rsp_i    (router_floo_rsp_in),
+      .floo_wide_i   (router_floo_wide_in),
+      .floo_wide_o   (router_floo_wide_out)
   );
 
   assign floo_req_o                      = router_floo_req_out[West:North];
@@ -110,50 +110,50 @@ module mem_tile
   localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b1, 1'b0);
 
   floo_nw_chimney #(
-    .AxiCfgN             (AxiCfgN),
-    .AxiCfgW             (picobello_pkg::AxiCfgWL2),
-    .ChimneyCfgN         (ChimneyCfgN),
-    .ChimneyCfgW         (ChimneyCfgW),
-    .RouteCfg            (RouteCfg),
-    .AtopSupport         (picobello_pkg::MemAtopSupport),
-    .MaxAtomicTxns       (picobello_pkg::MemMaxAtomicTxns),
-    .Sam                 (Sam),
-    .id_t                (id_t),
-    .rob_idx_t           (rob_idx_t),
-    .hdr_t               (hdr_t),
-    .sam_rule_t          (sam_rule_t),
-    .axi_narrow_in_req_t (axi_narrow_in_req_t),
-    .axi_narrow_in_rsp_t (axi_narrow_in_rsp_t),
-    .axi_narrow_out_req_t(axi_narrow_out_req_t),
-    .axi_narrow_out_rsp_t(axi_narrow_out_rsp_t),
-    .axi_wide_in_req_t   (axi_wide_in_req_t),
-    .axi_wide_in_rsp_t   (axi_wide_in_rsp_t),
-    .axi_wide_out_req_t  (axi_wide_out_req_t),
-    .axi_wide_out_rsp_t  (axi_wide_out_rsp_t),
-    .floo_req_t          (floo_req_t),
-    .floo_rsp_t          (floo_rsp_t),
-    .floo_wide_t         (floo_wide_t)
+      .AxiCfgN             (AxiCfgN),
+      .AxiCfgW             (picobello_pkg::AxiCfgWL2),
+      .ChimneyCfgN         (ChimneyCfgN),
+      .ChimneyCfgW         (ChimneyCfgW),
+      .RouteCfg            (RouteCfg),
+      .AtopSupport         (picobello_pkg::MemAtopSupport),
+      .MaxAtomicTxns       (picobello_pkg::MemMaxAtomicTxns),
+      .Sam                 (Sam),
+      .id_t                (id_t),
+      .rob_idx_t           (rob_idx_t),
+      .hdr_t               (hdr_t),
+      .sam_rule_t          (sam_rule_t),
+      .axi_narrow_in_req_t (axi_narrow_in_req_t),
+      .axi_narrow_in_rsp_t (axi_narrow_in_rsp_t),
+      .axi_narrow_out_req_t(axi_narrow_out_req_t),
+      .axi_narrow_out_rsp_t(axi_narrow_out_rsp_t),
+      .axi_wide_in_req_t   (axi_wide_in_req_t),
+      .axi_wide_in_rsp_t   (axi_wide_in_rsp_t),
+      .axi_wide_out_req_t  (axi_wide_out_req_t),
+      .axi_wide_out_rsp_t  (axi_wide_out_rsp_t),
+      .floo_req_t          (floo_req_t),
+      .floo_rsp_t          (floo_rsp_t),
+      .floo_wide_t         (floo_wide_t)
   ) i_chimney (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i,
-    .id_i,
-    .route_table_i       ('0),
-    .sram_cfg_i          ('0),
-    .axi_narrow_in_req_i ('0),
-    .axi_narrow_in_rsp_o (),
-    .axi_narrow_out_req_o(axi_narrow_req),
-    .axi_narrow_out_rsp_i(axi_narrow_rsp),
-    .axi_wide_in_req_i   ('0),
-    .axi_wide_in_rsp_o   (),
-    .axi_wide_out_req_o  (axi_wide_req),
-    .axi_wide_out_rsp_i  (axi_wide_rsp),
-    .floo_req_o          (router_floo_req_in[Eject]),
-    .floo_rsp_o          (router_floo_rsp_in[Eject]),
-    .floo_wide_o         (router_floo_wide_in[Eject]),
-    .floo_req_i          (router_floo_req_out[Eject]),
-    .floo_rsp_i          (router_floo_rsp_out[Eject]),
-    .floo_wide_i         (router_floo_wide_out[Eject])
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .id_i,
+      .route_table_i       ('0),
+      .sram_cfg_i          ('0),
+      .axi_narrow_in_req_i ('0),
+      .axi_narrow_in_rsp_o (),
+      .axi_narrow_out_req_o(axi_narrow_req),
+      .axi_narrow_out_rsp_i(axi_narrow_rsp),
+      .axi_wide_in_req_i   ('0),
+      .axi_wide_in_rsp_o   (),
+      .axi_wide_out_req_o  (axi_wide_req),
+      .axi_wide_out_rsp_i  (axi_wide_rsp),
+      .floo_req_o          (router_floo_req_in[Eject]),
+      .floo_rsp_o          (router_floo_rsp_in[Eject]),
+      .floo_wide_o         (router_floo_wide_in[Eject]),
+      .floo_req_i          (router_floo_req_out[Eject]),
+      .floo_rsp_i          (router_floo_rsp_out[Eject]),
+      .floo_wide_i         (router_floo_wide_out[Eject])
   );
 
   /////////////
@@ -172,27 +172,27 @@ module mem_tile
   axi_nw_join_rsp_t axi_rsp_join;
 
   floo_nw_join #(
-    .AxiCfgN         (axi_cfg_swap_iw(AxiCfgN)),
-    .AxiCfgW         (axi_cfg_swap_iw(picobello_pkg::AxiCfgWL2)),
-    .AxiCfgJoin      (axi_cfg_swap_iw(AxiCfgJoin)),
-    .EnAtopAdapter   (1'b0),
-    .AtopUserAsId    (1'b1),
-    .axi_narrow_req_t(axi_narrow_out_req_t),
-    .axi_narrow_rsp_t(axi_narrow_out_rsp_t),
-    .axi_wide_req_t  (axi_wide_out_req_t),
-    .axi_wide_rsp_t  (axi_wide_out_rsp_t),
-    .axi_req_t       (axi_nw_join_req_t),
-    .axi_rsp_t       (axi_nw_join_rsp_t)
+      .AxiCfgN         (axi_cfg_swap_iw(AxiCfgN)),
+      .AxiCfgW         (axi_cfg_swap_iw(picobello_pkg::AxiCfgWL2)),
+      .AxiCfgJoin      (axi_cfg_swap_iw(AxiCfgJoin)),
+      .EnAtopAdapter   (1'b0),
+      .AtopUserAsId    (1'b1),
+      .axi_narrow_req_t(axi_narrow_out_req_t),
+      .axi_narrow_rsp_t(axi_narrow_out_rsp_t),
+      .axi_wide_req_t  (axi_wide_out_req_t),
+      .axi_wide_rsp_t  (axi_wide_out_rsp_t),
+      .axi_req_t       (axi_nw_join_req_t),
+      .axi_rsp_t       (axi_nw_join_rsp_t)
   ) i_floo_nw_join (
-    .clk_i           (clk_i),
-    .rst_ni          (rst_ni),
-    .test_enable_i   (test_enable_i),
-    .axi_narrow_req_i(axi_narrow_req),
-    .axi_narrow_rsp_o(axi_narrow_rsp),
-    .axi_wide_req_i  (axi_wide_req),
-    .axi_wide_rsp_o  (axi_wide_rsp),
-    .axi_req_o       (axi_req_join),
-    .axi_rsp_i       (axi_rsp_join)
+      .clk_i           (clk_i),
+      .rst_ni          (rst_ni),
+      .test_enable_i   (test_enable_i),
+      .axi_narrow_req_i(axi_narrow_req),
+      .axi_narrow_rsp_o(axi_narrow_rsp),
+      .axi_wide_req_i  (axi_wide_req),
+      .axi_wide_rsp_o  (axi_wide_rsp),
+      .axi_req_o       (axi_req_join),
+      .axi_rsp_i       (axi_rsp_join)
   );
 
   ///////////////
@@ -203,22 +203,22 @@ module mem_tile
   axi_nw_join_rsp_t axi_rsp_delay;
 
   axi_delay #(
-    .DelayInput      (picobello_pkg::MemDelayInput),
-    .axi_in_req_t    (axi_nw_join_req_t),
-    .axi_in_rsp_t    (axi_nw_join_rsp_t),
-    .axi_out_req_t   (axi_nw_join_req_t),
-    .axi_out_rsp_t   (axi_nw_join_rsp_t),
-    .axi_ar_chan_t   (axi_nw_join_ar_chan_t),
-    .axi_aw_chan_t   (axi_nw_join_aw_chan_t),
-    .axi_w_chan_t    (axi_nw_join_w_chan_t)
+      .DelayInput   (picobello_pkg::MemDelayInput),
+      .axi_in_req_t (axi_nw_join_req_t),
+      .axi_in_rsp_t (axi_nw_join_rsp_t),
+      .axi_out_req_t(axi_nw_join_req_t),
+      .axi_out_rsp_t(axi_nw_join_rsp_t),
+      .axi_ar_chan_t(axi_nw_join_ar_chan_t),
+      .axi_aw_chan_t(axi_nw_join_aw_chan_t),
+      .axi_w_chan_t (axi_nw_join_w_chan_t)
   ) i_axi_delay (
-    .clk_i           (clk_i),
-    .rst_ni          (rst_ni),
-    .test_enable_i   (test_enable_i),
-    .axi_req_i       (axi_req_join),
-    .axi_rsp_o       (axi_rsp_join),
-    .axi_req_o       (axi_req_delay),
-    .axi_rsp_i       (axi_rsp_delay)
+      .clk_i        (clk_i),
+      .rst_ni       (rst_ni),
+      .test_enable_i(test_enable_i),
+      .axi_req_i    (axi_req_join),
+      .axi_rsp_o    (axi_rsp_join),
+      .axi_req_o    (axi_req_delay),
+      .axi_rsp_i    (axi_rsp_delay)
   );
 
   ///////////////////////
@@ -229,25 +229,30 @@ module mem_tile
   axi_nw_join_rsp_t axi_rsp_id_flatten;
 
   axi_id_flattening #(
-    .ReadEnable      (1'b0),
-    .ReadIdValue     ('0),
-    .WriteEnable     (1'b0),
-    .WriteIdValue    ('0),
-    .axi_in_req_t    (axi_nw_join_req_t),
-    .axi_in_rsp_t    (axi_nw_join_rsp_t),
-    .axi_out_req_t   (axi_nw_join_req_t),
-    .axi_out_rsp_t   (axi_nw_join_rsp_t),
-    .axi_ar_chan_t   (axi_nw_join_ar_chan_t),
-    .axi_aw_chan_t   (axi_nw_join_aw_chan_t),
-    .axi_w_chan_t    (axi_nw_join_w_chan_t)
+      .AxiReadFlattenEnable (1'b1),
+      .AxiReadIdValue       (0),
+      .AxiWriteFlattenEnable(1'b1),
+      .AxiWriteIdValue      (0),
+      .MaxTxns              (picobello_pkg::ChimneyL2Cfg.MaxTxns),
+      .AxiAddrWidth         (AxiCfgJoin.AddrWidth),
+      .AxiDataWidth         (AxiCfgJoin.DataWidth),
+      .AxiIdWidth           (AxiCfgJoin.OutIdWidth),
+      .AxiUserWidth         (AxiCfgJoin.UserWidth),
+      .axi_in_req_t         (axi_nw_join_req_t),
+      .axi_in_rsp_t         (axi_nw_join_rsp_t),
+      .axi_out_req_t        (axi_nw_join_req_t),
+      .axi_out_rsp_t        (axi_nw_join_rsp_t),
+      .axi_ar_chan_t        (axi_nw_join_ar_chan_t),
+      .axi_aw_chan_t        (axi_nw_join_aw_chan_t),
+      .axi_w_chan_t         (axi_nw_join_w_chan_t)
   ) i_axi_id_flattening (
-    .clk_i           (clk_i),
-    .rst_ni          (rst_ni),
-    .test_enable_i   (test_enable_i),
-    .axi_req_i       (axi_req_delay),
-    .axi_rsp_o       (axi_rsp_delay),
-    .axi_req_o       (axi_req_id_flatten),
-    .axi_rsp_i       (axi_rsp_id_flatten)
+      .clk_i        (clk_i),
+      .rst_ni       (rst_ni),
+      .test_enable_i(test_enable_i),
+      .axi_req_i    (axi_req_delay),
+      .axi_rsp_o    (axi_rsp_delay),
+      .axi_req_o    (axi_req_id_flatten),
+      .axi_rsp_i    (axi_rsp_id_flatten)
   );
 
   ///////////////////////
@@ -274,10 +279,12 @@ module mem_tile
       MgrObiOptionalCfg
   );
   `OBI_TYPEDEF_ATOP_A_OPTIONAL(mgr_obi_a_optional_t)
-  `OBI_TYPEDEF_A_CHAN_T(mgr_obi_a_chan_t, MgrObiCfg.AddrWidth, MgrObiCfg.DataWidth, MgrObiCfg.IdWidth, mgr_obi_a_optional_t)
+  `OBI_TYPEDEF_A_CHAN_T(mgr_obi_a_chan_t, MgrObiCfg.AddrWidth, MgrObiCfg.DataWidth,
+                        MgrObiCfg.IdWidth, mgr_obi_a_optional_t)
   `OBI_TYPEDEF_DEFAULT_REQ_T(mgr_obi_req_t, mgr_obi_a_chan_t)
   typedef struct packed {logic exokay;} mgr_obi_r_optional_t;
-  `OBI_TYPEDEF_R_CHAN_T(mgr_obi_r_chan_t, MgrObiCfg.DataWidth, MgrObiCfg.IdWidth, mgr_obi_r_optional_t)
+  `OBI_TYPEDEF_R_CHAN_T(mgr_obi_r_chan_t, MgrObiCfg.DataWidth, MgrObiCfg.IdWidth,
+                        mgr_obi_r_optional_t)
   `OBI_TYPEDEF_RSP_T(mgr_obi_rsp_t, mgr_obi_r_chan_t)
 
 
@@ -352,120 +359,120 @@ module mem_tile
   end
 
   axi_to_obi #(
-    .ObiCfg      (MgrObiCfg),
-    .obi_req_t   (mgr_obi_req_t),
-    .obi_rsp_t   (mgr_obi_rsp_t),
-    .obi_a_chan_t(mgr_obi_a_chan_t),
-    .obi_r_chan_t(mgr_obi_r_chan_t),
-    .AxiAddrWidth(AxiCfgJoin.AddrWidth),
-    .AxiDataWidth(AxiCfgJoin.DataWidth),
-    .AxiIdWidth  (AxiCfgJoin.OutIdWidth),
-    .AxiUserWidth(AxiCfgJoin.UserWidth),
-    .MaxTrans    (ObiLatency),
-    .OutFifoDepth(2),
-    .axi_req_t   (axi_nw_join_req_t),
-    .axi_rsp_t   (axi_nw_join_rsp_t)
+      .ObiCfg      (MgrObiCfg),
+      .obi_req_t   (mgr_obi_req_t),
+      .obi_rsp_t   (mgr_obi_rsp_t),
+      .obi_a_chan_t(mgr_obi_a_chan_t),
+      .obi_r_chan_t(mgr_obi_r_chan_t),
+      .AxiAddrWidth(AxiCfgJoin.AddrWidth),
+      .AxiDataWidth(AxiCfgJoin.DataWidth),
+      .AxiIdWidth  (AxiCfgJoin.OutIdWidth),
+      .AxiUserWidth(AxiCfgJoin.UserWidth),
+      .MaxTrans    (ObiLatency),
+      .OutFifoDepth(2),
+      .axi_req_t   (axi_nw_join_req_t),
+      .axi_rsp_t   (axi_nw_join_rsp_t)
   ) i_axi_to_obi (
-    .clk_i,
-    .rst_ni,
-    .testmode_i(test_enable_i),
-    .axi_req_i (axi_req_id_flatten),
-    .axi_rsp_o (axi_rsp_id_flatten),
-    .obi_req_o (obi_req),
-    .obi_rsp_i (obi_rsp),
+      .clk_i,
+      .rst_ni,
+      .testmode_i(test_enable_i),
+      .axi_req_i (axi_req_id_flatten),
+      .axi_rsp_o (axi_rsp_id_flatten),
+      .obi_req_o (obi_req),
+      .obi_rsp_i (obi_rsp),
 
-    .req_aw_id_o      (axi_in_aw_id),
-    .req_aw_user_o    (axi_in_aw_user),
-    .req_w_user_o     (),
-    .req_write_aid_i  (obi_in_write_aid),
-    .req_write_auser_i('0),
-    .req_write_wuser_i('0),
+      .req_aw_id_o      (axi_in_aw_id),
+      .req_aw_user_o    (axi_in_aw_user),
+      .req_w_user_o     (),
+      .req_write_aid_i  (obi_in_write_aid),
+      .req_write_auser_i('0),
+      .req_write_wuser_i('0),
 
-    .req_ar_id_o     (axi_in_ar_id),
-    .req_ar_user_o   (axi_in_ar_user),
-    .req_read_aid_i  (obi_in_read_aid),
-    .req_read_auser_i('0),
+      .req_ar_id_o     (axi_in_ar_id),
+      .req_ar_user_o   (axi_in_ar_user),
+      .req_read_aid_i  (obi_in_read_aid),
+      .req_read_auser_i('0),
 
-    .rsp_write_aw_user_o  (),
-    .rsp_write_w_user_o   (),
-    .rsp_write_bank_strb_o(axi_in_rsp_write_bank_strobe),
-    .rsp_write_rid_o      (obi_in_rsp_write_rid),
-    .rsp_write_ruser_o    (),
-    .rsp_write_last_o     (),
-    .rsp_write_hs_o       (),
-    .rsp_b_user_i         (axi_in_b_user),
+      .rsp_write_aw_user_o  (),
+      .rsp_write_w_user_o   (),
+      .rsp_write_bank_strb_o(axi_in_rsp_write_bank_strobe),
+      .rsp_write_rid_o      (obi_in_rsp_write_rid),
+      .rsp_write_ruser_o    (),
+      .rsp_write_last_o     (),
+      .rsp_write_hs_o       (),
+      .rsp_b_user_i         (axi_in_b_user),
 
-    .rsp_read_ar_user_o    (),
-    .rsp_read_size_enable_o(axi_in_rsp_read_size_enable),
-    .rsp_read_rid_o        (obi_in_rsp_read_rid),
-    .rsp_read_ruser_o      (),
-    .rsp_r_user_i          (axi_in_r_user)
+      .rsp_read_ar_user_o    (),
+      .rsp_read_size_enable_o(axi_in_rsp_read_size_enable),
+      .rsp_read_rid_o        (obi_in_rsp_read_rid),
+      .rsp_read_ruser_o      (),
+      .rsp_r_user_i          (axi_in_r_user)
   );
 
   /////////////////
   // SRAM macros //
   /////////////////
 
-  logic                            mem_req;
-  logic                            mem_we;
-  logic [AxiCfgJoin.AddrWidth-1:0] mem_addr;
-  logic [   picobello_pkg::AxiCfgWL2.DataWidth-1:0] mem_wdata;
-  logic [ picobello_pkg::AxiCfgWL2.DataWidth/8-1:0] mem_be;
-  logic [   picobello_pkg::AxiCfgWL2.DataWidth-1:0] mem_rdata;
+  logic                                            mem_req;
+  logic                                            mem_we;
+  logic [                AxiCfgJoin.AddrWidth-1:0] mem_addr;
+  logic [  picobello_pkg::AxiCfgWL2.DataWidth-1:0] mem_wdata;
+  logic [picobello_pkg::AxiCfgWL2.DataWidth/8-1:0] mem_be;
+  logic [  picobello_pkg::AxiCfgWL2.DataWidth-1:0] mem_rdata;
 
   obi_atop_resolver #(
-    .SbrPortObiCfg            (MgrObiCfg),
-    .MgrPortObiCfg            (SbrObiCfg),
-    .sbr_port_obi_req_t       (mgr_obi_req_t),
-    .sbr_port_obi_rsp_t       (mgr_obi_rsp_t),
-    .mgr_port_obi_req_t       (sbr_obi_req_t),
-    .mgr_port_obi_rsp_t       (sbr_obi_rsp_t),
-    .mgr_port_obi_a_optional_t(sbr_obi_a_optional_t),
-    .mgr_port_obi_r_optional_t(sbr_obi_r_optional_t),
-    .LrScEnable               (1'b1),
-    .RiscvWordWidth           (32),
-    .NumTxns                  (ObiLatency)
+      .SbrPortObiCfg            (MgrObiCfg),
+      .MgrPortObiCfg            (SbrObiCfg),
+      .sbr_port_obi_req_t       (mgr_obi_req_t),
+      .sbr_port_obi_rsp_t       (mgr_obi_rsp_t),
+      .mgr_port_obi_req_t       (sbr_obi_req_t),
+      .mgr_port_obi_rsp_t       (sbr_obi_rsp_t),
+      .mgr_port_obi_a_optional_t(sbr_obi_a_optional_t),
+      .mgr_port_obi_r_optional_t(sbr_obi_r_optional_t),
+      .LrScEnable               (1'b1),
+      .RiscvWordWidth           (32),
+      .NumTxns                  (ObiLatency)
   ) i_obi_atop_resolver (
-    .clk_i,
-    .rst_ni,
-    .testmode_i    (test_enable_i),
-    .sbr_port_req_i(obi_req),
-    .sbr_port_rsp_o(obi_rsp),
-    .mgr_port_req_o(mem_obi_req),
-    .mgr_port_rsp_i(mem_obi_rsp)
+      .clk_i,
+      .rst_ni,
+      .testmode_i    (test_enable_i),
+      .sbr_port_req_i(obi_req),
+      .sbr_port_rsp_o(obi_rsp),
+      .mgr_port_req_o(mem_obi_req),
+      .mgr_port_rsp_i(mem_obi_rsp)
   );
 
   obi_cut #(
-    .ObiCfg      (SbrObiCfg),
-    .obi_a_chan_t(sbr_obi_a_chan_t),
-    .obi_r_chan_t(sbr_obi_r_chan_t),
-    .obi_req_t   (sbr_obi_req_t),
-    .obi_rsp_t   (sbr_obi_rsp_t)
+      .ObiCfg      (SbrObiCfg),
+      .obi_a_chan_t(sbr_obi_a_chan_t),
+      .obi_r_chan_t(sbr_obi_r_chan_t),
+      .obi_req_t   (sbr_obi_req_t),
+      .obi_rsp_t   (sbr_obi_rsp_t)
   ) i_obi_cut (
-    .clk_i,
-    .rst_ni,
-    .sbr_port_req_i(mem_obi_req),
-    .sbr_port_rsp_o(mem_obi_rsp),
-    .mgr_port_req_o(mem_obi_req_cut),
-    .mgr_port_rsp_i(mem_obi_rsp_cut)
+      .clk_i,
+      .rst_ni,
+      .sbr_port_req_i(mem_obi_req),
+      .sbr_port_rsp_o(mem_obi_rsp),
+      .mgr_port_req_o(mem_obi_req_cut),
+      .mgr_port_rsp_i(mem_obi_rsp_cut)
   );
 
   obi_sram_shim #(
-    .ObiCfg   (SbrObiCfg),
-    .obi_req_t(sbr_obi_req_t),
-    .obi_rsp_t(sbr_obi_rsp_t)
+      .ObiCfg   (SbrObiCfg),
+      .obi_req_t(sbr_obi_req_t),
+      .obi_rsp_t(sbr_obi_rsp_t)
   ) i_sram_shim_bank (
-    .clk_i,
-    .rst_ni,
-    .obi_req_i(mem_obi_req_cut),
-    .obi_rsp_o(mem_obi_rsp_cut),
-    .req_o    (mem_req),
-    .we_o     (mem_we),
-    .addr_o   (mem_addr),
-    .wdata_o  (mem_wdata),
-    .be_o     (mem_be),
-    .gnt_i    (1'b1),
-    .rdata_i  (mem_rdata)
+      .clk_i,
+      .rst_ni,
+      .obi_req_i(mem_obi_req_cut),
+      .obi_rsp_o(mem_obi_rsp_cut),
+      .req_o    (mem_req),
+      .we_o     (mem_we),
+      .addr_o   (mem_addr),
+      .wdata_o  (mem_wdata),
+      .be_o     (mem_be),
+      .gnt_i    (1'b1),
+      .rdata_i  (mem_rdata)
   );
 
   logic [NumBanksPerWord-1:0][SramMacroSelWidth-1:0] sram_macro_sel, sram_macro_sel_q;
@@ -490,19 +497,19 @@ module mem_tile
   for (genvar i = 0; i < NumBanksPerWord; i++) begin : gen_sram_banks
     for (genvar j = 0; j < NumBankRows; j++) begin : gen_sram_macros
       tc_sram #(
-        .NumWords (SramNumWords),
-        .DataWidth(SramDataWidth),
-        .NumPorts (1),
-        .Latency  (1)
+          .NumWords (SramNumWords),
+          .DataWidth(SramDataWidth),
+          .NumPorts (1),
+          .Latency  (1)
       ) i_mem (
-        .clk_i,
-        .rst_ni,
-        .req_i  (mem_req && (sram_macro_sel[i] == j)),
-        .we_i   (mem_we && (sram_macro_sel[i] == j)),
-        .addr_i (sram_addr[i]),
-        .wdata_i(sram_wdata[i]),
-        .be_i   (sram_be[i]),
-        .rdata_o(sram_rdata_split[j][i])
+          .clk_i,
+          .rst_ni,
+          .req_i  (mem_req && (sram_macro_sel[i] == j)),
+          .we_i   (mem_we && (sram_macro_sel[i] == j)),
+          .addr_i (sram_addr[i]),
+          .wdata_i(sram_wdata[i]),
+          .be_i   (sram_be[i]),
+          .rdata_o(sram_rdata_split[j][i])
       );
     end
   end

@@ -57,6 +57,13 @@ module axi_id_flattening #(
   logic fifo_ar_id_push;
   logic fifo_ar_id_pop;
 
+  // AWID FIFO
+  fifo_data_t fifo_aw_id_i;
+  fifo_data_t fifo_aw_id_o;
+  logic fifo_aw_id_full;
+  logic fifo_aw_id_push;
+  logic fifo_aw_id_pop;
+
   ////////////////
   // AR channel //
   ////////////////
@@ -127,10 +134,48 @@ module axi_id_flattening #(
   // AW channel //
   ////////////////
 
-  // Bypass
-  assign axi_req_o.aw = axi_req_i.aw;
-  assign axi_req_o.aw_valid = axi_req_i.aw_valid;
-  assign axi_rsp_o.aw_ready = axi_rsp_i.aw_ready;
+  if (AxiWriteFlattenEnable) begin : gen_id_flatten_aw_channel
+    // Buffer AWID
+    assign fifo_aw_id_i = axi_req_i.aw.id;
+
+    // Buffer only when handshake condition is satisfied
+    assign fifo_aw_id_push = axi_req_o.aw_valid && axi_rsp_i.aw_ready;
+
+    // Read a new AWID after the previous burst terminates
+    assign fifo_aw_id_pop = axi_rsp_o.b_valid && axi_req_i.b_ready;
+
+    fifo_v3 #(
+        .FALL_THROUGH(1'b1),
+        .DEPTH       (MaxTxns),
+        .dtype       (fifo_data_t)
+    ) i_awid_fifo (
+        .clk_i,
+        .rst_ni,
+        .flush_i   (1'b0),
+        .testmode_i(test_enable_i),
+        .full_o    (fifo_aw_id_full),
+        .empty_o   (),
+        .usage_o   (),
+        .data_i    (fifo_aw_id_i),
+        .push_i    (fifo_aw_id_push),
+        .data_o    (fifo_aw_id_o),
+        .pop_i     (fifo_aw_id_pop)
+    );
+
+    // Output interface with flattened AWID
+    always_comb begin
+      `__AXI_TO_AW(, axi_req_o.aw, ., axi_req_i.aw, .)
+      axi_req_o.aw.id = AxiWriteIdValue;
+    end
+    assign axi_req_o.aw_valid = axi_req_i.aw_valid && !fifo_aw_id_full;
+    assign axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !fifo_aw_id_full;
+
+  end else begin : gen_bypass_aw_channel
+    // Bypass
+    assign axi_req_o.aw = axi_req_i.aw;
+    assign axi_req_o.aw_valid = axi_req_i.aw_valid;
+    assign axi_rsp_o.aw_ready = axi_rsp_i.aw_ready;
+  end
 
   ///////////////
   // W channel //
@@ -145,9 +190,19 @@ module axi_id_flattening #(
   // B channel //
   ///////////////
 
-  // Bypass
-  assign axi_rsp_o.b = axi_rsp_i.b;
-  assign axi_rsp_o.b_valid = axi_rsp_i.b_valid;
-  assign axi_req_o.b_ready = axi_req_i.b_ready;
+  if (AxiWriteFlattenEnable) begin : gen_id_flatten_b_channel
+    // Read original AWID from FIFO
+    always_comb begin
+      `__AXI_TO_B(, axi_rsp_o.b, ., axi_rsp_i.b, .)
+      axi_rsp_o.b.id = fifo_aw_id_o;
+    end
+    assign axi_rsp_o.b_valid = axi_rsp_i.b_valid;
+    assign axi_req_o.b_ready = axi_req_i.b_ready;
+  end else begin : gen_bypass_b_channel
+    // Bypass
+    assign axi_rsp_o.b       = axi_rsp_i.b;
+    assign axi_rsp_o.b_valid = axi_rsp_i.b_valid;
+    assign axi_req_o.b_ready = axi_req_i.b_ready;
+  end
 
 endmodule
