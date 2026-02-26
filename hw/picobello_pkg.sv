@@ -211,14 +211,14 @@ package picobello_pkg;
   };
 
   // Max number of beats per transaction
-  // This should be larger than round-trip latency from converter to SRAM (approx 5Ck)
+  // This should be larger than round-trip latency from converter to SRAM (approx 2Ck)
   localparam int unsigned ObiMaxTxns = 32;
 
   // Memory delay parameters
-  localparam int unsigned MemRttInputExpected = 32; // [Ck] AW, W, AR channels
+  localparam int unsigned MemRttInputExpected = 128; // [Ck] AW, W, AR channels
   localparam int unsigned MemRttOutputExpected = 0; // [Ck] R, B channels
   localparam int unsigned MemRttBase = 4; // [Ck] Baseline memory round-trip time (calculated @NI)
-  localparam int unsigned MemDelayOverhead = 3; // [Ck] AXI delayer overhead to set FSM (2Ck) + pre-buffer (1Ck).
+  localparam int unsigned MemDelayOverhead = 1; // [Ck] AXI delay overhead (spill register).
   localparam int unsigned MemDelayInput = (MemRttInputExpected > MemRttBase + MemDelayOverhead) ? (MemRttInputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemDelayOutput = (MemRttOutputExpected > MemRttBase + MemDelayOverhead) ? (MemRttOutputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] R, B channels
 
