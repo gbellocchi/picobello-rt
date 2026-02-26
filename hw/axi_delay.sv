@@ -98,13 +98,8 @@ endmodule
 
 // Delay module for forward AXI channels (AR, AW, W).
 module axi_delay #(
-  /// AXI bus configuration
-  parameter floo_pkg::axi_cfg_t AxiCfg = '0,
   /// Delay value to model memory access cost (in clock cycles)
   parameter int unsigned DelayInput = 0, // Ck
-  /// AXI ID flattening enable
-  parameter bit ArIdFlatteningEnable = 1'b1,
-  parameter int unsigned ArIdFlatteningValue = '0,
   /// AXI in request channel
   parameter type axi_in_req_t   = logic,
   /// AXI in response channel
@@ -174,22 +169,102 @@ module axi_delay #(
     assign axi_rsp_o.ar_ready = axi_rsp_i.ar_ready;
   end
 
-  // Bypass AW channel
-  assign axi_req_o.aw       = axi_req_i.aw;
-  assign axi_req_o.aw_valid = axi_req_i.aw_valid;
-  assign axi_rsp_o.aw_ready = axi_rsp_i.aw_ready;
+  ////////////////
+  // AW channel //
+  ////////////////
 
-  // Bypass W channel
-  assign axi_req_o.w        = axi_req_i.w;
-  assign axi_req_o.w_valid  = axi_req_i.w_valid;
-  assign axi_rsp_o.w_ready  = axi_rsp_i.w_ready;
+  if(DelayInput > 0) begin : gen_delay_aw_channel
+    axi_shift #(
+      .DelayInput (DelayInput),
+      .axi_chan_t (axi_aw_chan_t),
+      .ChTypeAr (1'b0),
+      .ChTypeAw (1'b1),
+      .ChTypeW  (1'b0)
+    ) i_axi_shift_aw (
+      .clk_i       (clk_i),
+      .rst_ni      (rst_ni),
+      .axi_ch_i    (axi_req_i.aw),
+      .axi_valid_i (axi_req_i.aw_valid),
+      .axi_ready_o (axi_rsp_o.aw_ready),
+      .axi_ch_o    (axi_req_delay.aw),
+      .axi_valid_o (axi_req_delay.aw_valid),
+      .axi_ready_i (axi_rsp_delay.aw_ready)
+    );
 
-  // Bypass R channel
+    spill_register #(
+      .T       (axi_aw_chan_t),
+      .Bypass  (1'b0)
+    ) i_aw_spill_reg (
+      .clk_i,
+      .rst_ni,
+      .valid_i (axi_req_delay.aw_valid),
+      .ready_o (axi_rsp_delay.aw_ready),
+      .data_i  (axi_req_delay.aw),
+      .valid_o (axi_req_o.aw_valid),
+      .ready_i (axi_rsp_i.aw_ready),
+      .data_o  (axi_req_o.aw)
+    );
+  end else begin : gen_bypass_aw_channel
+    assign axi_req_o.aw = axi_req_i.aw;
+    assign axi_req_o.aw_valid = axi_req_i.aw_valid;
+    assign axi_rsp_o.aw_ready = axi_rsp_i.aw_ready;
+  end
+
+  ///////////////
+  // W channel //
+  ///////////////
+
+  if(DelayInput > 0) begin : gen_delay_w_channel
+    axi_shift #(
+      .DelayInput (DelayInput),
+      .axi_chan_t (axi_w_chan_t),
+      .ChTypeAr (1'b0),
+      .ChTypeAw (1'b0),
+      .ChTypeW  (1'b1)
+    ) i_axi_shift_w (
+      .clk_i       (clk_i),
+      .rst_ni      (rst_ni),
+      .axi_ch_i    (axi_req_i.w),
+      .axi_valid_i (axi_req_i.w_valid),
+      .axi_ready_o (axi_rsp_o.w_ready),
+      .axi_ch_o    (axi_req_delay.w),
+      .axi_valid_o (axi_req_delay.w_valid),
+      .axi_ready_i (axi_rsp_delay.w_ready)
+    );
+    
+    spill_register #(
+      .T       (axi_w_chan_t),
+      .Bypass  (1'b0)
+    ) i_w_spill_reg (
+      .clk_i,
+      .rst_ni,
+      .valid_i (axi_req_delay.w_valid),
+      .ready_o (axi_rsp_delay.w_ready),
+      .data_i  (axi_req_delay.w),
+      .valid_o (axi_req_o.w_valid),
+      .ready_i (axi_rsp_i.w_ready),
+      .data_o  (axi_req_o.w)
+    );
+  end else begin : gen_bypass_w_channel
+    assign axi_req_o.w = axi_req_i.w;
+    assign axi_req_o.w_valid = axi_req_i.w_valid;
+    assign axi_rsp_o.w_ready = axi_rsp_i.w_ready;
+  end
+  
+  ///////////////
+  // R channel //
+  ///////////////
+
+  // Bypass
   assign axi_rsp_o.r        = axi_rsp_i.r;
   assign axi_rsp_o.r_valid  = axi_rsp_i.r_valid;
   assign axi_req_o.r_ready  = axi_req_i.r_ready;
 
-  // Bypass B channel
+  ///////////////
+  // B channel //
+  ///////////////
+
+  // Bypass
   assign axi_rsp_o.b        = axi_rsp_i.b;
   assign axi_rsp_o.b_valid  = axi_rsp_i.b_valid;
   assign axi_req_o.b_ready  = axi_req_i.b_ready;
