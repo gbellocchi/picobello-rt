@@ -233,9 +233,9 @@ module cluster_rt_tile
 
   // Core register files address map
   axi_narrow_out_addr_t cluster_rt_addr_dim = 32'h0000_1000;
-  axi_narrow_out_addr_t cluster_dma_r_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_t cluster_dma_w_addr_dim = 32'h0000_0030;
-  axi_narrow_out_addr_t cluster_compute_addr_dim = 32'h0000_0030; // not used
+  axi_narrow_out_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
+  axi_narrow_out_addr_t cluster_dma_w_addr_dim = 32'h0000_0100;
+  axi_narrow_out_addr_t cluster_compute_addr_dim = 32'h0000_0100; // not used
 
   axi_narrow_out_addr_t cluster_rt_addr_offset = 32'h0000_0000;
   axi_narrow_out_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
