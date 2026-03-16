@@ -1,0 +1,47 @@
+# Copyright 2026 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
+
+traffic_flows:
+  - name: "cluster"
+    initiator: [0, 1]
+    endpoint: [1, 1]
+    rw: write
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 1
+      length: 256
+  - name: "cluster"
+    initiator: [1, 0]
+    endpoint: [1, 1]
+    rw: write
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 1
+      length: 256
+  - name: "cluster"
+    initiator: [1, 2]
+    endpoint: [1, 1]
+    rw: write
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 1
+      length: 256
+  - name: "cluster"
+    initiator: [2, 1]
+    endpoint: [1, 1]
+    rw: write
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 1
+      length: 256

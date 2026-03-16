@@ -44,7 +44,38 @@ $(eval $(call add_vsim_flag,CHS_BINARY))
 $(eval $(call add_vsim_flag,SN_BINARY))
 $(eval $(call add_vsim_flag,BOOTMODE))
 $(eval $(call add_vsim_flag,PRELMODE))
-$(eval $(call add_vsim_flag,VSIM_LOG_CFG))
+
+######################
+# Traffic Generation #
+######################
+
+TRAFFIC_GEN=$(FLOO_ROOT)/util/gen_jobs.py
+TRAFFIC_TB=import_traffic_cfg
+TRAFFIC_CFG=$(PB_ROOT)/target/sim/src/traffic/traffic_intra_flow.yml
+TRAFFIC_OUTDIR=$(PB_ROOT)/target/sim/src/traffic
+WIDE_BURST_NUM=16
+WIDE_BURST_LENGTH=256
+
+JOB_NAME=traffic
+JOB_DIR=$(TRAFFIC_OUTDIR)
+$(eval $(call add_vsim_flag,JOB_NAME))
+$(eval $(call add_vsim_flag,JOB_DIR))
+
+vsim-jobs-create: $(TRAFFIC_GEN)
+	@mkdir -p $(TRAFFIC_OUTDIR)
+	$(TRAFFIC_GEN) \
+		--out_dir $(TRAFFIC_OUTDIR) \
+		--num_narrow_bursts=0 \
+		--num_wide_bursts=$(WIDE_BURST_NUM) \
+		--narrow_burst_length=0 \
+		--wide_burst_length=$(WIDE_BURST_LENGTH) \
+		--tb $(TRAFFIC_TB) \
+		--traffic_cfg $(TRAFFIC_CFG) \
+		--floonoc_cfg $(FLOO_CFG)
+
+vsim-jobs-clean:
+	rm -rf $(TRAFFIC_OUTDIR)
+
 
 .PHONY: vsim-compile vsim-clean vsim-run
 

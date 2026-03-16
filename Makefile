@@ -34,7 +34,7 @@ BENDER_LOCK = $(PB_ROOT)/Bender.lock
 ################
 
 COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t floogen_pkg
-SIM_TARGS += -t simulation -t test -t idma_test
+SIM_TARGS += -t simulation -t test -t idma_test -t floo_test
 FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_use_fpga_scm
 
 ############
@@ -65,6 +65,16 @@ FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_
 # sn-hw-all: $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
 # sn-hw-clean:
 # 	rm -rf $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
+
+###########################
+# Floo DMA test registers #
+###########################
+
+FLOO_DMA_REGS  	?= $(PB_ROOT)/target/sim/src/floo_dma_regs
+REGTOOL    		?= $(shell $(BENDER) path register_interface)/vendor/lowrisc_opentitan/util/regtool.py
+
+floo_dma_regs: $(FLOO_DMA_REGS)/floo_dma.hjson $(REGTOOL)
+	$(REGTOOL) -r -t $(FLOO_DMA_REGS) $<
 
 ###########
 # FlooNoC #
