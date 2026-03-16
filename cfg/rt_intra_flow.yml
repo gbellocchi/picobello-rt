@@ -65,16 +65,6 @@ endpoints:
     sbr_port_protocol:
       - "narrow_out"
       - "wide_out"
-  - name: "fhg_spu"
-    addr_range:
-      - start: 0xE000_0000
-        size: 0x0004_0000
-    mgr_port_protocol:
-      - "narrow_in"
-      - "wide_in"
-    sbr_port_protocol:
-      - "narrow_out"
-      - "wide_out"
   - name: "l2_spm"
     array: [1]
     addr_range:
@@ -130,9 +120,4 @@ connections:
   - src: "cheshire"
     dst: "router"
     dst_idx: [2, 2]
-    dst_dir: "Eject"
-  # Extra Picobello cluster
-  - src: "fhg_spu"
-    dst: "router"
-    dst_idx: [2, 0]
     dst_dir: "Eject"

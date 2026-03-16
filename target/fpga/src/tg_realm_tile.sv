@@ -15,7 +15,9 @@ module cluster_rt_tile
 #(
   /// Number of cores in the tile.
   parameter int unsigned NumCores = 1,
-  parameter int unsigned NumCoresMax = 32
+  parameter int unsigned NumCoresMax = 32,
+  parameter logic [floo_picobello_noc_pkg::AxiCfgW.AddrWidth-1:0] BaseAddr = 32'h0,
+  parameter id_t Id = '0
 ) (
   input  logic                                    clk_i,
   input  logic                                    rst_ni,
@@ -576,63 +578,43 @@ module cluster_rt_tile
   // Traffic generators //
   ////////////////////////
 
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth)
-  ) cluster_rt_wide_out [NumCores-1:0]();
-
   // Output data traffic
   axi_wide_tg_req_t [NumCores-1:0] cluster_rt_wide_out_req;
   axi_wide_tg_rsp_t [NumCores-1:0] cluster_rt_wide_out_rsp;
 
-  AXI_LITE #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
-  ) axi_lite_read_regfile [NumCores-1:0]();
+  axi_traffic_gen_wrapper #(
+    .NumDmas            ( NumCores                              ),
+    .NumPending         ( 32                                    ),
+    .Id                 ( Id                                    ),
+    .FlooDmaMemBaseAddr ( BaseAddr                              ),
+    .AxiCfg             ( fpga_picobello_pkg::AxiCfgWTrafficGen ),
+    .AxiLock            ( 1                                     ),
+    .AxiLiteCfg         ( fpga_picobello_pkg::AxiLiteCfg        ),
+    .axi_in_req_t       ( axi_wide_tg_req_t                     ),
+    .axi_in_rsp_t       ( axi_wide_tg_rsp_t                     ),
+    .axi_out_req_t      ( axi_wide_tg_req_t                     ),
+    .axi_out_rsp_t      ( axi_wide_tg_rsp_t                     ),
+    .axi_lite_req_t     ( axi_lite_host_req_t                   ),
+    .axi_lite_rsp_t     ( axi_lite_host_rsp_t                   ),
+    .reg_req_t          ( cfg_req_t                             ),
+    .reg_rsp_t          ( cfg_rsp_t                             )
+  ) i_axi_traffic_gen_wrapper (
+    .clk_i                        ( clk_i                      ),
+    .rst_ni                       ( rst_ni                     ),
+    .axi_in_req_i                 ( '0                         ),
+    .axi_in_rsp_o                 (                            ),
+    .axi_out_req_o                ( cluster_rt_wide_out_req    ),
+    .axi_out_rsp_i                ( cluster_rt_wide_out_rsp    ),
+    .axi_lite_read_regfile_req    ( axi_lite_read_regfile_req  ),
+    .axi_lite_read_regfile_rsp    ( axi_lite_read_regfile_rsp  ),
+    .axi_lite_write_regfile_req   ( axi_lite_write_regfile_req ),
+    .axi_lite_write_regfile_rsp   ( axi_lite_write_regfile_rsp ),
+    .axi_lite_compute_regfile_req ( axi_lite_comp_regfile_req  ),
+    .axi_lite_compute_regfile_rsp ( axi_lite_comp_regfile_rsp  )
+  );
 
-  AXI_LITE #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
-  ) axi_lite_write_regfile [NumCores-1:0]();
-
-  AXI_LITE #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
-  ) axi_lite_comp_regfile [NumCores-1:0]();
-
-  for (genvar i = 0; i < NumCores; i++) begin : gen_cores
-    `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_read_regfile[i], axi_lite_read_regfile_req[i])
-    `AXI_LITE_ASSIGN_TO_RESP(axi_lite_read_regfile_rsp[i], axi_lite_read_regfile[i])
-
-    `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_write_regfile[i], axi_lite_write_regfile_req[i])
-    `AXI_LITE_ASSIGN_TO_RESP(axi_lite_write_regfile_rsp[i], axi_lite_write_regfile[i])
-
-    `AXI_LITE_ASSIGN_FROM_REQ(axi_lite_comp_regfile[i], axi_lite_comp_regfile_req[i])
-    `AXI_LITE_ASSIGN_TO_RESP(axi_lite_comp_regfile_rsp[i], axi_lite_comp_regfile[i])
-
-    axi_hls_tg_rw_wrapper #(
-      .AxiAddrWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-      .AxiDataWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-      .AxiIdWidth         (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-      .AxiUserWidth       (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
-      .AxiLock            (1),
-      .AxiLiteAddrWidth   (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
-      .AxiLiteDataWidth   (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
-    ) i_axi_hls_tg_wrapper (
-      .clk_i                    (clk_i),
-      .rst_ni                   (rst_ni),
-      .axi_tg_wide_out          (cluster_rt_wide_out[i]),
-      .axi_lite_read_regfile    (axi_lite_read_regfile[i]),
-      .axi_lite_write_regfile   (axi_lite_write_regfile[i]),
-      .axi_lite_comp_regfile    (axi_lite_comp_regfile[i])
-    );
-
-    `AXI_ASSIGN_TO_REQ(cluster_rt_wide_out_req[i], cluster_rt_wide_out[i])
-    `AXI_ASSIGN_FROM_RESP(cluster_rt_wide_out[i], cluster_rt_wide_out_rsp[i])
-
-    // Bind to AXI-Realm inputs
+  // Bind to AXI-Realm inputs
+  for (genvar i = 0; i < NumCores; i++) begin : gen_axi_rt_bindings
     `AXI_ASSIGN_REQ_STRUCT(axi_realm_in_req[i], cluster_rt_wide_out_req[i])
     `AXI_ASSIGN_RESP_STRUCT(cluster_rt_wide_out_rsp[i], axi_realm_in_rsp[i])
   end

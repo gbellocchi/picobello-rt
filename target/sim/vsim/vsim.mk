@@ -30,7 +30,7 @@ VSIM_FLAGS += -voptargs=+vpi
 
 VSIM_FLAGS_GUI = -voptargs=+acc
 
-VCD_COMMON_CMD = vcd file tb.vcd; vcd add -r /*;
+VCD_COMMON_CMD = vcd file $(VSIM_RUN)/tb.vcd; vcd add -r /*;
 VSIM_COMMON_CMD = log -r /*; run -a;
 VSIM_WAVES_CMD = source "$(VSIM_DIR)/utils/tb-waves-fpga.tcl";
 

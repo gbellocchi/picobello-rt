@@ -18,10 +18,15 @@ module dpi_picobello_rt_toolkit (
   // hello world
   import "DPI-C" context task hello_world();
 
-  // DMA control
+  // DMA read control
   import "DPI-C" function void dma_read_set_arid(input int cl_id, input int core_id, input int value); 
-  import "DPI-C" function void dma_read_start(input int cl_id, input int core_id, input int value);
-  import "DPI-C" function int dma_read_get_idle(input int cl_id, input int core_id);
+  import "DPI-C" function void dma_read_start(input int cl_id, input int core_id, input int value, int use_hls_tg);
+  import "DPI-C" function int dma_read_get_idle(input int cl_id, input int core_id, int use_hls_tg);
+
+  // DMA write control
+  import "DPI-C" function void dma_write_set_awid(input int cl_id, input int core_id, input int value);
+  import "DPI-C" function void dma_write_start(input int cl_id, input int core_id, input int value, int use_hls_tg);
+  import "DPI-C" function int dma_write_get_idle(input int cl_id, input int core_id, int use_hls_tg);
 
   // Wait a certain number of clock cycles
   task sv_wait_clocks(
@@ -33,12 +38,38 @@ module dpi_picobello_rt_toolkit (
   ////////////////////////////
   //  DMA control wrappers  //
   ////////////////////////////
-
-  // Wait for DMA read to become idle 
+  
   // DPI C++ handles signal monitoring
   // SystemVerilog side handles time advancement
+
+  // Start DMA read
+  task dma_read_start_high(input int cl_id, input int core_id);
+    dma_read_start(cl_id, core_id, 1, fpga_picobello_pkg::UseHlsTg);
+  endtask
+
+  task dma_read_start_low(input int cl_id, input int core_id);
+    dma_read_start(cl_id, core_id, 0, fpga_picobello_pkg::UseHlsTg);
+  endtask
+
+  // Wait for DMA read to become idle 
   task dma_read_wait_idle(input int cl_id, input int core_id);
-    while (dma_read_get_idle(cl_id, core_id) != 1) begin
+    while (dma_read_get_idle(cl_id, core_id, fpga_picobello_pkg::UseHlsTg) != 1) begin
+      sv_wait_clocks(1);
+    end
+  endtask
+
+  // Start DMA write
+  task dma_write_start_high(input int cl_id, input int core_id);
+    dma_write_start(cl_id, core_id, 1, fpga_picobello_pkg::UseHlsTg);
+  endtask
+
+  task dma_write_start_low(input int cl_id, input int core_id);
+    dma_write_start(cl_id, core_id, 0, fpga_picobello_pkg::UseHlsTg);
+  endtask
+
+  // Wait for DMA write to become idle 
+  task dma_write_wait_idle(input int cl_id, input int core_id);
+    while (dma_write_get_idle(cl_id, core_id, fpga_picobello_pkg::UseHlsTg) != 1) begin
       sv_wait_clocks(1);
     end
   endtask

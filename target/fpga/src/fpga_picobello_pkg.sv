@@ -166,6 +166,9 @@ package fpga_picobello_pkg;
   // Traffic Generator //
   ///////////////////////
 
+  // TG parameters
+  localparam bit UseHlsTg = 1'b0; // Use synthesizable traffic generator or DMA test node
+
   // Traffic generator configuration struct
   typedef struct packed {
     // Port IDs

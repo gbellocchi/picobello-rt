@@ -62,7 +62,9 @@ module fpga_picobello_top
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
     cluster_rt_tile #(
-      .NumCores         (NumCores)
+      .NumCores         (NumCores),
+      .BaseAddr         (ClusterBaseAddr),
+      .Id               (ClusterId)  
     ) i_cluster_rt_tile (
       .clk_i,
       .rst_ni,
