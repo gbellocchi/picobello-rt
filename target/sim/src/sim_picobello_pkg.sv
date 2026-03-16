@@ -12,6 +12,11 @@ package sim_picobello_pkg;
   // Experimental Setup //
   ////////////////////////
 
+  // TB timing
+  localparam time ClkPeriod = 10ns; // Clock period
+  parameter time ApplTime = 100ps; // Delay value assignment
+  parameter time TestTime = 500ps; // Delay transaction start
+
   typedef struct {
     // Setup parameters
     int unsigned id_test; // Test ID
@@ -26,8 +31,10 @@ package sim_picobello_pkg;
     int unsigned ni_max_oustanding_txns; // Network interface max outstanding transactions
     int unsigned ni_max_unique_ids; // Network interface max unique IDs
     // Realm tile parameters
-    real traffic_gen_traffic_dim; // Traffic generator traffic dimension
-    real traffic_gen_compute_dim; // Traffic generator compute dimension
+    real read_traffic_dim; // Read traffic dimension
+    real read_compute_dim; // Read compute dimension
+    real write_traffic_dim; // Write traffic dimension
+    real write_compute_dim; // Write compute dimension
     int unsigned burst_length; // Burst length
     // Results
     int unsigned t_exec_time_ck; // Execution time [clock cycles]

@@ -7,10 +7,9 @@
 `define CLK_SIGNAL clk
 // `define VERBOSE
 
-`define wait_n_clk(n) repeat(n) @(posedge clk) // Delay
 `define t_tb_wait 5 // not tide to hw functionalities
-`define t_periph_bus 10 // core - peripheral bus - peripheral (10)
-`define t_multi_cl_displacement 16 + 96 // assuming protocol conversion (10) + sequential transmission (x16) x worst-case assumption (6)
+`define t_periph_bus 1 // core - peripheral bus - peripheral (10)
+`define t_multi_cl_displacement 0 // assuming protocol conversion (10) + sequential transmission (x16) x worst-case assumption (6)
 
 `define PRINT_RESULTS
 `define SAVE_EXPERIMENT_GENERAL
@@ -23,14 +22,7 @@ import sim_picobello_pkg::*;
 module tb_picobello_fpga_fair 
   import picobello_pkg::*; 
   import floo_pkg::*; 
-  import floo_picobello_noc_pkg::*; #(
-  // TB timing
-  localparam time ClkPeriod = 10ns, // Clock period
-  parameter time ApplTime = 100ps, // Delay value assignment
-  parameter time TestTime = 500ps, // Delay transaction start
-  // TG parameters
-  localparam time TgBurstLength = 128 // [Beats]
-) (
+  import floo_picobello_noc_pkg::*; (
   input  logic clk,
   input  logic rst_n,
   // Host signals
@@ -42,6 +34,7 @@ module tb_picobello_fpga_fair
   // AXI-Realm configuration
   input fpga_picobello_pkg::rt_cfg_t tb_rt_cfg
 );
+  `include "tb_picobello_sim_macros.svh"
   `include "tb_picobello_fpga_tasks.svh"
   `include "tb_picobello_rt_tasks.svh"
 
