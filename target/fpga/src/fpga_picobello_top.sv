@@ -62,7 +62,9 @@ module fpga_picobello_top
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
     cluster_rt_tile #(
-      .NumCores         (NumCores)
+      .NumCores         (NumCores),
+      .BaseAddr         (ClusterBaseAddr),
+      .Id               (ClusterId)  
     ) i_cluster_rt_tile (
       .clk_i,
       .rst_ni,
@@ -100,29 +102,6 @@ module fpga_picobello_top
     .floo_wide_i        (floo_wide_in[CheshireId.x][CheshireId.y]),
     .ext_host_req_i     (ext_axi_host_req_i),
     .ext_host_rsp_o     (ext_axi_host_rsp_o)
-  );
-
-  //////////////////
-  // FhG SPU tile //
-  //////////////////
-
-  localparam id_t FhgSpuId = Sam[FhgSpuSamIdx].idx;
-  localparam axi_wide_in_addr_t FhgSpuAddr = Sam[FhgSpuSamIdx].start_addr;
-
-  cluster_rt_tile #(
-    .NumCores         (NumCores)
-  ) i_fhg_spu_tile (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i    (test_mode_i),
-    .base_addr_i      (FhgSpuAddr),
-    .id_i             (FhgSpuId),
-    .floo_req_o       (floo_req_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_rsp_i       (floo_rsp_in[FhgSpuId.x][FhgSpuId.y]),
-    .floo_wide_o      (floo_wide_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_req_i       (floo_req_in[FhgSpuId.x][FhgSpuId.y]),
-    .floo_rsp_o       (floo_rsp_out[FhgSpuId.x][FhgSpuId.y]),
-    .floo_wide_i      (floo_wide_in[FhgSpuId.x][FhgSpuId.y])
   );
 
   //////////////

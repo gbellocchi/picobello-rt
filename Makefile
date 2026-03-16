@@ -9,7 +9,7 @@ PB_GEN_DIR = $(PB_ROOT)/.generated
 BENDER_ROOT ?= $(PB_ROOT)/.bender
 
 # Configuration files
-FLOO_CFG  ?= $(PB_ROOT)/cfg/rt_intra_flow.yml
+FLOO_CFG  ?= $(PB_ROOT)/cfg/rt_intra_flow_1h_endpoint.yml
 SN_CFG	  ?= $(PB_ROOT)/cfg/snitch_cluster.json
 PLIC_CFG  ?= $(PB_ROOT)/cfg/rv_plic.cfg.hjson
 SLINK_CFG ?= $(PB_ROOT)/cfg/serial_link.hjson
@@ -21,7 +21,7 @@ FLOO_ROOT = $(shell $(BENDER) path floo_noc)
 
 # Executables
 BENDER           ?= bender -d $(PB_ROOT)
-FLOO_GEN         ?= floogen
+FLOO_GEN         ?= .venv/bin/floogen
 VERIBLE_FMT      ?= verible-verilog-format
 VERIBLE_FMT_ARGS ?= --flagfile .verilog_format --inplace --verbose
 
@@ -34,7 +34,7 @@ BENDER_LOCK = $(PB_ROOT)/Bender.lock
 ################
 
 COMMON_TARGS += -t rtl -t cva6 -t cv64a6_imafdcsclic_sv39 -t snitch_cluster -t floogen_pkg
-SIM_TARGS += -t simulation -t test -t idma_test
+SIM_TARGS += -t simulation -t test -t idma_test -t floo_test
 FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_use_fpga_scm
 
 ############
@@ -65,6 +65,16 @@ FPGA_TARGS += -t xilinx -t fpga -t tech_cells_generic_include_xilinx_xpm -t scm_
 # sn-hw-all: $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
 # sn-hw-clean:
 # 	rm -rf $(SN_CLUSTER_WRAPPER) $(SN_CLUSTER_PKG)
+
+###########################
+# Floo DMA test registers #
+###########################
+
+FLOO_DMA_REGS  	?= $(PB_ROOT)/target/sim/src/floo_dma_regs
+REGTOOL    		?= $(shell $(BENDER) path register_interface)/vendor/lowrisc_opentitan/util/regtool.py
+
+floo_dma_regs: $(FLOO_DMA_REGS)/floo_dma.hjson $(REGTOOL)
+	$(REGTOOL) -r -t $(FLOO_DMA_REGS) $<
 
 ###########
 # FlooNoC #

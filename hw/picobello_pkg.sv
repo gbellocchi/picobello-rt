@@ -154,6 +154,9 @@ package picobello_pkg;
   //  Cluster Tile  //
   ////////////////////
 
+  // L1 memory size of every cluster tile
+  localparam int unsigned ClusterTileSize = ep_addr_size(ClusterX0Y0SamIdx);
+
   // Atop support is removed since not used.
   // Moreover, there is an inconsistency when using MaxUniqueIds > 1 in the meta buffer with AtopSupport.
   // To meet the conditions of the assertion TooFewIdBits2, OutIdWidth > InIdWidth is needed. However, this breaks ID queues that are expecting ID width = IdMinWidth = OutIdWidth (e.g., i_aw_no_atop_id_queue).
@@ -179,7 +182,7 @@ package picobello_pkg;
   //  Mem Tile  //
   ////////////////
 
-  // The L2 SPM memory size of every mem tile
+  // L2 memory size of every memory tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
 
   // Atop support
@@ -210,16 +213,18 @@ package picobello_pkg;
     CutRsp: 1'b0
   };
 
-  // Memory delay parameters
-  localparam int unsigned MemRttInputExpected = 128; // [Ck] AW, W, AR channels
+  // AXI delay parameters
+  localparam int unsigned MemRttInputExpected = 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemRttOutputExpected = 0; // [Ck] R, B channels
   localparam int unsigned MemRttBase = 4; // [Ck] Baseline memory round-trip time (calculated @NI)
   localparam int unsigned MemDelayOverhead = 0; // [Ck] AXI delay overhead.
   localparam int unsigned MemDelayInput = (MemRttInputExpected > MemRttBase + MemDelayOverhead) ? (MemRttInputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemDelayOutput = (MemRttOutputExpected > MemRttBase + MemDelayOverhead) ? (MemRttOutputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] R, B channels
 
+  // AXI flattening
+
   // Max number of outstanding transactions
   // This should be larger than round-trip latency from converter to SRAM (approx 2Ck)
-  localparam int unsigned ObiMaxTxns = 32;
+  localparam int unsigned ObiMaxTxns = (MemRttInputExpected > 32) ? MemRttInputExpected : 32;
 
 endpackage

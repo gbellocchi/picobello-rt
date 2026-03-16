@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: picobello
-description: "Exerimental setup to investigate intra-flow traffic"
+description: "Exerimental setup to investigate inter-flow traffic"
 network_type: "narrow-wide"
 
 routing:
@@ -14,14 +14,14 @@ protocols:
   - name: "narrow_in"
     type: "narrow"
     protocol: "AXI4"
-    data_width: 128
+    data_width: 64
     addr_width: 64
-    id_width: 5
+    id_width: 8
     user_width: 3
   - name: "narrow_out"
     type: "narrow"
     protocol: "AXI4"
-    data_width: 128
+    data_width: 64
     addr_width: 64
     id_width: 4
     user_width: 3
@@ -42,7 +42,7 @@ protocols:
 
 endpoints:
   - name: "cluster"
-    array: [1,4]
+    array: [3,6]
     addr_range:
       base: 0xC000_0000
       size: 0x0004_0000
@@ -65,16 +65,6 @@ endpoints:
     sbr_port_protocol:
       - "narrow_out"
       - "wide_out"
-  - name: "fhg_spu"
-    addr_range:
-      - start: 0xE000_0000
-        size: 0x0004_0000
-    mgr_port_protocol:
-      - "narrow_in"
-      - "wide_in"
-    sbr_port_protocol:
-      - "narrow_out"
-      - "wide_out"
   - name: "l2_spm"
     array: [1]
     addr_range:
@@ -86,53 +76,42 @@ endpoints:
   
 routers:
   - name: "router"
-    array: [3, 3]
+    array: [4, 7]
     degree: 5
 
 connections:
-  # Flow A - Critical task - Clusters
   - src: "cluster"
     dst: "router"
     src_range:
-    - [0, 0]
-    - [0, 0]
-    dst_idx: [0, 1]
+    - [0, 2]
+    - [0, 4]
+    dst_range:
+    - [0, 2]
+    - [0, 4]
     dst_dir: "Eject"
   - src: "cluster"
     dst: "router"
-    src_range:
-    - [0, 0]
-    - [1, 1]
-    dst_idx: [1, 0]
+    src_idx: [0, 5]
+    dst_idx: [0, 5]
     dst_dir: "Eject"
   - src: "cluster"
     dst: "router"
-    src_range:
-    - [0, 0]
-    - [2, 2]
-    dst_idx: [1, 2]
+    src_idx: [1, 5]
+    dst_idx: [1, 6]
     dst_dir: "Eject"
   - src: "cluster"
     dst: "router"
-    src_range:
-    - [0, 0]
-    - [3, 3]
-    dst_idx: [2, 1]
+    src_idx: [2, 5]
+    dst_idx: [2, 5]
     dst_dir: "Eject"
-  # Flow A - Critical task - Memory
+  # Memory
   - src: "l2_spm"
     dst: "router"
-    src_range:
-    - [0, 0]
-    dst_idx: [1, 1]
+    src_idx: [0]
+    dst_idx: [1, 5]
     dst_dir: "Eject"
   # Host processor
   - src: "cheshire"
     dst: "router"
-    dst_idx: [2, 2]
-    dst_dir: "Eject"
-  # Extra Picobello cluster
-  - src: "fhg_spu"
-    dst: "router"
-    dst_idx: [2, 0]
+    dst_idx: [3, 0]
     dst_dir: "Eject"

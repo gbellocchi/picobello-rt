@@ -1,0 +1,63 @@
+// Copyright 2026 University of Modena and Reggio Emilia.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
+
+//------------------------Address Info-------------------
+// 0x00 : Control signals
+//        bit 0  - ap_start (Read/Write/COH)
+//        bit 1  - ap_done (Read/COR)
+
+{
+  name: "floo_dma"
+  clock_primary: "clk_i"
+  bus_interfaces: [
+    { protocol: "reg_iface", direction: "device" }
+  ],
+  regwidth: 32
+
+  param_list: [
+    { name: "NumMrg",
+      desc: "Maximum number of managers.",
+      type: "int",
+      default: "16"
+    },
+    { name: "NumSub",
+      desc: "Configured number of subordinate regions.",
+      type: "int",
+      default: "2"
+    }
+    { name: "NumReg",
+      desc: "Configured number of required registers.",
+      type: "int",
+      default: "32"
+    }
+  ],
+
+  registers: [
+
+    { name:     "start"
+      desc:     "DMA start."
+      swaccess: "rw"
+      hwaccess: "hro"
+      resval:   "0"
+      fields: [
+        { bits: "31:0", name: "start", desc: "Value of the start." }
+      ]
+    }
+
+    { name:     "done"
+      desc:     "DMA terminated."
+      swaccess: "ro"
+      hwaccess: "hwo"
+      hwqe:     "true"
+      hwext:    "true"
+      fields: [
+        { bits: "31:0", name: "done", desc: "Value of the done." }
+      ]
+    }
+
+  ]
+}
+

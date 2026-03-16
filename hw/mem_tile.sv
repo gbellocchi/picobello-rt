@@ -15,7 +15,7 @@ module mem_tile
   import obi_pkg::*;
 #(
     // The maximum data width of the instantiated SRAMs
-    parameter int unsigned SramDataWidth  = 256,   // in bits
+    parameter int unsigned SramDataWidth  = 128,   // in bits
     // The number of words in the instantiated SRAMs
     parameter int unsigned SramNumWords   = 512,   // in #words
     parameter bit          AxiUserAtop    = 1'b1,
@@ -106,7 +106,7 @@ module mem_tile
   floo_picobello_noc_pkg::axi_wide_out_req_t   axi_wide_req;
   floo_picobello_noc_pkg::axi_wide_out_rsp_t   axi_wide_rsp;
 
-  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b0, 1'b0);
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b1, 1'b0);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b1, 1'b0);
 
   floo_nw_chimney #(
@@ -161,6 +161,7 @@ module mem_tile
   /////////////
 
   localparam axi_cfg_t AxiCfgJoin = floo_pkg::axi_join_cfg(AxiCfgN, picobello_pkg::AxiCfgWL2);
+//   localparam axi_cfg_t AxiCfgJoin = picobello_pkg::AxiCfgWL2;
 
   typedef logic [AxiCfgJoin.OutIdWidth-1:0] nw_join_id_t;
   typedef logic [AxiCfgJoin.UserWidth-1:0] nw_join_user_t;
@@ -194,6 +195,9 @@ module mem_tile
       .axi_req_o       (axi_req_join),
       .axi_rsp_i       (axi_rsp_join)
   );
+
+//   assign axi_req_join = axi_wide_req;
+//   assign axi_wide_rsp = axi_rsp_join;
 
   ///////////////
   // axi delay //

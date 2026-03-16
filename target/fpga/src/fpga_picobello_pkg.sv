@@ -47,15 +47,43 @@ package fpga_picobello_pkg;
   /////////////
 
   // Number of cores per tile
-  localparam int unsigned NumCores = 8; // cores per cluster tile
+  localparam int unsigned NumCores = 1; // cores per cluster tile
+
+  // Number of NoC planes (narrow, wide)
+  localparam int unsigned NumNoCPlanes = 2;
+
+  // Indices of NoC planes
+  localparam int unsigned IdxNoCPlaneWide = 0;
+  localparam int unsigned IdxNoCPlaneNarrow = 1;
+
+  // Total number of DMA cores per tile
+  localparam int unsigned NumCoresTotal = NumCores * NumNoCPlanes;
+
+  // AXI4 narrow configuration for RT traffic (Traffic generator => MUX)
+  localparam axi_cfg_t AxiCfgNTrafficGen = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores)
+  };
+
+  typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_tg_addr_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth-1:0] axi_narrow_tg_data_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth/8-1:0] axi_narrow_tg_strb_t;
+  typedef logic [AxiCfgNTrafficGen.OutIdWidth-1:0] axi_narrow_tg_id_t;
+  typedef logic [AxiCfgNTrafficGen.UserWidth-1:0] axi_narrow_tg_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_tg, axi_narrow_tg_req_t, axi_narrow_tg_rsp_t,
+                      axi_narrow_tg_addr_t, axi_narrow_tg_id_t, axi_narrow_tg_data_t,
+                      axi_narrow_tg_strb_t, axi_narrow_tg_user_t)
 
   // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
   localparam axi_cfg_t AxiCfgWTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: 5,
-    OutIdWidth: 5
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores)
   };
 
   typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_tg_addr_t;
@@ -128,7 +156,7 @@ package fpga_picobello_pkg;
   // Number of regions per master
   localparam int unsigned NumRegions      = 32'd1;
   // Max burst length
-  localparam int unsigned MaxBurstLength  = 32'd128;
+  localparam int unsigned MaxBurstLength  = 32'd256;
   // Number of outstanding transactions
   localparam int unsigned NumPending      = MaxBurstLength;
   // Write buffer depth
@@ -166,6 +194,9 @@ package fpga_picobello_pkg;
   // Traffic Generator //
   ///////////////////////
 
+  // TG parameters
+  localparam bit UseHlsTg = 1'b0; // Use synthesizable traffic generator or DMA test node
+
   // Traffic generator configuration struct
   typedef struct packed {
     // Port IDs
@@ -181,16 +212,5 @@ package fpga_picobello_pkg;
     axi_host_data_t TrafficGenComputeDim; // Compute dimension
     axi_host_data_t TrafficGenIdx; // Index
   } tg_cfg_t;
-
-  // Timer counter (used during RTL simulation of the FPGA top)
-  typedef struct packed {
-    logic          write_counter_i; // [Input] Counter overwrite control
-    logic [32-1:0] counter_value_i; // [Input] Counter value to set
-    logic          reset_count_i; // [Input] Counter reset control
-    logic          enable_count_i; // [Input] Counter enable control - to increase the counter value
-    logic [32-1:0] compare_value_i; // [Input] Comparator value - to compare with the counter value
-    // logic [32-1:0] counter_value_o; // [Output] Counter value
-    // logic          target_reached_o; // [Output] Comparator value flag
-  } timer_cfg_t;
 
 endpackage
