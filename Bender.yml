@@ -63,6 +63,8 @@ sources:
     include_dirs:
       - target/sim/include
     files:
+      - target/sim/src/floo_dma_regs/floo_dma_reg_pkg.sv
+      - target/sim/src/floo_dma_regs/floo_dma_reg_top.sv
       - target/sim/src/axi_bw_monitor.sv
       - target/sim/src/fixture_picobello_top.sv
       - target/sim/src/tb_picobello_top.sv
