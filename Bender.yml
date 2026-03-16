@@ -46,6 +46,7 @@ sources:
   - hw/mem_tile.sv
   - hw/dummy_tile.sv
   - hw/axi_delay.sv
+  - hw/axi_id_flattening.sv
 
   - target: not(asic)
     files:
