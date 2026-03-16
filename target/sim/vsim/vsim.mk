@@ -8,10 +8,12 @@
 VSIM ?= vsim
 VSIM_SRC = $(PB_ROOT)/target/sim/src
 VSIM_DIR = $(PB_ROOT)/target/sim/vsim
-VSIM_WORK = $(VSIM_DIR)/work
-VSIM_LOG = $(VSIM_DIR)/log
 
-VSIM_LOG_CFG = $(VSIM_LOG)/$(subst .yml,,$(shell basename $(FLOO_CFG)))
+VSIM_RUN = $(VSIM_DIR)/runs/$(VSIM_NAME)
+VSIM_NAME ?= $(basename $(notdir $(FLOO_CFG)))
+
+VSIM_WORK = $(VSIM_RUN)/work
+VSIM_LOG = $(VSIM_RUN)/log
 
 VLOG_ARGS = -work $(VSIM_WORK)
 VLOG_ARGS += -suppress vlog-2583
@@ -44,6 +46,7 @@ $(eval $(call add_vsim_flag,CHS_BINARY))
 $(eval $(call add_vsim_flag,SN_BINARY))
 $(eval $(call add_vsim_flag,BOOTMODE))
 $(eval $(call add_vsim_flag,PRELMODE))
+$(eval $(call add_vsim_flag,VSIM_LOG))
 
 ######################
 # Traffic Generation #
@@ -76,21 +79,31 @@ vsim-jobs-create: $(TRAFFIC_GEN)
 vsim-jobs-clean:
 	rm -rf $(TRAFFIC_OUTDIR)
 
+##################
+# RTL simulation #
+##################
 
 .PHONY: vsim-compile vsim-clean vsim-run
 
 vsim-clean:
-	rm -rf $(VSIM_WORK)
-	rm -f $(VSIM_DIR)/transcript
-	rm -f $(VSIM_DIR)/compile.tcl
+	rm -rf $(VSIM_RUN)
 
-vsim-compile: $(VSIM_DIR)/compile.tcl $(PB_HW_ALL) vsim-log 
-	$(VSIM) -c $(VSIM_FLAGS) -do "source $<; quit"
+vsim-compile: $(VSIM_RUN)/compile.tcl $(PB_HW_ALL) 
+	cd $(VSIM_RUN) && $(VSIM) -c $(VSIM_FLAGS) -do "source $<; quit"
 
-vsim-log:
-	mkdir -p $(VSIM_LOG_CFG)
+vsim-run-create:
+	@if [ -d "$(VSIM_RUN)" ]; then \
+		echo "Run directory already exists: $(VSIM_RUN)"; \
+		read -e -p "Enter a new run name: " NEW_RUN_NAME; \
+		NEW_VSIM_RUN=$(VSIM_DIR)/runs/$$NEW_RUN_NAME; \
+		NEW_VSIM_LOG=$(NEW_VSIM_RUN)/log; \
+		echo "Creating new run directory: $$NEW_VSIM_RUN"; \
+		mkdir -p $$NEW_VSIM_LOG; \
+	else \
+		mkdir -p $(VSIM_LOG); \
+	fi
 	
-$(VSIM_DIR)/compile.tcl: $(BENDER_YML) $(BENDER_LOCK)
+$(VSIM_RUN)/compile.tcl: vsim-run-create $(BENDER_YML) $(BENDER_LOCK)
 	bender script vsim --compilation-mode common $(COMMON_TARGS) $(SIM_TARGS) --vlog-arg="$(VLOG_ARGS)"> $@
 	echo 'vlog -work $(VSIM_WORK) "$(realpath $(CHS_ROOT))/target/sim/src/elfloader.cpp" -ccflags "-std=c++11"' >> $@
 	@for DPI_FILE in $(realpath $(VSIM_SRC))/dpi/*.cpp; do \
@@ -98,7 +111,7 @@ $(VSIM_DIR)/compile.tcl: $(BENDER_YML) $(BENDER_LOCK)
 	done
 
 vsim-run:
-	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
+	cd $(VSIM_RUN) && $(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
 
 vsim-run-batch:
-	$(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "run -all; quit"
+	cd $(VSIM_RUN) && $(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "run -all; quit"
