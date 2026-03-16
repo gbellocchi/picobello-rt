@@ -218,8 +218,10 @@ package picobello_pkg;
   localparam int unsigned MemDelayInput = (MemRttInputExpected > MemRttBase + MemDelayOverhead) ? (MemRttInputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemDelayOutput = (MemRttOutputExpected > MemRttBase + MemDelayOverhead) ? (MemRttOutputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] R, B channels
 
+  // AXI flattening
+
   // Max number of outstanding transactions
   // This should be larger than round-trip latency from converter to SRAM (approx 2Ck)
-  localparam int unsigned ObiMaxTxns = 32;
+  localparam int unsigned ObiMaxTxns = (MemRttInputExpected > 32) ? MemRttInputExpected : 32;
 
 endpackage
