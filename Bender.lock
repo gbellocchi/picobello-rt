@@ -61,10 +61,10 @@ packages:
     - common_cells
     - common_verification
   axi_rt:
-    revision: 50153a346b753dc2bc7723c446656a43db35d02d
+    revision: 0ffd75be988bcc09b5642d30b73431190fd9e1ab
     version: 0.0.0-alpha.10
     source:
-      Git: https://github.com/pulp-platform/axi_rt.git
+      Git: https://github.com/Advanced-Architectures-UNIMORE/floo_realm.git
     dependencies:
     - axi
     - common_cells
