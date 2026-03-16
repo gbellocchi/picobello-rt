@@ -86,9 +86,9 @@ module tb_picobello_fpga_fair
   axi_host_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCores;
 
   axi_host_addr_t cluster_rt_addr_dim = 32'h0000_1000;
-  axi_host_addr_t cluster_dma_r_addr_dim = 32'h0000_0030;
-  axi_host_addr_t cluster_dma_w_addr_dim = 32'h0000_0030;
-  axi_host_addr_t cluster_compute_addr_dim = 32'h0000_0030; // not used
+  axi_host_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
+  axi_host_addr_t cluster_dma_w_addr_dim = 32'h0000_0100;
+  axi_host_addr_t cluster_compute_addr_dim = 32'h0000_0100; // not used
 
   axi_host_addr_t cluster_rt_addr_offset = 32'h0000_0000;
   axi_host_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
@@ -107,17 +107,14 @@ module tb_picobello_fpga_fair
   // Number of performed tests
   int NTest = 0;
 
-  // Number of test iterations (for coarser transactions)
-  int NTestIterations = 1;
-
   // Number of clusters and cores under test
-  localparam int unsigned NumClustersActive = 4;
-  localparam int unsigned NumClustersInterf = 4;
-  localparam int unsigned NumClustersInterfActive = 4;
-  localparam int unsigned NumCoresActive = 8;
+  localparam int unsigned NumClustersActive = 1;
+  localparam int unsigned NumClustersInterf = 8;
+  localparam int unsigned NumClustersInterfActive = 0; // per cluster
+  localparam int unsigned NumCoresActive = 8; // per cluster
 
   // Traffic dimension (hardwired)
-  int TrafficDim = 128 * 32; // hardwired in traffic generator design
+  int TrafficDim = 256 * 128; // hardwired in traffic generator design
 
   // Number of operations per cluster
   int NOpsMin = 32'h0000_0000; // Divide in two runs: Min (mem-bound): 32'h0000_0000 - Min (comp-bound): 32'h0000_8000
@@ -129,40 +126,55 @@ module tb_picobello_fpga_fair
 
   // Number of accelerators per cluster
   int NAccxClMin = 1; // accelerator per cluster tile (most performant case)
-  int NAccxClMax = 1; // <= NAccxClMax <= NumClusters
+  int NAccxClMax = 1; // <= NAccxClMax <= NumClustersActive
+
+  // DMA enable flags (use one per time)
+  int DmaReadEnable = 0;
+  int DmaWriteEnable = 1;
 
   ///////////////////
   // Critical task //
   ///////////////////
 
+  // Number of hops from memory tile
+  localparam int unsigned NumHopsClMem = 1;
+
   // Cluster ID list for critical tasks
-  // localparam int unsigned IdTestCl[NumClustersActive] = '{1, 3, 4, 6};
-  localparam int unsigned IdTestCl[NumClustersActive] = '{0, 1, 2, 3};
+  localparam int unsigned IdTestCl[NumClustersActive] = '{
+    ClusterX0Y0SamIdx + (NumHopsClMem - 1), 
+    ClusterX0Y1SamIdx + (NumHopsClMem - 1), 
+    ClusterX0Y2SamIdx + (NumHopsClMem - 1), 
+    ClusterX0Y3SamIdx + (NumHopsClMem - 1)
+  };
+  // localparam int unsigned IdTestCl[NumClustersActive] = '{0};
 
   // Memory ID list for critical tasks
   localparam int unsigned IdTestMem = '{L2Spm0SamIdx};
+  // localparam int unsigned IdTestMem = '{L2Spm7SamIdx};
 
   // Number of AXI IDs per cluster
   localparam int unsigned NAxiIds = 1; 
   localparam int unsigned NAxiIdsMin = 1; // When each DMA is assigned with the same ID.
-  localparam int unsigned NAxiIdsMax = NumCoresActive * NumClustersActive; // When each DMA is assigned with a unique ID.
+  localparam int unsigned NAxiIdsMax = NumClustersActive * NumCoresActive; // When each DMA is assigned with a unique ID.
 
   // Burst length for critical tasks
-  int BurstLengthMin = 32'd1; // burstless (single-beat)
-  int BurstLengthMax = 32'd128; // max allowed by axi4
+  int CriticalBurstLengthMin = 32'd1; // burstless (single-beat)
+  int CriticalBurstLengthMax = 32'd2; // max allowed by axi4
 
   /////////////////
   // Interferers //
   /////////////////
 
   // Cluster ID list for interferers
-  localparam int unsigned IdTestClInterf[NumClustersInterf] = '{4, 5, 6, 7};
+  localparam int unsigned IdTestClInterf[NumClustersInterf] = '{1, 2, 3, 4, 5, 6, 7, 8};
 
   // Memory ID list for interferers
-  localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm1SamIdx, L2Spm2SamIdx, L2Spm3SamIdx, L2Spm4SamIdx};
+  // localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm0SamIdx, L2Spm1SamIdx, L2Spm2SamIdx, L2Spm3SamIdx, L2Spm4SamIdx, L2Spm5SamIdx, L2Spm6SamIdx, L2Spm7SamIdx};
+  localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx};
 
   // Burst length for interferers
-  int BurstLengthInterf = 32'd1; // burstless (single-beat)
+  int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+  int InterfBurstLengthMax = 32'd1; // max allowed by axi4
   
   /////////
   // DUT //
@@ -199,7 +211,7 @@ module tb_picobello_fpga_fair
 
   // Clock and reset generation
   clk_rst_gen #(
-    .ClkPeriod        (ClkPeriod),
+    .ClkPeriod        (sim_picobello_pkg::ClkPeriod),
     .RstClkCycles     (5)
   ) i_clk_gen (
     .clk_o            (clk),
@@ -317,7 +329,7 @@ module tb_picobello_fpga_fair
     // Loop over the number of accelerators per cluster
     n_acc_x_cl_loop: for (int NAccxCl = NAccxClMin; NAccxCl <= NAccxClMax; NAccxCl = NAccxCl * 2) begin
 
-      @(posedge `CLK_SIGNAL);
+      `wait_n_clk(1);
 
       // Loop over the number of clusters per memory tile
       n_cl_x_mem_loop: for (int NClXMem = NClXMemMin; NClXMem <= NClXMemMax; NClXMem = NClXMem * 2) begin
@@ -325,271 +337,308 @@ module tb_picobello_fpga_fair
         // Loop over the number of operations per cluster (geometric progression)
         n_ops_loop: for (int NOps = NOpsMin; NOps <= NOpsMax; NOps = (NOps == 0) ? 32 : NOps * 2) begin
 
-          // Set operational intensity
-          tb_tg_cfg_read.TrafficGenTrafficDim        = TrafficDim; // DMA payload size (hardwired)
-          tb_tg_cfg_read.TrafficGenComputeDim        = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
+          // Set read operational intensity
+          tb_tg_cfg_read.TrafficGenTrafficDim       = TrafficDim; // DMA payload size (hardwired)
+          tb_tg_cfg_read.TrafficGenComputeDim       = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
 
-          @(posedge `CLK_SIGNAL);
+          // Set write operational intensity
+          tb_tg_cfg_write.TrafficGenTrafficDim      = TrafficDim; // DMA payload size (hardwired)
+          tb_tg_cfg_write.TrafficGenComputeDim      = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
+          `wait_n_clk(1);
 
-          // Program traffic generators of critical tasks
-          cl_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-            automatic int cl_id = IdTestCl[i];
-
-            rt_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-              automatic int core_id = j;
-              automatic int core_axi_id;
-
-              // Set AXI ID for DMA read
-              core_axi_id = (cl_id * NumCoresActive + core_id) * NAxiIds / (NumClustersActive * NumCoresActive);
-              dpi_rt.dma_read_set_arid(cl_id, core_id, core_axi_id);
-
-              // Configure read traffic generator
-              tb_tg_cfg_read.mem_port_id               = IdTestMem;  
-              tb_tg_cfg_read.mem_addr_offset           = 0;   
-              tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMem].start_addr;
-
-              tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
-              tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-              tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
-              tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
-              
-              picobello_tg_cfg(tb_tg_cfg_read);
-
-              @(posedge `CLK_SIGNAL);
-            end
-          end
-
-          // Program traffic generators of interferers
-          cl_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
-            automatic int cl_id = IdTestClInterf[i];
-
-            rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-              automatic int core_id = j;
-
-
-              // Configure read traffic generator
-              tb_tg_cfg_read.mem_port_id               = IdTestMemInterf[i];  
-              tb_tg_cfg_read.mem_addr_offset           = 0;   
-              tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMemInterf[i]].start_addr;
-
-              tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
-              tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-              tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
-              tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
-              
-              picobello_tg_cfg(tb_tg_cfg_read);
-
-              @(posedge `CLK_SIGNAL);
-            end
-          end
-
-          // Loop over burst length values (geometric progression)
-          burst_length_loop: for (int BurstLength = BurstLengthMin; BurstLength <= BurstLengthMax; BurstLength = BurstLength * 2) begin
-
-            // Configure AXI-Realm for critical tasks
-            rt_cfg_loop_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+          // If using HLS traffic generator, then program it.
+          // If using Floo DMA test node, then you do not need this because you generate traffic stream files.
+          if(fpga_picobello_pkg::UseHlsTg == 1'b1) begin
+            // Program traffic generators of critical tasks
+            cl_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
               automatic int cl_id = IdTestCl[i];
 
-              // Set register file address offset
-              tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
-
-              // Set register file base address
-              tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
-
-              // Initialize manager ID
-              tb_rt_cfg.mgr_id                                                        = 0;
-
-              // Set manager address space dimension
-              tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
-
-              // Set address region - Memory tile
-
-              tb_rt_cfg.sbr_addr_reg_id                                               = 0;
-
-              // Set the read budget (32b)
-              tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
-              // Set the write budget (32b)
-              tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
-
-              // Set the read period (32b)
-              tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
-              // Set the write period (32b)
-              tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
-
-              // Set the start address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMem].start_addr;
-              // Set the start address (32b, high)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
-              // Set the end address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMem].start_addr + 32'h0010_0000;
-              // Set the end address (32b, high)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
-
-              // Configure AXI-Realm guard registers
-              picobello_rt_guard_init(tb_rt_cfg);
-
-              // Configure AXI-Realm subordinate address regions
-              picobello_rt_set_addr_reg(tb_rt_cfg);
-
-              // Configure AXI-Realm period-budget QoS service
-              picobello_rt_set_period_budget(tb_rt_cfg);
-
-              // Set and configure AXI-Realm manager registers
               rt_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                 automatic int core_id = j;
+                automatic int core_axi_id;
 
-                // Set manager ID
-                tb_rt_cfg.mgr_id                                                    = core_id;
+                // Set AXI ID for DMA read
+                core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
+                dpi_rt.dma_read_set_arid(cl_id, core_id, core_axi_id);
 
-                // Set the burst length limit (8b)
-                tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (BurstLength - 1) & 8'hFF;
+                // Configure read traffic generator
+                tb_tg_cfg_read.mem_port_id               = IdTestMem;  
+                tb_tg_cfg_read.mem_addr_offset           = 0;   
+                tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMem].start_addr;
 
-                // Set IMTU abort (1b)
-                tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
-                // Set IMTU enable (1b)
-                tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = '0;
+                tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
+                tb_tg_cfg_read.TrafficGenIdx             = cl_id;
+                tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
+                tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
+                
+                picobello_tg_cfg(tb_tg_cfg_read);
 
-                // Enable real-time mode (1b)
-                tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+                // Set AXI ID for DMA write
+                core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
+                dpi_rt.dma_write_set_awid(cl_id, core_id, core_axi_id);
 
-                picobello_rt_set_burst_length(tb_rt_cfg);
-                picobello_rt_enable_rt(tb_rt_cfg);
+                // Configure write traffic generator
+                tb_tg_cfg_write.mem_port_id              = IdTestMem;  
+                tb_tg_cfg_write.mem_addr_offset          = 0;   
+                tb_tg_cfg_write.mem_addr_base            = Sam[IdTestMem].start_addr;
+
+                tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
+                tb_tg_cfg_write.TrafficGenIdx            = cl_id;
+                tb_tg_cfg_write.traffic_gen_addr_offset  = core_id * core_addr_space_dim + cluster_dma_w_addr_offset;
+                tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
+                
+                picobello_tg_cfg(tb_tg_cfg_write);
+
+                `wait_n_clk(1);
               end
             end
 
-            // Configure AXI-Realm for interferers
-            rt_interf_cfg_loop_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+            // Program traffic generators of interferers
+            cl_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
               automatic int cl_id = IdTestClInterf[i];
 
-              // Set register file address offset
-              tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
-
-              // Set register file base address
-              tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
-
-              // Initialize manager ID
-              tb_rt_cfg.mgr_id                                                        = 0;
-
-              // Set manager address space dimension
-              tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
-
-              // Set address region - Memory tile
-
-              tb_rt_cfg.sbr_addr_reg_id                                               = 0;
-
-              // Set the read budget (32b)
-              tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
-              // Set the write budget (32b)
-              tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
-
-              // Set the read period (32b)
-              tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
-              // Set the write period (32b)
-              tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
-
-              // Set the start address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMemInterf[i]].start_addr;
-              // Set the start address (32b, high)
-              tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
-              // Set the end address (32b, low)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMemInterf[i]].start_addr + 32'h0010_0000;
-              // Set the end address (32b, high)
-              tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
-
-              // Configure AXI-Realm guard registers
-              picobello_rt_guard_init(tb_rt_cfg);
-
-              // Configure AXI-Realm subordinate address regions
-              picobello_rt_set_addr_reg(tb_rt_cfg);
-
-              // Configure AXI-Realm period-budget QoS service
-              picobello_rt_set_period_budget(tb_rt_cfg);
-
-              // Set and configure AXI-Realm manager registers
               rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                 automatic int core_id = j;
 
-                // Set manager ID
-                tb_rt_cfg.mgr_id                                                    = core_id;
+                // Configure read traffic generator
+                tb_tg_cfg_read.mem_port_id               = IdTestMemInterf[i];  
+                tb_tg_cfg_read.mem_addr_offset           = 0;   
+                tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMemInterf[i]].start_addr;
 
-                // Set the burst length limit (8b)
-                tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (BurstLengthInterf - 1) & 8'hFF;
+                tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
+                tb_tg_cfg_read.TrafficGenIdx             = cl_id;
+                tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
+                tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
+                
+                picobello_tg_cfg(tb_tg_cfg_read);
 
-                // Set IMTU abort (1b)
-                tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
-                // Set IMTU enable (1b)
-                tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = '0;
+                // Configure write traffic generator
+                tb_tg_cfg_write.mem_port_id              = IdTestMemInterf[i];  
+                tb_tg_cfg_write.mem_addr_offset          = 0;   
+                tb_tg_cfg_write.mem_addr_base            = Sam[IdTestMemInterf[i]].start_addr;
 
-                // Enable real-time mode (1b)
-                tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+                tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
+                tb_tg_cfg_write.TrafficGenIdx            = cl_id;
+                tb_tg_cfg_write.traffic_gen_addr_offset  = core_id * core_addr_space_dim + cluster_dma_w_addr_offset;
+                tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
+                
+                picobello_tg_cfg(tb_tg_cfg_write);
 
-                picobello_rt_set_burst_length(tb_rt_cfg);
-                picobello_rt_enable_rt(tb_rt_cfg);
+                `wait_n_clk(1);
               end
             end
+          end
 
-            `wait_n_clk(`t_tb_wait);
+          // Loop over burst length values of critical tasks (geometric progression)
+          critical_task_burst_length_loop: for (int CriticalBurstLength = CriticalBurstLengthMin; CriticalBurstLength <= CriticalBurstLengthMax; CriticalBurstLength = CriticalBurstLength * 2) begin
 
-            // Initialize end_of_sim flag
-            end_of_sim = '{default: '1};
+            // Loop over burst length values of interferer tasks (geometric progression)
+            interferer_task_burst_length_loop: for (int InterfBurstLength = InterfBurstLengthMin; InterfBurstLength <= InterfBurstLengthMax; InterfBurstLength = InterfBurstLength * 2) begin
 
-            @(posedge `CLK_SIGNAL);
+              // Configure AXI-Realm for critical tasks
+              rt_cfg_loop_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+                automatic int cl_id = IdTestCl[i];
 
-            // Set end_of_sim flag to 0 for active critical tasks
-            // Only the critical task is monitored, interferers run in background
-            init_end_of_sim_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-              automatic int cl_id = IdTestCl[i];
+                // Set register file address offset
+                tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
 
-              init_end_of_sim_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
+                // Set register file base address
+                tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
 
-                end_of_sim[cl_id][core_id] = 1'b0; 
+                // Initialize manager ID
+                tb_rt_cfg.mgr_id                                                        = 0;
+
+                // Set manager address space dimension
+                tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
+
+                // Set address region - Memory tile
+                tb_rt_cfg.sbr_addr_reg_id                                               = 0;
+
+                // Set the read budget (32b)
+                tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
+                // Set the write budget (32b)
+                tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
+
+                // Set the read period (32b)
+                tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
+                // Set the write period (32b)
+                tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
+
+                // Set the start address (32b, low)
+                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMem].start_addr;
+                // Set the start address (32b, high)
+                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
+                // Set the end address (32b, low)
+                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMem].start_addr + 32'h0010_0000;
+                // Set the end address (32b, high)
+                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
+
+                // Configure AXI-Realm guard registers
+                picobello_rt_guard_init(tb_rt_cfg);
+
+                // Configure AXI-Realm subordinate address regions
+                picobello_rt_set_addr_reg(tb_rt_cfg);
+
+                // Configure AXI-Realm period-budget QoS service
+                picobello_rt_set_period_budget(tb_rt_cfg);
+
+                // Set and configure AXI-Realm manager registers
+                rt_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+
+                  // Set manager ID
+                  tb_rt_cfg.mgr_id                                                    = core_id;
+
+                  // Set the burst length limit (8b)
+                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
+
+                  // Set IMTU abort (1b)
+                  tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
+
+                  // Set IMTU enable (1b)
+                  tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = '1;
+
+                  // Enable real-time mode (1b)
+                  tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+
+                  // Activate AXI-Realm
+
+                  // Set burst length
+                  picobello_rt_set_burst_length(tb_rt_cfg);
+
+                  // Enable real-time mode
+                  picobello_rt_enable_rt(tb_rt_cfg);
+                end
               end
-            end
 
-            @(posedge `CLK_SIGNAL);
+              // Configure AXI-Realm for interferers
+              rt_interf_cfg_loop_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+                automatic int cl_id = IdTestClInterf[i];
 
-            // Initialize timer
-            picobello_reset_timer(tb_timer_cfg);
+                // Set register file address offset
+                tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
 
-            // Initialize BW monitor for critical tasks
-            bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-              automatic int cl_id = IdTestCl[i];
+                // Set register file base address
+                tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
 
-              bw_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
+                // Initialize manager ID
+                tb_rt_cfg.mgr_id                                                        = 0;
 
-                picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
-              
+                // Set manager address space dimension
+                tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
+
+                // Set address region - Memory tile
+
+                tb_rt_cfg.sbr_addr_reg_id                                               = 0;
+
+                // Set the read budget (32b)
+                tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
+                // Set the write budget (32b)
+                tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
+
+                // Set the read period (32b)
+                tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = 4 * TrafficDim;
+                // Set the write period (32b)
+                tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = 4 * TrafficDim;
+
+                // Set the start address (32b, low)
+                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMemInterf[i]].start_addr;
+                // Set the start address (32b, high)
+                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
+                // Set the end address (32b, low)
+                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMemInterf[i]].start_addr + 32'h0010_0000;
+                // Set the end address (32b, high)
+                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
+
+                // Configure AXI-Realm guard registers
+                picobello_rt_guard_init(tb_rt_cfg);
+
+                // Configure AXI-Realm subordinate address regions
+                picobello_rt_set_addr_reg(tb_rt_cfg);
+
+                // Configure AXI-Realm period-budget QoS service
+                picobello_rt_set_period_budget(tb_rt_cfg);
+
+                // Set and configure AXI-Realm manager registers
+                rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+
+                  // Set manager ID
+                  tb_rt_cfg.mgr_id                                                    = core_id;
+
+                  // Set the burst length limit (8b)
+                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (InterfBurstLength - 1) & 8'hFF;
+
+                  // Set IMTU abort (1b)
+                  tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
+                  // Set IMTU enable (1b)
+                  tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = '0;
+
+                  // Enable real-time mode (1b)
+                  tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+
+                  picobello_rt_set_burst_length(tb_rt_cfg);
+                  picobello_rt_enable_rt(tb_rt_cfg);
+                end
               end
-            end
 
-            // Initialize BW monitor for interferers
-            bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
-              automatic int cl_id = IdTestClInterf[i];
+              `wait_n_clk(`t_tb_wait);
 
-              bw_interf_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
+              // Initialize end_of_sim flag
+              end_of_sim = '{default: '1};
 
-                picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
-              
+              `wait_n_clk(1);
+
+              // Set end_of_sim flag to 0 for active critical tasks
+              // Only the critical task is monitored, interferers run in background
+              init_end_of_sim_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+                automatic int cl_id = IdTestCl[i];
+
+                init_end_of_sim_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+
+                  end_of_sim[cl_id][core_id] = 1'b0; 
+                end
               end
-            end
 
-            // Reset old timer counter value
-            tb_timer_cnt_value_old = '0; // Reset old counter value
+              `wait_n_clk(1);
 
-            @(posedge `CLK_SIGNAL);
+              // Initialize timer
+              picobello_reset_timer(tb_timer_cfg);
 
-            // Start timer
-            picobello_start_timer(tb_timer_cfg);
+              // Initialize BW monitor for critical tasks
+              bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+                automatic int cl_id = IdTestCl[i];
 
-            // Repeat test multiple times
-            test_repetition_loop: for (int test_id = 0; test_id < NTestIterations; test_id++) begin
+                bw_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
 
-              `wait_n_clk(`t_periph_bus + `t_multi_cl_displacement) // Overhead: multi-cluster synchronization
+                  picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
+                
+                end
+              end
 
-              @(posedge `CLK_SIGNAL);
+              // Initialize BW monitor for interferers
+              bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+                automatic int cl_id = IdTestClInterf[i];
+
+                bw_interf_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+
+                  picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
+                
+                end
+              end
+
+              // Reset old timer counter value
+              tb_timer_cnt_value_old = '0; // Reset old counter value
+
+              `wait_n_clk(1);
+
+              // Start timer
+              picobello_start_timer(tb_timer_cfg);
+
+              `wait_n_clk(1);
 
               // Iterate over the accelerators per cluster
               dma_in_set_acc_x_cl_loop: for (int acc_cl_id = 0; acc_cl_id < NAccxCl; acc_cl_id++) begin
@@ -601,9 +650,8 @@ module tb_picobello_fpga_fair
                 dma_r_timer_1 = '{default: '0}; 
                 dma_r_timer_val = '{default: '0};
 
-                // DMA-in: read data from L2 memory
+                // DMA: launch data transfers to/from L2 memory
                 dma_in_start_loop_0: for (int i = 0; i < (NumClustersActive + NumClustersInterfActive); i++) begin
-
                   automatic int cl_id;
                   if(i < NumClustersActive) begin
                     cl_id = IdTestCl[i];
@@ -614,252 +662,240 @@ module tb_picobello_fpga_fair
                   dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
 
-                    if(test_id==0) begin
-                      // Start BW monitor
+                    // Start BW monitors
+                    if(DmaReadEnable) begin
                       picobello_start_bw_r_monitor(bw_rt_cl_cfg, cl_id, core_id);
                     end
+                    if(DmaWriteEnable) begin
+                      picobello_start_bw_w_monitor(bw_rt_cl_cfg, cl_id, core_id);
+                    end
                     
-                    // Start DMA read
-                    dpi_rt.dma_read_start(cl_id, core_id, 1);
+                    // Start DMAs
+                    if(DmaReadEnable) begin
+                      dpi_rt.dma_read_start_high(cl_id, core_id);
+                      if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
+                        `wait_n_clk(1);
+                        dpi_rt.dma_read_start_low(cl_id, core_id);
+                      end
+                    end
+                    if(DmaWriteEnable) begin
+                      dpi_rt.dma_write_start_high(cl_id, core_id);
+                      if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
+                        `wait_n_clk(1);
+                        dpi_rt.dma_write_start_low(cl_id, core_id);
+                      end
+                    end
+
                   end
                   dma_r_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma read starts
                 end
 
-                `wait_n_clk(`t_periph_bus); // Overhead: dma programming time (cluster peripheral bus)
+                `wait_n_clk(5);
 
-                // DMA-in: wait for completion (critical tasks only)
-                // $display ("\nTest #%0d-------------DMA-in: wait for completion", NTest);
+                // DMA: wait for completion (critical tasks only)
                 dma_in_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                   automatic int cl_id = IdTestCl[i];
 
                   dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
 
-                    // Wait for DMA read to be idle
-                    dpi_rt.dma_read_wait_idle(cl_id, core_id);
+                    // Wait for DMA idles
+                    if(DmaReadEnable) begin
+                      dpi_rt.dma_read_wait_idle(cl_id, core_id);
+                    end
+                    if(DmaWriteEnable) begin
+                      dpi_rt.dma_write_wait_idle(cl_id, core_id);
+                    end
                   end
                   // Store timer value as dma read terminates
                   dma_r_timer_1[cl_id] = tb_timer_cnt_value;
                   dma_r_timer_val[cl_id] = dma_r_timer_1[cl_id] - dma_r_timer_0[cl_id];
                 end
 
-                @(posedge `CLK_SIGNAL);
+                `wait_n_clk(1);
 
               end // dma_in_set_acc_x_cl_loop
 
-              @(posedge `CLK_SIGNAL);
+              `wait_n_clk(1);
 
-              // Iterate over the accelerators per cluster
-              // Check only critical tasks, while interferers run in background
-              check_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+              // Stop BW monitors
+              critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
-                
-                check_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                critical_task_stop_bw_monitors_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                   automatic int core_id = j;
-
-                  if(test_id==NTestIterations-1) begin 
-                    // Set barrier bit
-                    end_of_sim[cl_id][core_id] = 1'b1;
-
-                    // Stop BW monitor
+                  // Stop BW monitors
+                  if(DmaReadEnable) begin
                     picobello_stop_bw_r_monitor(bw_rt_cl_cfg, cl_id, core_id);
                   end
+                  if(DmaWriteEnable) begin
+                    picobello_stop_bw_w_monitor(bw_rt_cl_cfg, cl_id, core_id);
+                  end
                 end
               end
 
-              // Multi-cluster idle barrier
-              if(test_id==NTestIterations-1) begin 
+              // Stop and read timer
+              picobello_stop_timer(tb_timer_cfg);
 
-                multi_cl_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+              // Wait for interferer clusters to terminate
+              interferer_task_dma_in_idle_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+                automatic int cl_id = IdTestClInterf[i];
+                interferer_task_dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+                  // Wait for DMA idles
+                  if(DmaReadEnable) begin
+                    dpi_rt.dma_read_wait_idle(cl_id, core_id);
+                  end
+                  if(DmaWriteEnable) begin
+                    dpi_rt.dma_write_wait_idle(cl_id, core_id);
+                  end
+                end
+              end  
+
+              `wait_n_clk(10);
+
+              //////////////////////////////////
+              // Display experimental results //
+              //////////////////////////////////
+
+              // Print experimental setup statistics
+              experimental_stats.id_test                  = NTest;
+              experimental_stats.n_cl_critical            = NumClustersActive;
+              experimental_stats.n_cl_interf              = NumClustersInterfActive;
+              experimental_stats.n_acc_cl                 = NAccxCl;
+              experimental_stats.n_clx_mem                = NClXMem;
+              experimental_stats.router_fifo_in_depth     = picobello_pkg::RouterInFifoDepth;
+              experimental_stats.router_fifo_out_depth    = picobello_pkg::RouterOutFifoDepth;
+              experimental_stats.ni_max_oustanding_txns   = picobello_pkg::ChimneyL2Cfg.MaxTxns;
+              experimental_stats.ni_max_unique_ids        = picobello_pkg::ChimneyL2Cfg.MaxUniqueIds;
+              experimental_stats.read_traffic_dim         = tb_tg_cfg_read.TrafficGenTrafficDim;
+              experimental_stats.read_compute_dim         = tb_tg_cfg_read.TrafficGenComputeDim;
+              experimental_stats.write_traffic_dim        = tb_tg_cfg_write.TrafficGenTrafficDim;
+              experimental_stats.write_compute_dim        = tb_tg_cfg_write.TrafficGenComputeDim;
+              experimental_stats.burst_length             = CriticalBurstLength;
+              experimental_stats.t_exec_time_ck           = tb_timer_cnt_value - tb_timer_cnt_value_old;
+
+  `ifdef PRINT_RESULTS
+              $display ("\n Test #%0d",                       experimental_stats.id_test);
+              $display (" - SoC -- NClCritical:             %8d", experimental_stats.n_cl_critical);
+              $display (" - SoC -- NClInterf:               %8d", experimental_stats.n_cl_interf);
+              $display (" - SoC -- NAccCl:                  %8d", experimental_stats.n_acc_cl);
+              $display (" - SoC -- NClXMem:                 %8d", experimental_stats.n_clx_mem);
+              $display (" - NoC -- RouterInFifoDepth:       %8d", experimental_stats.router_fifo_in_depth);
+              $display (" - NoC -- RouterOutFifoDepth:      %8d", experimental_stats.router_fifo_out_depth);
+              $display (" - NoC -- NIMaxTxns:               %8d", experimental_stats.ni_max_oustanding_txns);
+              $display (" - NoC -- NIMaxUniqueIds:          %8d", experimental_stats.ni_max_unique_ids);
+              $display (" - Realm -- CriticalBurstLength:   %8d", experimental_stats.burst_length);
+              $display (" - Realm -- InterfBurstLength:     %8d", InterfBurstLength);
+              $display (" - Results -- ExecTime:            %8d", experimental_stats.t_exec_time_ck);
+  `endif
+
+              ///////////////////////////////////////
+              // Save experimental results to file //
+              ///////////////////////////////////////
+
+  `ifdef SAVE_EXPERIMENT_GENERAL
+              // Save experimental setup statistics to file
+              if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
+                // Experimental setup - Open file
+                $sformat(filePath, "%s/test%0d_experimental.txt", fileDir, experimental_stats.id_test);
+                // $display("Writing results to file: %s", filePath);
+                fileDescriptor = $fopen(filePath, "w"); 
+                // Experimental setup - Write values
+                $fwrite(fileDescriptor, "id_test: %0d\n",                     experimental_stats.id_test);
+                $fwrite(fileDescriptor, "n_cl_critical: %0d\n",               experimental_stats.n_cl_critical);
+                $fwrite(fileDescriptor, "n_cl_interf: %0d\n",                 experimental_stats.n_cl_interf);
+                $fwrite(fileDescriptor, "n_acc_cl: %0d\n",                    experimental_stats.n_acc_cl);
+                $fwrite(fileDescriptor, "n_clx_mem: %0d\n",                   experimental_stats.n_clx_mem);
+                $fwrite(fileDescriptor, "noc_router_fifo_in_depth: %0d\n",    experimental_stats.router_fifo_in_depth);
+                $fwrite(fileDescriptor, "noc_router_fifo_out_depth: %0d\n",   experimental_stats.router_fifo_out_depth);
+                $fwrite(fileDescriptor, "noc_ni_max_oustanding_txns: %0d\n",  experimental_stats.ni_max_oustanding_txns);
+                $fwrite(fileDescriptor, "noc_ni_max_unique_ids: %0d\n",       experimental_stats.ni_max_unique_ids);
+                $fwrite(fileDescriptor, "burst_length: %0d\n",                experimental_stats.burst_length);
+                $fwrite(fileDescriptor, "burst_length_interf: %0d\n",         InterfBurstLength);
+                $fwrite(fileDescriptor, "t_exec_time_ck: %0d\n",              experimental_stats.t_exec_time_ck);
+                // Experimental setup - Close file
+                $fclose(fileDescriptor);
+              end
+  `endif
+  `ifdef SAVE_EXPERIMENT_STATS
+              // Save experiment statistics to file
+              if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
+
+                f_bw_stats_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                   automatic int cl_id = IdTestCl[i];
 
-                  multi_cl_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  f_bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                    automatic int core_id = j;
+                    
+                    // BW stats - Open file
+                    $sformat(filePath, "%s/test%0d_statistics_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
+                    // $display("Writing results to file: %s", filePath);
+                    fileDescriptor = $fopen(filePath, "w"); 
+
+                    // BW stats - Write values
+                    $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
+                    $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].r_latency_mean);
+                    $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].r_latency_stddev);
+                    $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].r_bw_mean);
+                    $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_bw_stddev);
+                    $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_util_mean);
+                    $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].r_util_stddev);
+                    $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].w_latency_mean);
+                    $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].w_latency_stddev);
+                    $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].w_bw_mean);
+                    $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_bw_stddev);
+                    $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_util_mean);
+                    $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].w_util_stddev);
+
+                    // BW stats - Close file
+                    $fclose(fileDescriptor);
+                  end
+                end
+              end
+  `endif
+  `ifdef SAVE_BURST_TIMESTAMPS
+              // Save burst timestamps to file
+              if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
+                f_latency_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+                  automatic int cl_id = IdTestCl[i];
+
+                  f_latency_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
 
-                    while (!end_of_sim[cl_id][core_id]) begin
-                      @(posedge `CLK_SIGNAL);
+                    // Latency - Open file
+                    $sformat(filePath, "%s/test%0d_burst_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
+                    // $display("Writing results to file: %s", filePath);
+                    fileDescriptor = $fopen(filePath, "w"); 
+
+                    // Latency - Write header
+                    $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
+
+                    // Latency - Write values
+                    foreach (bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i]) begin
+                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+                        i,
+                        bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i], 
+                        bw_rt_cl_stats[cl_id][core_id].r_burst_t1[i], 
+                        bw_rt_cl_stats[cl_id][core_id].r_latency_val[i], 
+                        bw_rt_cl_stats[cl_id][core_id].r_bw_val[i], 
+                        bw_rt_cl_stats[cl_id][core_id].r_burst_n_beats[i], 
+                        bw_rt_cl_stats[cl_id][core_id].r_burst_dw[i]
+                      );
                     end
+
+                    // Latency - Close file
+                    $fclose(fileDescriptor);
                   end
                 end
               end
+  `endif
 
-            end // test_repetition_loop
+              NTest = NTest + 1;
+              tb_timer_cnt_value_old = tb_timer_cnt_value; // Store old counter value
 
-            // Stop and read timer
-            picobello_stop_timer(tb_timer_cfg);
-
-            `wait_n_clk(10);
-
-            //////////////////////////////////
-            // Display experimental results //
-            //////////////////////////////////
-
-            // Print experimental setup statistics
-            experimental_stats.id_test                  = NTest;
-            experimental_stats.n_cl_critical            = NumClustersActive;
-            experimental_stats.n_cl_interf              = NumClustersInterfActive;
-            experimental_stats.n_acc_cl                 = NAccxCl;
-            experimental_stats.n_clx_mem                = NClXMem;
-            experimental_stats.router_fifo_in_depth     = picobello_pkg::RouterInFifoDepth;
-            experimental_stats.router_fifo_out_depth    = picobello_pkg::RouterOutFifoDepth;
-            experimental_stats.ni_max_oustanding_txns   = picobello_pkg::ChimneyL2Cfg.MaxTxns;
-            experimental_stats.ni_max_unique_ids        = picobello_pkg::ChimneyL2Cfg.MaxUniqueIds;
-            experimental_stats.traffic_gen_traffic_dim  = tb_tg_cfg_read.TrafficGenTrafficDim;
-            experimental_stats.traffic_gen_compute_dim  = tb_tg_cfg_read.TrafficGenComputeDim;
-            experimental_stats.burst_length             = BurstLength;
-            experimental_stats.t_exec_time_ck           = tb_timer_cnt_value - tb_timer_cnt_value_old;
-
-`ifdef PRINT_RESULTS
-            $display ("\n Test #%0d",                       experimental_stats.id_test);
-            $display (" - SoC -- NClCritical:         %8d", experimental_stats.n_cl_critical);
-            $display (" - SoC -- NClInterf:           %8d", experimental_stats.n_cl_interf);
-            $display (" - SoC -- NAccCl:              %8d", experimental_stats.n_acc_cl);
-            $display (" - SoC -- NClXMem:             %8d", experimental_stats.n_clx_mem);
-            $display (" - NoC -- RouterInFifoDepth:   %8d", experimental_stats.router_fifo_in_depth);
-            $display (" - NoC -- RouterOutFifoDepth:  %8d", experimental_stats.router_fifo_out_depth);
-            $display (" - NoC -- NIMaxTxns:           %8d", experimental_stats.ni_max_oustanding_txns);
-            $display (" - NoC -- NIMaxUniqueIds:      %8d", experimental_stats.ni_max_unique_ids);
-            $display (" - Realm -- BurstLength:       %8d", experimental_stats.burst_length);
-            $display (" - Realm -- BurstLengthInterf: %8d", BurstLengthInterf);
-            $display (" - Results -- ExecTime:        %8d", experimental_stats.t_exec_time_ck);
-
-            // // Print BW monitor statistics
-            // bw_monitor_display_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-            //   automatic int cl_id = IdTestCl[i];
-
-            //   bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-            //     automatic int core_id = j;
-
-            //     $display(
-            //       "[Monitor %s][Read] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
-            //       $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
-            //       bw_rt_cl_stats[cl_id][core_id].r_latency_mean, 
-            //       bw_rt_cl_stats[cl_id][core_id].r_latency_stddev, 
-            //       bw_rt_cl_stats[cl_id][core_id].r_bw_mean, 
-            //       bw_rt_cl_stats[cl_id][core_id].r_bw_stddev,
-            //       bw_rt_cl_stats[cl_id][core_id].r_util_mean,
-            //       bw_rt_cl_stats[cl_id][core_id].r_util_stddev
-            //     );
-            //     $display(
-            //       "[Monitor %s][Write] Latency: %0.2f +- %0.2f Ck, BW: %0.2f +- %0.2f Bits/cycle, Util: %0.2f%% +- %0.2f",
-            //       $sformatf("cl_bw_monitor_%0d_%0d", cl_id, core_id), 
-            //       bw_rt_cl_stats[cl_id][core_id].w_latency_mean, 
-            //       bw_rt_cl_stats[cl_id][core_id].w_latency_stddev, 
-            //       bw_rt_cl_stats[cl_id][core_id].w_bw_mean, 
-            //       bw_rt_cl_stats[cl_id][core_id].w_bw_stddev,
-            //       bw_rt_cl_stats[cl_id][core_id].w_util_mean,
-            //       bw_rt_cl_stats[cl_id][core_id].w_util_stddev
-            //     );
-            //   end
-            // end
-`endif
-
-            ///////////////////////////////////////
-            // Save experimental results to file //
-            ///////////////////////////////////////
-
-`ifdef SAVE_EXPERIMENT_GENERAL
-            // Save experimental setup statistics to file
-            if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
-              // Experimental setup - Open file
-              $sformat(filePath, "%s/test%0d_experimental.txt", fileDir, experimental_stats.id_test);
-              // $display("Writing results to file: %s", filePath);
-              fileDescriptor = $fopen(filePath, "w"); 
-              // Experimental setup - Write values
-              $fwrite(fileDescriptor, "id_test: %0d\n",                     experimental_stats.id_test);
-              $fwrite(fileDescriptor, "n_cl_critical: %0d\n",               experimental_stats.n_cl_critical);
-              $fwrite(fileDescriptor, "n_cl_interf: %0d\n",                 experimental_stats.n_cl_interf);
-              $fwrite(fileDescriptor, "n_acc_cl: %0d\n",                    experimental_stats.n_acc_cl);
-              $fwrite(fileDescriptor, "n_clx_mem: %0d\n",                   experimental_stats.n_clx_mem);
-              $fwrite(fileDescriptor, "noc_router_fifo_in_depth: %0d\n",    experimental_stats.router_fifo_in_depth);
-              $fwrite(fileDescriptor, "noc_router_fifo_out_depth: %0d\n",   experimental_stats.router_fifo_out_depth);
-              $fwrite(fileDescriptor, "noc_ni_max_oustanding_txns: %0d\n",  experimental_stats.ni_max_oustanding_txns);
-              $fwrite(fileDescriptor, "noc_ni_max_unique_ids: %0d\n",       experimental_stats.ni_max_unique_ids);
-              $fwrite(fileDescriptor, "burst_length: %0d\n",                experimental_stats.burst_length);
-              $fwrite(fileDescriptor, "burst_length_interf: %0d\n",         BurstLengthInterf);
-              $fwrite(fileDescriptor, "t_exec_time_ck: %0d\n",              experimental_stats.t_exec_time_ck);
-              // Experimental setup - Close file
-              $fclose(fileDescriptor);
-            end
-`endif
-`ifdef SAVE_EXPERIMENT_STATS
-            // Save experiment statistics to file
-            if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
-
-              f_bw_stats_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-                automatic int cl_id = IdTestCl[i];
-
-                f_bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                  automatic int core_id = j;
-                  
-                  // BW stats - Open file
-                  $sformat(filePath, "%s/test%0d_statistics_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
-                  // $display("Writing results to file: %s", filePath);
-                  fileDescriptor = $fopen(filePath, "w"); 
-
-                  // BW stats - Write values
-                  $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
-                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].r_latency_mean);
-                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].r_latency_stddev);
-                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].r_bw_mean);
-                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_bw_stddev);
-                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_util_mean);
-                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].r_util_stddev);
-                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].w_latency_mean);
-                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].w_latency_stddev);
-                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].w_bw_mean);
-                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_bw_stddev);
-                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_util_mean);
-                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].w_util_stddev);
-
-                  // BW stats - Close file
-                  $fclose(fileDescriptor);
-                end
-              end
-            end
-`endif
-`ifdef SAVE_BURST_TIMESTAMPS
-            // Save burst timestamps to file
-            if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
-              f_latency_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-                automatic int cl_id = IdTestCl[i];
-
-                f_latency_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                  automatic int core_id = j;
-
-                  // Latency - Open file
-                  $sformat(filePath, "%s/test%0d_burst_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
-                  // $display("Writing results to file: %s", filePath);
-                  fileDescriptor = $fopen(filePath, "w"); 
-
-                  // Latency - Write header
-                  $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
-
-                  // Latency - Write values
-                  foreach (bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i]) begin
-                    $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-                      i,
-                      bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i], 
-                      bw_rt_cl_stats[cl_id][core_id].r_burst_t1[i], 
-                      bw_rt_cl_stats[cl_id][core_id].r_latency_val[i], 
-                      bw_rt_cl_stats[cl_id][core_id].r_bw_val[i], 
-                      bw_rt_cl_stats[cl_id][core_id].r_burst_n_beats[i], 
-                      bw_rt_cl_stats[cl_id][core_id].r_burst_dw[i]
-                    );
-                  end
-
-                  // Latency - Close file
-                  $fclose(fileDescriptor);
-                end
-              end
-            end
-`endif
-
-            NTest = NTest + 1;
-            tb_timer_cnt_value_old = tb_timer_cnt_value; // Store old counter value
-
-            @(posedge `CLK_SIGNAL);
-          end // burst_length_loop
+              `wait_n_clk(1);
+            end // interferer_task_burst_length_loop
+          end // critical_task_burst_length_loop
         end // n_ops_loop
       end // n_clxmem_loop
     end // n_accxmem_loop
