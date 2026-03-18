@@ -8,12 +8,65 @@ import fpga_picobello_pkg::*;
 import sim_picobello_pkg::*;
 import axi_rt_reg_pkg::* ;
 
-////////////////
-// BW monitor //
-////////////////
+/////////////////////
+// BW monitor (1D) //
+/////////////////////
 
 // Reset and initialize BW monitor
-task automatic picobello_reset_bw_monitor(
+task automatic picobello_reset_bw_monitor_1d(
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
+  input int cl_idx
+);
+  bw_monitor[cl_idx].rst_r_cnt = 1'b1;
+  bw_monitor[cl_idx].rst_w_cnt = 1'b1;
+  @(posedge `CLK_SIGNAL);
+  bw_monitor[cl_idx].rst_r_cnt = 1'b0;
+  bw_monitor[cl_idx].rst_w_cnt = 1'b0;
+  @(posedge `CLK_SIGNAL);
+endtask
+
+// Start BW monitor on read channels
+task automatic picobello_start_bw_r_monitor_1d(
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
+  input int cl_idx
+);
+  bw_monitor[cl_idx].en_r_cnt = 1'b1;
+  bw_monitor[cl_idx].rst_r_cnt = 1'b0;
+endtask
+
+// Start BW monitor on write channels
+task automatic picobello_start_bw_w_monitor_1d(
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
+  input int cl_idx
+);
+  bw_monitor[cl_idx].en_w_cnt = 1'b1;
+  bw_monitor[cl_idx].rst_w_cnt = 1'b0;
+endtask
+
+// Stop BW monitor on read channels
+task automatic picobello_stop_bw_r_monitor_1d(
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
+  input int cl_idx
+);
+  bw_monitor[cl_idx].en_r_cnt = 1'b0;
+  bw_monitor[cl_idx].rst_r_cnt = 1'b0;
+endtask
+
+// Stop BW monitor on write channels
+task automatic picobello_stop_bw_w_monitor_1d(
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
+  input int cl_idx
+);
+  bw_monitor[cl_idx].en_w_cnt = 1'b0;
+  bw_monitor[cl_idx].rst_w_cnt = 1'b0;
+endtask
+
+/////////////////////
+// BW monitor (2D) //
+/////////////////////
+
+// Reset and initialize BW monitor
+task automatic picobello_reset_bw_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
@@ -27,7 +80,7 @@ task automatic picobello_reset_bw_monitor(
 endtask
 
 // Start BW monitor on read channels
-task automatic picobello_start_bw_r_monitor(
+task automatic picobello_start_bw_r_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
@@ -37,7 +90,7 @@ task automatic picobello_start_bw_r_monitor(
 endtask
 
 // Start BW monitor on write channels
-task automatic picobello_start_bw_w_monitor(
+task automatic picobello_start_bw_w_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
@@ -47,7 +100,7 @@ task automatic picobello_start_bw_w_monitor(
 endtask
 
 // Stop BW monitor on read channels
-task automatic picobello_stop_bw_r_monitor(
+task automatic picobello_stop_bw_r_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
@@ -57,7 +110,7 @@ task automatic picobello_stop_bw_r_monitor(
 endtask
 
 // Stop BW monitor on write channels
-task automatic picobello_stop_bw_w_monitor(
+task automatic picobello_stop_bw_w_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
