@@ -84,6 +84,8 @@ module cluster_rt_tile
   floo_picobello_noc_pkg::axi_narrow_in_rsp_t chimney_narrow_in_rsp;
   floo_picobello_noc_pkg::axi_narrow_out_req_t chimney_narrow_out_req;
   floo_picobello_noc_pkg::axi_narrow_out_rsp_t chimney_narrow_out_rsp;
+  floo_picobello_noc_pkg::axi_wide_out_req_t chimney_wide_out_req;
+  floo_picobello_noc_pkg::axi_wide_out_rsp_t chimney_wide_out_rsp;
   floo_picobello_noc_pkg::axi_wide_in_req_t chimney_wide_in_req;
   floo_picobello_noc_pkg::axi_wide_in_rsp_t chimney_wide_in_rsp;
 
@@ -95,7 +97,7 @@ module cluster_rt_tile
   ) chimney_narrow_out[0:0]();
 
   localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b0);
-  localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b0, 1'b1);
+  localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b1);
 
   floo_nw_chimney #(
     .AxiCfgN             (floo_picobello_noc_pkg::AxiCfgN),
@@ -134,8 +136,8 @@ module cluster_rt_tile
     .axi_narrow_out_rsp_i(chimney_narrow_out_rsp),
     .axi_wide_in_req_i   (chimney_wide_in_req),
     .axi_wide_in_rsp_o   (chimney_wide_in_rsp),
-    .axi_wide_out_req_o  (),
-    .axi_wide_out_rsp_i  ('0),
+    .axi_wide_out_req_o  (chimney_wide_out_req),
+    .axi_wide_out_rsp_i  (chimney_wide_out_rsp),
     .floo_req_o          (router_floo_req_in[Eject]),
     .floo_rsp_o          (router_floo_rsp_in[Eject]),
     .floo_wide_o         (router_floo_wide_in[Eject]),
@@ -619,6 +621,28 @@ module cluster_rt_tile
     `AXI_ASSIGN_RESP_STRUCT(cluster_rt_wide_out_rsp[i], axi_realm_in_rsp[i])
   end
 
+  ///////////////////////
+  // Local tile memory //
+  ///////////////////////
+
+  // Emulate L1 SPM inside cluster tile.
+  floo_axi_rand_slave #(
+    .AxiCfg       ( floo_picobello_noc_pkg::AxiCfgW            ),
+    .ApplTime     ( sim_picobello_pkg::ApplTime                ),
+    .TestTime     ( sim_picobello_pkg::TestTime                ),
+    .SlaveType    ( floo_test_pkg::IdealSlave                  ),
+    .NumSlaves    ( 1                                          ),
+    .axi_req_t    ( floo_picobello_noc_pkg::axi_wide_out_req_t ),
+    .axi_rsp_t    ( floo_picobello_noc_pkg::axi_wide_out_rsp_t )
+  ) i_sink_in_mem (
+    .clk_i              ( clk_i                ),
+    .rst_ni             ( rst_ni               ),
+    .slv_port_req_i     ( chimney_wide_out_req ),
+    .slv_port_rsp_o     ( chimney_wide_out_rsp ),
+    .mon_mst_port_req_o (                      ),
+    .mon_mst_port_rsp_o (                      )
+  );
+  
   // pragma translate_off
   `ifndef VERILATOR
   initial begin
