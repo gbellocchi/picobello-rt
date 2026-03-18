@@ -52,10 +52,13 @@ module tb_picobello_fpga_fair
 
   logic [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0] end_of_sim;
   
-  // Timer configuration
-  fpga_picobello_pkg::timer_cfg_t tb_timer_cfg;
+  // Timer
+  sim_picobello_pkg::timer_cfg_t tb_timer_cfg; // Timer configuration
+  sim_picobello_pkg::timer_val_t t_total; // Total execution time [clock cycles]
+  sim_picobello_pkg::timer_val_t t_critical; // Critical task execution time [clock cycles]
+  sim_picobello_pkg::timer_val_t t_interferer; // Interferer execution time [clock cycles]
   logic target_reached_o; // Comparator value flag
-  logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Experiment latency
+  logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
 
   // BW monitoring
   fpga_picobello_pkg::axi_wide_tg_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
@@ -838,25 +841,13 @@ module tb_picobello_fpga_fair
               // Initialize BW monitor for critical tasks
               bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
-
-                bw_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                  automatic int core_id = j;
-
-                  picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
-                
-                end
+                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
               end
 
               // Initialize BW monitor for interferers
               bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
                 automatic int cl_id = IdTestClInterf[i];
-
-                bw_interf_monitor_init_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                  automatic int core_id = j;
-
-                  picobello_reset_bw_monitor(bw_rt_cl_cfg, cl_id, core_id);
-                
-                end
+                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
               end
 
               // Reset old timer counter value
@@ -868,6 +859,13 @@ module tb_picobello_fpga_fair
               picobello_start_timer(tb_timer_cfg);
 
               `wait_n_clk(1);
+
+              // Store timer value for critical and interferer tasks
+              t_critical.t0 = tb_timer_cnt_value;
+              t_interferer.t0 = tb_timer_cnt_value;
+
+              // Store timer value for total execution time
+              t_total.t0 = tb_timer_cnt_value;
 
               // Iterate over the accelerators per cluster
               dma_in_set_acc_x_cl_loop: for (int acc_cl_id = 0; acc_cl_id < NAccxCl; acc_cl_id++) begin
@@ -945,6 +943,9 @@ module tb_picobello_fpga_fair
 
               end // dma_in_set_acc_x_cl_loop
 
+              // Store timer value for critical tasks
+              t_critical.t1 = tb_timer_cnt_value;
+
               `wait_n_clk(1);
 
               // Stop BW monitors
@@ -962,9 +963,6 @@ module tb_picobello_fpga_fair
                 end
               end
 
-              // Stop and read timer
-              picobello_stop_timer(tb_timer_cfg);
-
               // Wait for interferer clusters to terminate
               interferer_task_dma_in_idle_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
                 automatic int cl_id = IdTestClInterf[i];
@@ -979,6 +977,13 @@ module tb_picobello_fpga_fair
                   end
                 end
               end  
+
+              // Store timer value for interferer tasks
+              t_interferer.t1 = tb_timer_cnt_value;
+
+              // Store timer value for total execution time
+              t_total.t1 = tb_timer_cnt_value;
+
 
               `wait_n_clk(10);
 
@@ -1000,8 +1005,9 @@ module tb_picobello_fpga_fair
               experimental_stats.read_compute_dim         = tb_tg_cfg_read.TrafficGenComputeDim;
               experimental_stats.write_traffic_dim        = tb_tg_cfg_write.TrafficGenTrafficDim;
               experimental_stats.write_compute_dim        = tb_tg_cfg_write.TrafficGenComputeDim;
-              experimental_stats.burst_length             = CriticalBurstLength;
-              experimental_stats.t_exec_time_ck           = tb_timer_cnt_value - tb_timer_cnt_value_old;
+              experimental_stats.t_exec_time_ck[0]        = t_total.t1 - t_total.t0;
+              experimental_stats.t_exec_time_ck[1]        = t_critical.t1 - t_critical.t0;
+              experimental_stats.t_exec_time_ck[2]        = t_interferer.t1 - t_interferer.t0;
 
   `ifdef PRINT_RESULTS
               $display ("\n Test #%0d",                       experimental_stats.id_test);
@@ -1013,9 +1019,11 @@ module tb_picobello_fpga_fair
               $display (" - NoC -- RouterOutFifoDepth:      %8d", experimental_stats.router_fifo_out_depth);
               $display (" - NoC -- NIMaxTxns:               %8d", experimental_stats.ni_max_oustanding_txns);
               $display (" - NoC -- NIMaxUniqueIds:          %8d", experimental_stats.ni_max_unique_ids);
-              $display (" - Realm -- CriticalBurstLength:   %8d", experimental_stats.burst_length);
+              $display (" - Realm -- CriticalBurstLength:   %8d", CriticalBurstLength);
               $display (" - Realm -- InterfBurstLength:     %8d", InterfBurstLength);
-              $display (" - Results -- ExecTime:            %8d", experimental_stats.t_exec_time_ck);
+              $display (" - Results -- TotalExecTime:       %8d", experimental_stats.t_exec_time_ck[0]);
+              $display (" - Results -- CriticalExecTime:    %8d", experimental_stats.t_exec_time_ck[1]);
+              $display (" - Results -- InterfExecTime:      %8d", experimental_stats.t_exec_time_ck[2]);
   `endif
 
               ///////////////////////////////////////
@@ -1039,9 +1047,11 @@ module tb_picobello_fpga_fair
                 $fwrite(fileDescriptor, "noc_router_fifo_out_depth: %0d\n",   experimental_stats.router_fifo_out_depth);
                 $fwrite(fileDescriptor, "noc_ni_max_oustanding_txns: %0d\n",  experimental_stats.ni_max_oustanding_txns);
                 $fwrite(fileDescriptor, "noc_ni_max_unique_ids: %0d\n",       experimental_stats.ni_max_unique_ids);
-                $fwrite(fileDescriptor, "burst_length: %0d\n",                experimental_stats.burst_length);
+                $fwrite(fileDescriptor, "burst_length: %0d\n",                CriticalBurstLength);
                 $fwrite(fileDescriptor, "burst_length_interf: %0d\n",         InterfBurstLength);
-                $fwrite(fileDescriptor, "t_exec_time_ck: %0d\n",              experimental_stats.t_exec_time_ck);
+                $fwrite(fileDescriptor, "total_exec_time_ck: %0d\n",          experimental_stats.t_exec_time_ck[0]);
+                $fwrite(fileDescriptor, "critical_exec_time_ck: %0d\n",       experimental_stats.t_exec_time_ck[1]);
+                $fwrite(fileDescriptor, "interf_exec_time_ck: %0d\n",         experimental_stats.t_exec_time_ck[2]);
                 // Experimental setup - Close file
                 $fclose(fileDescriptor);
               end

@@ -185,15 +185,4 @@ package fpga_picobello_pkg;
     axi_host_data_t TrafficGenIdx; // Index
   } tg_cfg_t;
 
-  // Timer counter (used during RTL simulation of the FPGA top)
-  typedef struct packed {
-    logic          write_counter_i; // [Input] Counter overwrite control
-    logic [32-1:0] counter_value_i; // [Input] Counter value to set
-    logic          reset_count_i; // [Input] Counter reset control
-    logic          enable_count_i; // [Input] Counter enable control - to increase the counter value
-    logic [32-1:0] compare_value_i; // [Input] Comparator value - to compare with the counter value
-    // logic [32-1:0] counter_value_o; // [Output] Counter value
-    // logic          target_reached_o; // [Output] Comparator value flag
-  } timer_cfg_t;
-
 endpackage

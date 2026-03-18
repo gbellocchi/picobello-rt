@@ -37,8 +37,29 @@ package sim_picobello_pkg;
     real write_compute_dim; // Write compute dimension
     int unsigned burst_length; // Burst length
     // Results
-    int unsigned t_exec_time_ck; // Execution time [clock cycles]
+    int unsigned t_exec_time_ck[$]; // Execution time [clock cycles]
   } experimental_stats_t;
+
+  ///////////
+  // Timer //
+  ///////////
+
+  // Timer counter (used during RTL simulation of the FPGA top)
+  typedef struct packed {
+    logic        write_counter_i; // [Input] Counter overwrite control
+    logic [31:0] counter_value_i; // [Input] Counter value to set
+    logic        reset_count_i; // [Input] Counter reset control
+    logic        enable_count_i; // [Input] Counter enable control - to increase the counter value
+    logic [31:0] compare_value_i; // [Input] Comparator value - to compare with the counter value
+    // logic [32-1:0] counter_value_o; // [Output] Counter value
+    // logic          target_reached_o; // [Output] Comparator value flag
+  } timer_cfg_t;
+
+  // Timer value
+  typedef struct packed {
+    logic [31:0] t0;
+    logic [31:0] t1;
+  } timer_val_t;
 
   /////////////////////
   // AXI BW Monitors //
