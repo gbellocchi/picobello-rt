@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: picobello
-description: "Exerimental setup to investigate intra-flow traffic"
+description: "Exerimental setup to investigate inter-flow traffic"
 network_type: "narrow-wide"
 
 routing:
@@ -86,6 +86,7 @@ connections:
     src_idx: [0, 0]
     dst_idx: [1, 0]
     dst_dir: "Eject"
+  # Clusters - Interferer tasks
   - src: "cluster"
     dst: "router"
     src_idx: [0, 1]

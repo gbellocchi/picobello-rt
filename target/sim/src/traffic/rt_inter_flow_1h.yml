@@ -4,18 +4,10 @@
 #
 # Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
+# Note: 32 bursts of 256 beats with 1 DMA is equivalent to moving 128kB of data, which is a reasonable amount for the amount of L1 memory that is typically available in a cluster.
+
 traffic_flows:
-  - name: "cluster"
-    initiator: [0, 1]
-    endpoint: [1, 1]
-    rw: write
-    narrow_burst:
-      number: 0
-      length: 0
-    wide_burst:
-      number: 1
-      length: 256
-  - name: "cluster"
+  - name: "critical"
     initiator: [1, 0]
     endpoint: [1, 1]
     rw: write
@@ -23,9 +15,19 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 1
+      number: 32
       length: 256
-  - name: "cluster"
+  - name: "interferer"
+    initiator: [0, 1]
+    endpoint: [1, 1]
+    rw: write
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
     initiator: [1, 2]
     endpoint: [1, 1]
     rw: write
@@ -33,9 +35,9 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 1
+      number: 32
       length: 256
-  - name: "cluster"
+  - name: "interferer"
     initiator: [2, 1]
     endpoint: [1, 1]
     rw: write
@@ -43,5 +45,5 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 1
+      number: 32
       length: 256
