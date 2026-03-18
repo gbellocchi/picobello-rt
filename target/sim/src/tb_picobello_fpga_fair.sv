@@ -66,6 +66,11 @@ module tb_picobello_fpga_fair
   sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
   sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
 
+  floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_req [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_rsp [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_noc_ni_cfg [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_ni_stats [picobello_pkg::NumClusters-1:0];
+
   // Experimental statistics
   sim_picobello_pkg::experimental_stats_t experimental_stats;
 
@@ -509,6 +514,33 @@ module tb_picobello_fpga_fair
     end
   end
 
+  // FlooNoC NI AXI4 wide input
+  for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_bw_monitor_loop_0
+    localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_cl_%0d", cl_id);
+
+    assign bw_rt_noc_ni_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_req;
+    assign bw_rt_noc_ni_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_rsp;
+
+    axi_bw_monitor #(
+      .req_t        ( floo_picobello_noc_pkg::axi_wide_in_req_t       ),
+      .rsp_t        ( floo_picobello_noc_pkg::axi_wide_in_rsp_t       ),
+      .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
+      .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
+      .AxiDataWidth ( fpga_picobello_pkg::AxiCfgW.DataWidth           ),
+      .AxiIdWidth   ( fpga_picobello_pkg::AxiCfgW.InIdWidth           ),
+      .Name         ( BwMonitorName                                   )
+    ) i_axi_bw_monitor (
+      .clk_i          ( clk                             ),
+      .rst_ni         ( rst_n                           ),
+      .req_i          ( bw_rt_noc_ni_req[cl_id]         ),
+      .rsp_i          ( bw_rt_noc_ni_rsp[cl_id]         ),
+      .ar_in_flight_o (                                 ),
+      .aw_in_flight_o (                                 ),
+      .cfg_i          ( bw_rt_noc_ni_cfg[cl_id]         ),
+      .stats_o        ( bw_rt_noc_ni_stats[cl_id]       )
+    );
+  end
+
   //////////////////
   // TB execution //
   //////////////////
@@ -528,6 +560,7 @@ module tb_picobello_fpga_fair
       for (int j = 0; j < fpga_picobello_pkg::NumCores; j++) begin
         bw_rt_cl_cfg[i][j] = '{default: '0};
       end
+      bw_rt_noc_ni_cfg[i] = '{default: '0};
     end
 
     // Wait for reset
@@ -886,16 +919,16 @@ module tb_picobello_fpga_fair
                     cl_id = IdTestClInterf[i - NumClustersActive];
                   end
 
+                  // Start BW monitors for NoC NI
+                  if(DmaReadEnable) begin
+                    picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  end
+                  if(DmaWriteEnable) begin
+                    picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  end
+
                   dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
-
-                    // Start BW monitors
-                    if(DmaReadEnable) begin
-                      picobello_start_bw_r_monitor(bw_rt_cl_cfg, cl_id, core_id);
-                    end
-                    if(DmaWriteEnable) begin
-                      picobello_start_bw_w_monitor(bw_rt_cl_cfg, cl_id, core_id);
-                    end
                     
                     // Start DMAs
                     if(DmaReadEnable) begin
@@ -948,18 +981,14 @@ module tb_picobello_fpga_fair
 
               `wait_n_clk(1);
 
-              // Stop BW monitors
+              // Stop BW monitors for critical tasks
               critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
-                critical_task_stop_bw_monitors_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                  automatic int core_id = j;
-                  // Stop BW monitors
-                  if(DmaReadEnable) begin
-                    picobello_stop_bw_r_monitor(bw_rt_cl_cfg, cl_id, core_id);
-                  end
-                  if(DmaWriteEnable) begin
-                    picobello_stop_bw_w_monitor(bw_rt_cl_cfg, cl_id, core_id);
-                  end
+                if(DmaReadEnable) begin
+                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                end
+                if(DmaWriteEnable) begin
+                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
                 end
               end
 
@@ -984,6 +1013,19 @@ module tb_picobello_fpga_fair
               // Store timer value for total execution time
               t_total.t1 = tb_timer_cnt_value;
 
+              // Stop BW monitors for interferer tasks
+              interferer_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+                automatic int cl_id = IdTestClInterf[i];
+                if(DmaReadEnable) begin
+                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                end
+                if(DmaWriteEnable) begin
+                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                end
+              end
+
+              // Stop timer
+              picobello_stop_timer(tb_timer_cfg);
 
               `wait_n_clk(10);
 
@@ -1059,72 +1101,88 @@ module tb_picobello_fpga_fair
   `ifdef SAVE_EXPERIMENT_STATS
               // Save experiment statistics to file
               if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
-
-                f_bw_stats_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-                  automatic int cl_id = IdTestCl[i];
-
-                  f_bw_monitor_display_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                    automatic int core_id = j;
-                    
-                    // BW stats - Open file
-                    $sformat(filePath, "%s/test%0d_statistics_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
-                    // $display("Writing results to file: %s", filePath);
-                    fileDescriptor = $fopen(filePath, "w"); 
-
-                    // BW stats - Write values
-                    $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
-                    $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].r_latency_mean);
-                    $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].r_latency_stddev);
-                    $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].r_bw_mean);
-                    $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_bw_stddev);
-                    $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].r_util_mean);
-                    $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].r_util_stddev);
-                    $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_cl_stats[cl_id][core_id].w_latency_mean);
-                    $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_cl_stats[cl_id][core_id].w_latency_stddev);
-                    $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_cl_stats[cl_id][core_id].w_bw_mean);
-                    $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_bw_stddev);
-                    $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_cl_stats[cl_id][core_id].w_util_mean);
-                    $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_cl_stats[cl_id][core_id].w_util_stddev);
-
-                    // BW stats - Close file
-                    $fclose(fileDescriptor);
+                f_bw_stats_loop_0: for (int i = 0; i < (NumClustersActive + NumClustersInterfActive); i++) begin
+                  automatic int cl_id;
+                  if(i < NumClustersActive) begin
+                    cl_id = IdTestCl[i];
+                  end else begin
+                    cl_id = IdTestClInterf[i - NumClustersActive];
                   end
+
+                  // BW stats - Open file
+                  $sformat(filePath, "%s/test%0d_noc_ni_statistics_cl_%0d.txt", fileDir, experimental_stats.id_test, cl_id);
+                  // $display("Writing results to file: %s", filePath);
+                  fileDescriptor = $fopen(filePath, "w"); 
+
+                  // BW stats - Write values
+                  $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
+                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_stats[cl_id].r_latency_mean);
+                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_stats[cl_id].r_latency_stddev);
+                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_noc_ni_stats[cl_id].r_bw_mean);
+                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].r_bw_stddev);
+                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].r_util_mean);
+                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_noc_ni_stats[cl_id].r_util_stddev);
+                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_noc_ni_stats[cl_id].w_latency_mean);
+                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_noc_ni_stats[cl_id].w_latency_stddev);
+                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_noc_ni_stats[cl_id].w_bw_mean);
+                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].w_bw_stddev);
+                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].w_util_mean);
+                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_stats[cl_id].w_util_stddev);
+
+                  // BW stats - Close file
+                  $fclose(fileDescriptor);
                 end
               end
   `endif
   `ifdef SAVE_BURST_TIMESTAMPS
               // Save burst timestamps to file
               if ($value$plusargs("VSIM_LOG=%s", fileDir)) begin
-                f_latency_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-                  automatic int cl_id = IdTestCl[i];
+                f_latency_loop_0: for (int i = 0; i < (NumClustersActive + NumClustersInterfActive); i++) begin
+                  automatic int cl_id;
+                  if(i < NumClustersActive) begin
+                    cl_id = IdTestCl[i];
+                  end else begin
+                    cl_id = IdTestClInterf[i - NumClustersActive];
+                  end
 
-                  f_latency_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                    automatic int core_id = j;
+                  // Latency - Open file
+                  $sformat(filePath, "%s/test%0d_noc_ni_burst_stats_cl_%0d.txt", fileDir, experimental_stats.id_test, cl_id);
+                  // $display("Writing results to file: %s", filePath);
+                  fileDescriptor = $fopen(filePath, "w"); 
 
-                    // Latency - Open file
-                    $sformat(filePath, "%s/test%0d_burst_stats_cl_%0d_core_%0d.txt", fileDir, experimental_stats.id_test, cl_id, core_id);
-                    // $display("Writing results to file: %s", filePath);
-                    fileDescriptor = $fopen(filePath, "w"); 
+                  // Latency - Write header
+                  $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
 
-                    // Latency - Write header
-                    $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
-
-                    // Latency - Write values
-                    foreach (bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i]) begin
+                  // Latency - Write values
+                  if(DmaReadEnable) begin
+                    foreach (bw_rt_noc_ni_stats[cl_id].r_burst_t0[i]) begin
                       $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
                         i,
-                        bw_rt_cl_stats[cl_id][core_id].r_burst_t0[i], 
-                        bw_rt_cl_stats[cl_id][core_id].r_burst_t1[i], 
-                        bw_rt_cl_stats[cl_id][core_id].r_latency_val[i], 
-                        bw_rt_cl_stats[cl_id][core_id].r_bw_val[i], 
-                        bw_rt_cl_stats[cl_id][core_id].r_burst_n_beats[i], 
-                        bw_rt_cl_stats[cl_id][core_id].r_burst_dw[i]
+                        bw_rt_noc_ni_stats[cl_id].r_burst_t0[i], 
+                        bw_rt_noc_ni_stats[cl_id].r_burst_t1[i], 
+                        bw_rt_noc_ni_stats[cl_id].r_latency_val[i], 
+                        bw_rt_noc_ni_stats[cl_id].r_bw_val[i], 
+                        bw_rt_noc_ni_stats[cl_id].r_burst_n_beats[i], 
+                        bw_rt_noc_ni_stats[cl_id].r_burst_dw[i]
                       );
                     end
-
-                    // Latency - Close file
-                    $fclose(fileDescriptor);
                   end
+                  if(DmaWriteEnable) begin
+                    foreach (bw_rt_noc_ni_stats[cl_id].w_burst_t0[i]) begin
+                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+                        i,
+                        bw_rt_noc_ni_stats[cl_id].w_burst_t0[i], 
+                        bw_rt_noc_ni_stats[cl_id].w_burst_t1[i], 
+                        bw_rt_noc_ni_stats[cl_id].w_latency_val[i], 
+                        bw_rt_noc_ni_stats[cl_id].w_bw_val[i], 
+                        bw_rt_noc_ni_stats[cl_id].w_burst_n_beats[i], 
+                        bw_rt_noc_ni_stats[cl_id].w_burst_dw[i]
+                      );
+                    end
+                  end
+
+                  // Latency - Close file
+                  $fclose(fileDescriptor);
                 end
               end
   `endif
