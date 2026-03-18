@@ -210,8 +210,8 @@ package picobello_pkg;
     CutRsp: 1'b0
   };
 
-  // Memory delay parameters
-  localparam int unsigned MemRttInputExpected = 128; // [Ck] AW, W, AR channels
+  // AXI delay parameters
+  localparam int unsigned MemRttInputExpected = 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemRttOutputExpected = 0; // [Ck] R, B channels
   localparam int unsigned MemRttBase = 4; // [Ck] Baseline memory round-trip time (calculated @NI)
   localparam int unsigned MemDelayOverhead = 0; // [Ck] AXI delay overhead.

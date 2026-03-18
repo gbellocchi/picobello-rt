@@ -42,7 +42,7 @@ protocols:
 
 endpoints:
   - name: "cluster"
-    array: [3,5]
+    array: [3,6]
     addr_range:
       base: 0xC000_0000
       size: 0x0004_0000
@@ -76,60 +76,39 @@ endpoints:
   
 routers:
   - name: "router"
-    array: [4, 6]
+    array: [4, 7]
     degree: 5
 
 connections:
-  # Clusters - Critical tasks
-  - src: "cluster"
-    dst: "router"
-    src_idx: [1, 0]
-    dst_idx: [1, 0]
-    dst_dir: "Eject"
-  # Clusters - Interferer tasks
   - src: "cluster"
     dst: "router"
     src_range:
-    - [0, 0]
+    - [0, 2]
     - [0, 4]
     dst_range:
-    - [0, 0]
+    - [0, 2]
     - [0, 4]
     dst_dir: "Eject"
   - src: "cluster"
     dst: "router"
-    src_idx: [1, 1]
-    dst_idx: [1, 1]
+    src_idx: [0, 5]
+    dst_idx: [0, 5]
     dst_dir: "Eject"
   - src: "cluster"
     dst: "router"
-    src_idx: [1, 2]
-    dst_idx: [1, 2]
+    src_idx: [1, 5]
+    dst_idx: [1, 6]
     dst_dir: "Eject"
   - src: "cluster"
     dst: "router"
-    src_idx: [1, 3]
-    dst_idx: [1, 3]
-    dst_dir: "Eject"
-  - src: "cluster"
-    dst: "router"
-    src_idx: [1, 4]
-    dst_idx: [1, 5]
-    dst_dir: "Eject"
-  - src: "cluster"
-    dst: "router"
-    src_range:
-    - [2, 2]
-    - [0, 4]
-    dst_range:
-    - [2, 2]
-    - [0, 4]
+    src_idx: [2, 5]
+    dst_idx: [2, 5]
     dst_dir: "Eject"
   # Memory
   - src: "l2_spm"
     dst: "router"
     src_idx: [0]
-    dst_idx: [1, 4]
+    dst_idx: [1, 5]
     dst_dir: "Eject"
   # Host processor
   - src: "cheshire"

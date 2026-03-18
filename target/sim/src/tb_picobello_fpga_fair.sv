@@ -11,10 +11,18 @@
 `define t_periph_bus 1 // core - peripheral bus - peripheral (10)
 `define t_multi_cl_displacement 0 // assuming protocol conversion (10) + sequential transmission (x16) x worst-case assumption (6)
 
+// Experimental results
 `define PRINT_RESULTS
 `define SAVE_EXPERIMENT_GENERAL
-// `define SAVE_EXPERIMENT_STATS
-// `define SAVE_BURST_TIMESTAMPS
+`define SAVE_EXPERIMENT_STATS
+`define SAVE_BURST_TIMESTAMPS
+
+// Traffic flow setup
+// `define INTRA_FLOW     
+// `define INTER_FLOW_1H
+// `define INTER_FLOW_2H
+// `define INTER_FLOW_4H
+`define INTER_FLOW_8H
 
 import fpga_picobello_pkg::*;
 import sim_picobello_pkg::*;
@@ -100,18 +108,275 @@ module tb_picobello_fpga_fair
   string filePath;
   string fileDir;
 
+  /////////////////////
+  // Traffic Streams //
+  /////////////////////
+
+  // DMA enable flags (use one per time)
+  int DmaReadEnable = 1;
+  int DmaWriteEnable = 0;
+
+  // ------------------------------------------------------------- //
+  // Intra-flow setup
+  `ifdef INTRA_FLOW
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{
+      ClusterX0Y0SamIdx, 
+      ClusterX0Y1SamIdx, 
+      ClusterX0Y2SamIdx, 
+      ClusterX0Y3SamIdx
+    };
+    localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd1; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 1;
+    localparam int unsigned NumClustersInterfActive = 0;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{ClusterX0Y0SamIdx};
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd256; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
+  // Inter-flow setup - 1 hop
+  `ifdef INTER_FLOW_1H
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX0Y0SamIdx};
+    localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 3;
+    localparam int unsigned NumClustersInterfActive = 3;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
+      ClusterX0Y1SamIdx, 
+      ClusterX0Y2SamIdx, 
+      ClusterX0Y3SamIdx
+    };
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx
+    }; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
+  // Inter-flow setup - 2 hops
+  `ifdef INTER_FLOW_2H
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 11;
+    localparam int unsigned NumClustersInterfActive = 11;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
+      ClusterX0Y0SamIdx,
+      ClusterX0Y1SamIdx,
+      ClusterX0Y2SamIdx,
+      ClusterX0Y3SamIdx,
+      ClusterX1Y0SamIdx,
+      ClusterX1Y2SamIdx,
+      ClusterX1Y3SamIdx,
+      ClusterX2Y0SamIdx,
+      ClusterX2Y1SamIdx,
+      ClusterX2Y2SamIdx,
+      ClusterX2Y3SamIdx
+    };
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx,
+      L2Spm0SamIdx
+    }; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
+  // Inter-flow setup - 4 hops
+  `ifdef INTER_FLOW_4H
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 17;
+    localparam int unsigned NumClustersInterfActive = 17;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
+      ClusterX0Y0SamIdx,
+      ClusterX0Y1SamIdx,
+      ClusterX0Y2SamIdx,
+      ClusterX0Y3SamIdx,
+      ClusterX0Y4SamIdx,
+      ClusterX0Y5SamIdx,
+      ClusterX1Y0SamIdx,
+      ClusterX1Y2SamIdx,
+      ClusterX1Y3SamIdx,
+      ClusterX1Y4SamIdx,
+      ClusterX1Y5SamIdx,
+      ClusterX2Y0SamIdx,
+      ClusterX2Y1SamIdx,
+      ClusterX2Y2SamIdx,
+      ClusterX2Y3SamIdx,
+      ClusterX2Y4SamIdx,
+      ClusterX2Y5SamIdx
+    };
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx
+    }; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
+  // Inter-flow setup - 8 hops
+  `ifdef INTER_FLOW_8H
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 29;
+    localparam int unsigned NumClustersInterfActive = 29;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
+      ClusterX0Y0SamIdx,
+      ClusterX0Y1SamIdx,
+      ClusterX0Y2SamIdx,
+      ClusterX0Y3SamIdx,
+      ClusterX0Y4SamIdx,
+      ClusterX0Y5SamIdx,
+      ClusterX0Y6SamIdx,
+      ClusterX0Y7SamIdx,
+      ClusterX0Y8SamIdx,
+      ClusterX0Y9SamIdx,
+      ClusterX1Y0SamIdx,
+      ClusterX1Y2SamIdx,
+      ClusterX1Y3SamIdx,
+      ClusterX1Y4SamIdx,
+      ClusterX1Y5SamIdx,
+      ClusterX1Y6SamIdx,
+      ClusterX1Y7SamIdx,
+      ClusterX1Y8SamIdx,
+      ClusterX1Y9SamIdx,
+      ClusterX2Y0SamIdx,
+      ClusterX2Y1SamIdx,
+      ClusterX2Y2SamIdx,
+      ClusterX2Y3SamIdx,
+      ClusterX2Y4SamIdx,
+      ClusterX2Y5SamIdx,
+      ClusterX2Y6SamIdx,
+      ClusterX2Y7SamIdx,
+      ClusterX2Y8SamIdx,
+      ClusterX2Y9SamIdx
+    };
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx
+    }; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
+
   ///////////////////////////////
   // TB exploration variables  //
   ///////////////////////////////
 
   // Number of performed tests
   int NTest = 0;
-
-  // Number of clusters and cores under test
-  localparam int unsigned NumClustersActive = 1;
-  localparam int unsigned NumClustersInterf = 8;
-  localparam int unsigned NumClustersInterfActive = 0; // per cluster
-  localparam int unsigned NumCoresActive = 8; // per cluster
 
   // Traffic dimension (hardwired)
   int TrafficDim = 256 * 128; // hardwired in traffic generator design
@@ -127,11 +392,7 @@ module tb_picobello_fpga_fair
   // Number of accelerators per cluster
   int NAccxClMin = 1; // accelerator per cluster tile (most performant case)
   int NAccxClMax = 1; // <= NAccxClMax <= NumClustersActive
-
-  // DMA enable flags (use one per time)
-  int DmaReadEnable = 0;
-  int DmaWriteEnable = 1;
-
+  
   ///////////////////
   // Critical task //
   ///////////////////
@@ -139,42 +400,10 @@ module tb_picobello_fpga_fair
   // Number of hops from memory tile
   localparam int unsigned NumHopsClMem = 1;
 
-  // Cluster ID list for critical tasks
-  localparam int unsigned IdTestCl[NumClustersActive] = '{
-    ClusterX0Y0SamIdx + (NumHopsClMem - 1), 
-    ClusterX0Y1SamIdx + (NumHopsClMem - 1), 
-    ClusterX0Y2SamIdx + (NumHopsClMem - 1), 
-    ClusterX0Y3SamIdx + (NumHopsClMem - 1)
-  };
-  // localparam int unsigned IdTestCl[NumClustersActive] = '{0};
-
-  // Memory ID list for critical tasks
-  localparam int unsigned IdTestMem = '{L2Spm0SamIdx};
-  // localparam int unsigned IdTestMem = '{L2Spm7SamIdx};
-
   // Number of AXI IDs per cluster
   localparam int unsigned NAxiIds = 1; 
   localparam int unsigned NAxiIdsMin = 1; // When each DMA is assigned with the same ID.
   localparam int unsigned NAxiIdsMax = NumClustersActive * NumCoresActive; // When each DMA is assigned with a unique ID.
-
-  // Burst length for critical tasks
-  int CriticalBurstLengthMin = 32'd1; // burstless (single-beat)
-  int CriticalBurstLengthMax = 32'd2; // max allowed by axi4
-
-  /////////////////
-  // Interferers //
-  /////////////////
-
-  // Cluster ID list for interferers
-  localparam int unsigned IdTestClInterf[NumClustersInterf] = '{1, 2, 3, 4, 5, 6, 7, 8};
-
-  // Memory ID list for interferers
-  // localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm0SamIdx, L2Spm1SamIdx, L2Spm2SamIdx, L2Spm3SamIdx, L2Spm4SamIdx, L2Spm5SamIdx, L2Spm6SamIdx, L2Spm7SamIdx};
-  localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx, L2Spm0SamIdx};
-
-  // Burst length for interferers
-  int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
-  int InterfBurstLengthMax = 32'd1; // max allowed by axi4
   
   /////////
   // DUT //

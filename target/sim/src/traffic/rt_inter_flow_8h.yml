@@ -50,7 +50,7 @@ traffic_flows:
       length: 256
   - name: "critical"
     initiator: [1, 1]
-    endpoint: [1, 5]
+    endpoint: [1, 9]
     rw: read
     narrow_burst:
       number: 0
@@ -164,7 +164,7 @@ traffic_flows:
 
   - name: "interferer"
     initiator: [0, 5]
-    endpoint: [1, 5]
+    endpoint: [1, 6]
     rw: read
     narrow_burst:
       number: 0
@@ -173,8 +173,8 @@ traffic_flows:
       number: 32
       length: 256
   - name: "interferer"
-    initiator: [1, 6]
-    endpoint: [1, 5]
+    initiator: [1, 5]
+    endpoint: [1, 6]
     rw: read
     narrow_burst:
       number: 0
@@ -184,7 +184,131 @@ traffic_flows:
       length: 256
   - name: "interferer"
     initiator: [2, 5]
-    endpoint: [1, 5]
+    endpoint: [1, 6]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+
+  - name: "interferer"
+    initiator: [0, 6]
+    endpoint: [1, 7]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [1, 6]
+    endpoint: [1, 7]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [2, 6]
+    endpoint: [1, 7]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+
+  - name: "interferer"
+    initiator: [0, 7]
+    endpoint: [1, 8]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [1, 7]
+    endpoint: [1, 8]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [2, 7]
+    endpoint: [1, 8]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+
+  - name: "interferer"
+    initiator: [0, 8]
+    endpoint: [1, 9]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [1, 8]
+    endpoint: [1, 9]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [2, 8]
+    endpoint: [1, 9]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+
+  - name: "interferer"
+    initiator: [0, 9]
+    endpoint: [1, 9]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [1, 10]
+    endpoint: [1, 9]
+    rw: read
+    narrow_burst:
+      number: 0
+      length: 0
+    wide_burst:
+      number: 32
+      length: 256
+  - name: "interferer"
+    initiator: [2, 9]
+    endpoint: [1, 9]
     rw: read
     narrow_burst:
       number: 0
