@@ -933,21 +933,40 @@ module tb_picobello_fpga_fair
                     // Start DMAs
                     if(DmaReadEnable) begin
                       dpi_rt.dma_read_start_high(cl_id, core_id);
-                      if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
-                        `wait_n_clk(1);
-                        dpi_rt.dma_read_start_low(cl_id, core_id);
-                      end
                     end
                     if(DmaWriteEnable) begin
                       dpi_rt.dma_write_start_high(cl_id, core_id);
-                      if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
-                        `wait_n_clk(1);
-                        dpi_rt.dma_write_start_low(cl_id, core_id);
-                      end
                     end
 
                   end
                   dma_r_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma read starts
+                end
+
+                // DMA: lower start signal if using floo DMA test node
+                if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
+                  
+                  // Wait one cycle before lowering start signal to ensure DMAs have been triggered
+                  `wait_n_clk(1);
+
+                  dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
+                    automatic int cl_id;
+                    if(i < NumClustersActive) begin
+                      cl_id = IdTestCl[i];
+                    end else begin
+                      cl_id = IdTestClInterf[i - NumClustersActive];
+                    end
+
+                    dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                      automatic int core_id = j;
+
+                      if(DmaReadEnable) begin
+                        dpi_rt.dma_read_start_low(cl_id, core_id);
+                      end
+                      if(DmaWriteEnable) begin
+                        dpi_rt.dma_write_start_low(cl_id, core_id);
+                      end
+                    end
+                  end
                 end
 
                 `wait_n_clk(5);
