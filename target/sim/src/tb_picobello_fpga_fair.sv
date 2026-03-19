@@ -18,11 +18,12 @@
 `define SAVE_BURST_TIMESTAMPS
 
 // Traffic flow setup
-// `define INTRA_FLOW     
+// `define INTRA_FLOW   
+`define INTER_FLOW_1H_ENDPOINT  
 // `define INTER_FLOW_1H
 // `define INTER_FLOW_2H
 // `define INTER_FLOW_4H
-`define INTER_FLOW_8H
+// `define INTER_FLOW_8H
 
 import fpga_picobello_pkg::*;
 import sim_picobello_pkg::*;
@@ -154,8 +155,8 @@ module tb_picobello_fpga_fair
     localparam int unsigned NumCoresActive = 1;
   `endif
   // ------------------------------------------------------------- //
-  // Inter-flow setup - 1 hop
-  `ifdef INTER_FLOW_1H
+  // Inter-flow setup - 1 hop (interference at endpoint only, so 1 task per memory router port)
+  `ifdef INTER_FLOW_1H_ENDPOINT
     // Critical flow
     localparam int unsigned NumClustersActive = 1;
     localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX0Y0SamIdx};
@@ -174,8 +175,50 @@ module tb_picobello_fpga_fair
       ClusterX0Y3SamIdx
     };
     localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
+      L2Spm0SamIdx
+    }; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
+  // Inter-flow setup - 1 hop
+  `ifdef INTER_FLOW_1H
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 8;
+    localparam int unsigned NumClustersInterfActive = 8;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
+      ClusterX0Y0SamIdx,
+      ClusterX0Y1SamIdx,
+      ClusterX0Y2SamIdx,
+      ClusterX1Y0SamIdx,
+      ClusterX1Y2SamIdx,
+      ClusterX2Y0SamIdx,
+      ClusterX2Y1SamIdx,
+      ClusterX2Y2SamIdx
+    };
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
       L2Spm0SamIdx, 
       L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx,
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
       L2Spm0SamIdx
     }; // currently not used with floo dma
 
