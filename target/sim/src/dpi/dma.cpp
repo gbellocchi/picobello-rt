@@ -249,3 +249,35 @@ extern "C" int dma_write_get_idle(int cl_id, int core_id, int use_hls_tg)
   
   return (vpi_val.value.scalar == vpi1) ? 1 : 0;
 }
+
+///////////////////////
+// AXI-Realm control //
+///////////////////////
+
+// VPI implementation to set DMA AXI AWID
+extern "C" void axi_rt_set_fragm_len(int cl_id, int core_id, int value) 
+{
+  // Simulator signal path
+  char vsim_path[512];
+
+  // Construct target signal path to fragment length
+  snprintf(
+    vsim_path, sizeof(vsim_path), 
+    "tb_picobello_fpga_fair.dut.gen_clusters[%d].i_cluster_rt_tile.i_axi_rt_unit_wide.i_axi_rt_reg_top.reg2hw.len_limit[%d].q", 
+    cl_id, core_id
+  );
+
+  // "tb_picobello_fpga_fair.dut.gen_clusters[%d].i_cluster_rt_tile.i_axi_rt_unit_wide.gen_rt_units[%d].i_axi_rt_unit.fragm_len_new"
+
+  // Get VPI handle
+  vpiHandle vpi_handle = vpi_get_handle(vsim_path);
+  if (!vpi_handle) return;
+
+  // Set VPI value structure
+  s_vpi_value vpi_val;
+  vpi_val.format = vpiIntVal;
+  vpi_val.value.integer = value;
+
+  // Write value to signal
+  vpi_put_value(vpi_handle, &vpi_val, NULL, vpiNoDelay);
+}

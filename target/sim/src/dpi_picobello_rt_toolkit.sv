@@ -28,6 +28,9 @@ module dpi_picobello_rt_toolkit (
   import "DPI-C" function void dma_write_start(input int cl_id, input int core_id, input int value, int use_hls_tg);
   import "DPI-C" function int dma_write_get_idle(input int cl_id, input int core_id, int use_hls_tg);
 
+  // AXI Realm control
+  import "DPI-C" function void axi_rt_set_fragm_len(input int cl_id, input int core_id, input int value);
+
   // Wait a certain number of clock cycles
   task sv_wait_clocks(
     input int unsigned num_clocks
@@ -72,6 +75,14 @@ module dpi_picobello_rt_toolkit (
     while (dma_write_get_idle(cl_id, core_id, fpga_picobello_pkg::UseHlsTg) != 1) begin
       sv_wait_clocks(1);
     end
+  endtask
+
+  //////////////////////////////////
+  //  AXI Realm control wrappers  //
+  //////////////////////////////////
+
+  task axi_rt_fragm_len(input int cl_id, input int core_id, input int value);
+    axi_rt_set_fragm_len(cl_id, core_id, value);
   endtask
 
 endmodule
