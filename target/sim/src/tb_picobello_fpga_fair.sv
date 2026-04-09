@@ -122,8 +122,12 @@ module tb_picobello_fpga_fair
   /////////////////////
 
   // DMA enable flags (use one per time)
-  int DmaReadEnable = 1;
-  int DmaWriteEnable = 0;
+  int DmaReadEnable = 0;
+  int DmaWriteEnable = 1;
+
+  // Interferer reconfiguration after critical task termination
+  localparam bit RuntimeInterfReconfig = 1'b1;
+  int InterfBurstLengthReconfig = 32'd256; // max allowed by axi4
 
   // ------------------------------------------------------------- //
   // Intra-flow setup
@@ -661,7 +665,7 @@ module tb_picobello_fpga_fair
             cl_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
               automatic int cl_id = IdTestCl[i];
 
-              rt_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+              rt_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                 automatic int core_id = j;
                 automatic int core_axi_id;
 
@@ -705,7 +709,7 @@ module tb_picobello_fpga_fair
             cl_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
               automatic int cl_id = IdTestClInterf[i];
 
-              rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+              rt_interf_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                 automatic int core_id = j;
 
                 // Configure read traffic generator
@@ -744,7 +748,7 @@ module tb_picobello_fpga_fair
             interferer_task_burst_length_loop: for (int InterfBurstLength = InterfBurstLengthMin; InterfBurstLength <= InterfBurstLengthMax; InterfBurstLength = InterfBurstLength * 2) begin
 
               // Configure AXI-Realm for critical tasks
-              rt_cfg_loop_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+              rt_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
 
                 // Set register file address offset
@@ -791,7 +795,7 @@ module tb_picobello_fpga_fair
                 picobello_rt_set_period_budget(tb_rt_cfg);
 
                 // Set and configure AXI-Realm manager registers
-                rt_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                rt_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                   automatic int core_id = j;
 
                   // Set manager ID
@@ -820,7 +824,7 @@ module tb_picobello_fpga_fair
               end
 
               // Configure AXI-Realm for interferers
-              rt_interf_cfg_loop_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+              rt_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
                 automatic int cl_id = IdTestClInterf[i];
 
                 // Set register file address offset
@@ -868,7 +872,7 @@ module tb_picobello_fpga_fair
                 picobello_rt_set_period_budget(tb_rt_cfg);
 
                 // Set and configure AXI-Realm manager registers
-                rt_interf_cfg_loop_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                rt_interf_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                   automatic int core_id = j;
 
                   // Set manager ID
@@ -936,25 +940,56 @@ module tb_picobello_fpga_fair
 
               `wait_n_clk(1);
 
-              // Store timer value for critical and interferer tasks
+              // --- DMA in
+              dma_r_first_burst = '{default: '0};
+              dma_r_timer_0 = '{default: '0}; 
+              dma_r_timer_1 = '{default: '0}; 
+              dma_r_timer_val = '{default: '0};
+
+              // Store timer values
               t_critical.t0 = tb_timer_cnt_value;
               t_interferer.t0 = tb_timer_cnt_value;
-
-              // Store timer value for total execution time
               t_total.t0 = tb_timer_cnt_value;
 
-              // Iterate over the accelerators per cluster
-              dma_in_set_acc_x_cl_loop: for (int acc_cl_id = 0; acc_cl_id < NAccxCl; acc_cl_id++) begin
-                // Initialize TB exploration variables
+              // DMA: launch data transfers to/from L2 memory
+              dma_in_start_loop_0: for (int i = 0; i < (NumClustersActive + NumClustersInterfActive); i++) begin
+                automatic int cl_id;
+                if(i < NumClustersActive) begin
+                  cl_id = IdTestCl[i];
+                end else begin
+                  cl_id = IdTestClInterf[i - NumClustersActive];
+                end
 
-                // --- DMA in
-                dma_r_first_burst = '{default: '0};
-                dma_r_timer_0 = '{default: '0}; 
-                dma_r_timer_1 = '{default: '0}; 
-                dma_r_timer_val = '{default: '0};
+                // Start BW monitors for NoC NI
+                if(DmaReadEnable) begin
+                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                end
+                if(DmaWriteEnable) begin
+                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                end
 
-                // DMA: launch data transfers to/from L2 memory
-                dma_in_start_loop_0: for (int i = 0; i < (NumClustersActive + NumClustersInterfActive); i++) begin
+                dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+                  
+                  // Start DMAs
+                  if(DmaReadEnable) begin
+                    dpi_rt.dma_read_start_high(cl_id, core_id);
+                  end
+                  if(DmaWriteEnable) begin
+                    dpi_rt.dma_write_start_high(cl_id, core_id);
+                  end
+
+                end
+                dma_r_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma read starts
+              end
+
+              // DMA: lower start signal if using floo DMA test node
+              if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
+                
+                // Wait one cycle before lowering start signal to ensure DMAs have been triggered
+                `wait_n_clk(1);
+
+                dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
                   automatic int cl_id;
                   if(i < NumClustersActive) begin
                     cl_id = IdTestCl[i];
@@ -962,86 +997,69 @@ module tb_picobello_fpga_fair
                     cl_id = IdTestClInterf[i - NumClustersActive];
                   end
 
-                  // Start BW monitors for NoC NI
+                  dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                    automatic int core_id = j;
+
+                    if(DmaReadEnable) begin
+                      dpi_rt.dma_read_start_low(cl_id, core_id);
+                    end
+                    if(DmaWriteEnable) begin
+                      dpi_rt.dma_write_start_low(cl_id, core_id);
+                    end
+                  end
+                end
+              end
+
+              `wait_n_clk(5);
+
+              // DMA: wait for completion (critical tasks only)
+              dma_in_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+                automatic int cl_id = IdTestCl[i];
+
+                dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                  automatic int core_id = j;
+
+                  // Wait for DMA idles
                   if(DmaReadEnable) begin
-                    picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                    dpi_rt.dma_read_wait_idle(cl_id, core_id);
                   end
                   if(DmaWriteEnable) begin
-                    picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
-                  end
-
-                  dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                    automatic int core_id = j;
-                    
-                    // Start DMAs
-                    if(DmaReadEnable) begin
-                      dpi_rt.dma_read_start_high(cl_id, core_id);
-                    end
-                    if(DmaWriteEnable) begin
-                      dpi_rt.dma_write_start_high(cl_id, core_id);
-                    end
-
-                  end
-                  dma_r_timer_0[cl_id] = tb_timer_cnt_value; // Store timer value as dma read starts
-                end
-
-                // DMA: lower start signal if using floo DMA test node
-                if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
-                  
-                  // Wait one cycle before lowering start signal to ensure DMAs have been triggered
-                  `wait_n_clk(1);
-
-                  dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
-                    automatic int cl_id;
-                    if(i < NumClustersActive) begin
-                      cl_id = IdTestCl[i];
-                    end else begin
-                      cl_id = IdTestClInterf[i - NumClustersActive];
-                    end
-
-                    dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                      automatic int core_id = j;
-
-                      if(DmaReadEnable) begin
-                        dpi_rt.dma_read_start_low(cl_id, core_id);
-                      end
-                      if(DmaWriteEnable) begin
-                        dpi_rt.dma_write_start_low(cl_id, core_id);
-                      end
-                    end
+                    dpi_rt.dma_write_wait_idle(cl_id, core_id);
                   end
                 end
+                // Store timer value as dma read terminates
+                dma_r_timer_1[cl_id] = tb_timer_cnt_value;
+                dma_r_timer_val[cl_id] = dma_r_timer_1[cl_id] - dma_r_timer_0[cl_id];
+              end
 
-                `wait_n_clk(5);
-
-                // DMA: wait for completion (critical tasks only)
-                dma_in_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-                  automatic int cl_id = IdTestCl[i];
-
-                  dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                    automatic int core_id = j;
-
-                    // Wait for DMA idles
-                    if(DmaReadEnable) begin
-                      dpi_rt.dma_read_wait_idle(cl_id, core_id);
-                    end
-                    if(DmaWriteEnable) begin
-                      dpi_rt.dma_write_wait_idle(cl_id, core_id);
-                    end
-                  end
-                  // Store timer value as dma read terminates
-                  dma_r_timer_1[cl_id] = tb_timer_cnt_value;
-                  dma_r_timer_val[cl_id] = dma_r_timer_1[cl_id] - dma_r_timer_0[cl_id];
-                end
-
-                `wait_n_clk(1);
-
-              end // dma_in_set_acc_x_cl_loop
+              `wait_n_clk(1);
 
               // Store timer value for critical tasks
               t_critical.t1 = tb_timer_cnt_value;
 
               `wait_n_clk(1);
+
+              // Reconfigure interferer clusters after critical tasks terminate
+              if(RuntimeInterfReconfig) begin
+
+                // Update and dispatch AXI-Realm configuration
+                rt_interf_max_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+                  // automatic int cl_id = IdTestClInterf[i];
+                  automatic int ai = i;
+                  automatic int cl_id = IdTestClInterf[ai];
+                  automatic fpga_picobello_pkg::rt_cfg_t local_rt_cfg = '0;
+
+                  // programming and propagation time from host to RT unit
+                  `wait_n_clk(10);
+
+                  rt_interf_max_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+                    automatic int core_id = j;
+
+                    // Set fragment length
+                    dpi_rt.axi_rt_fragm_len(cl_id, core_id, (InterfBurstLengthReconfig - 1));
+                  end              
+                end
+              end
 
               // Stop BW monitors for critical tasks
               critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
@@ -1066,7 +1084,7 @@ module tb_picobello_fpga_fair
                   if(DmaWriteEnable) begin
                     dpi_rt.dma_write_wait_idle(cl_id, core_id);
                   end
-                end
+                end                
               end  
 
               // Store timer value for interferer tasks
