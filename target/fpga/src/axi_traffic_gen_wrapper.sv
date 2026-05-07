@@ -147,7 +147,7 @@ module axi_traffic_gen_wrapper
                 .TT             ( sim_picobello_pkg::TestTime                ),
                 .AxiCfg         ( AxiCfg                                     ),
                 .MemBaseAddr    ( FlooDmaMemBaseAddr                         ),
-                .MemSize        ( picobello_pkg::MemTileSize                 ),
+                .MemSize        ( picobello_pkg::ClusterTileSize             ),
                 .NumAxInFlight  ( picobello_pkg::ChimneyClusterRtCfg.MaxTxns ),
                 .BufferDepth    ( picobello_pkg::ChimneyClusterRtCfg.MaxTxns ),
                 .axi_in_req_t   ( axi_in_req_t                               ),

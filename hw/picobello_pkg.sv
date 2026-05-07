@@ -154,6 +154,9 @@ package picobello_pkg;
   //  Cluster Tile  //
   ////////////////////
 
+  // L1 memory size of every cluster tile
+  localparam int unsigned ClusterTileSize = ep_addr_size(ClusterX0Y0SamIdx);
+
   // Atop support is removed since not used.
   // Moreover, there is an inconsistency when using MaxUniqueIds > 1 in the meta buffer with AtopSupport.
   // To meet the conditions of the assertion TooFewIdBits2, OutIdWidth > InIdWidth is needed. However, this breaks ID queues that are expecting ID width = IdMinWidth = OutIdWidth (e.g., i_aw_no_atop_id_queue).
@@ -179,7 +182,7 @@ package picobello_pkg;
   //  Mem Tile  //
   ////////////////
 
-  // The L2 SPM memory size of every mem tile
+  // L2 memory size of every memory tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
 
   // Atop support

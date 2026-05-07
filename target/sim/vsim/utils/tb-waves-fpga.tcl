@@ -6,21 +6,24 @@
 
 # Parameters
 set n_cl 4
-# set n_cl 9
 set n_core 8
 set n_core_regfiles 4
 set n_mem 1
-# set n_mem 8
 set use_hls_tg 0
 
 # TB top
 add wave -noupdate -group {tb} {/tb_picobello_fpga_fair/*}
 
-# TB BW monitors
+# TB BW monitors - Clusters
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     for {set co 0} {$co < $n_core} {incr co} {
         add wave -noupdate -group {cl_bw_monitor} -group "gen_cl_bw_monitor[$cl][$co]" /tb_picobello_fpga_fair/gen_cl_bw_monitor_loop_0\[$cl\]/gen_cl_bw_monitor_loop_1\[$co\]/i_axi_bw_monitor/*
     }
+}
+
+# TB BW monitors - NoC NI
+for {set cl 0} {$cl < $n_cl} {incr cl} {
+    add wave -noupdate -group {noc_ni_bw_monitor} -group "gen_noc_ni_bw_monitor[$cl]" /tb_picobello_fpga_fair/gen_noc_ni_bw_monitor_loop_0\[$cl\]/i_axi_bw_monitor/*
 }
 
 # TB timer
@@ -33,6 +36,12 @@ add wave -noupdate -group {top} {/tb_picobello_fpga_fair/dut/*}
 add wave -noupdate -group {host_tile} {/tb_picobello_fpga_fair/dut/i_fpga_host_tile/*}
 add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_fpga_fair/dut/i_fpga_host_tile/i_router/*}
 add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_fpga_fair/dut/i_fpga_host_tile/i_chimney/*}
+
+# Cluster tiles
+for {set cl 0} {$cl < $n_cl} {incr cl} {
+    set tile_path "/tb_picobello_fpga_fair/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
+    add wave -noupdate -group "dma_track" -group "cl_ni[$cl]" ${tile_path}/i_chimney/*
+}
 
 # Cluster tiles
 for {set cl 0} {$cl < $n_cl} {incr cl} {

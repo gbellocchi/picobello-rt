@@ -75,7 +75,7 @@ vsim-jobs-create: $(TRAFFIC_CFG) $(TRAFFIC_GEN)
 		--floonoc_cfg $(FLOO_CFG)
 
 vsim-jobs-clean:
-	rm -rf $(dir $(TRAFFIC_CFG))
+	rm -f $(dir $(TRAFFIC_CFG))*.txt
 
 ##################
 # RTL simulation #
