@@ -67,10 +67,15 @@ module tb_picobello_fpga_fair
   sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
   sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
 
-  floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_req [picobello_pkg::NumClusters-1:0];
-  floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_rsp [picobello_pkg::NumClusters-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_noc_ni_cfg [picobello_pkg::NumClusters-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_ni_stats [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_noc_ni_wide_cfg [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_ni_wide_stats [picobello_pkg::NumClusters-1:0];
+
+  floo_picobello_noc_pkg::axi_narrow_in_req_t bw_rt_noc_ni_narrow_req [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_narrow_in_rsp_t bw_rt_noc_ni_narrow_rsp [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_noc_ni_narrow_cfg [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_ni_narrow_stats [picobello_pkg::NumClusters-1:0];
 
   // Experimental statistics
   sim_picobello_pkg::experimental_stats_t experimental_stats;
@@ -122,11 +127,15 @@ module tb_picobello_fpga_fair
   /////////////////////
 
   // DMA enable flags (use one per time)
-  int DmaReadEnable = 0;
+  int DmaReadEnable = 1;
   int DmaWriteEnable = 1;
 
+  // NoC plane control
+  localparam int unsigned NumNoCPlanes = fpga_picobello_pkg::NumNoCPlanes;
+  int NoCPlaneEnable[NumNoCPlanes] = '{1, 0}; // Wide=active, Narrow=inactive by default
+
   // Interferer reconfiguration after critical task termination
-  localparam bit RuntimeInterfReconfig = 1'b1;
+  localparam bit RuntimeInterfReconfig = 1'b0;
   int InterfBurstLengthReconfig = 32'd256; // max allowed by axi4
 
   // ------------------------------------------------------------- //
@@ -537,8 +546,8 @@ module tb_picobello_fpga_fair
 
       localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_core_%0d", cl_id, core_id);
 
-      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_in_req[core_id];
-      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_in_rsp[core_id];
+      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_wide_in_req[core_id];
+      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_wide_in_rsp[core_id];
 
       axi_bw_monitor #(
         .req_t        ( fpga_picobello_pkg::axi_wide_tg_req_t           ),
@@ -563,10 +572,10 @@ module tb_picobello_fpga_fair
 
   // FlooNoC NI AXI4 wide input
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_bw_monitor_loop_0
-    localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_cl_%0d", cl_id);
+    localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_wide_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_req;
-    assign bw_rt_noc_ni_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_rsp;
+    assign bw_rt_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_req;
+    assign bw_rt_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_wide_in_req_t       ),
@@ -579,12 +588,39 @@ module tb_picobello_fpga_fair
     ) i_axi_bw_monitor (
       .clk_i          ( clk                             ),
       .rst_ni         ( rst_n                           ),
-      .req_i          ( bw_rt_noc_ni_req[cl_id]         ),
-      .rsp_i          ( bw_rt_noc_ni_rsp[cl_id]         ),
+      .req_i          ( bw_rt_noc_ni_wide_req[cl_id]    ),
+      .rsp_i          ( bw_rt_noc_ni_wide_rsp[cl_id]    ),
       .ar_in_flight_o (                                 ),
       .aw_in_flight_o (                                 ),
-      .cfg_i          ( bw_rt_noc_ni_cfg[cl_id]         ),
-      .stats_o        ( bw_rt_noc_ni_stats[cl_id]       )
+      .cfg_i          ( bw_rt_noc_ni_wide_cfg[cl_id]    ),
+      .stats_o        ( bw_rt_noc_ni_wide_stats[cl_id]  )
+    );
+  end
+
+  // FlooNoC NI AXI4 narrow input
+  for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_narrow_bw_monitor_loop_0
+    localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_narrow_cl_%0d", cl_id);
+
+    assign bw_rt_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_narrow_in_req;
+    assign bw_rt_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_narrow_in_rsp;
+
+    axi_bw_monitor #(
+      .req_t        ( floo_picobello_noc_pkg::axi_narrow_in_req_t     ),
+      .rsp_t        ( floo_picobello_noc_pkg::axi_narrow_in_rsp_t     ),
+      .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
+      .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
+      .AxiDataWidth ( floo_picobello_noc_pkg::AxiCfgN.DataWidth       ),
+      .AxiIdWidth   ( floo_picobello_noc_pkg::AxiCfgN.InIdWidth       ),
+      .Name         ( BwMonitorName                                   )
+    ) i_axi_bw_monitor (
+      .clk_i          ( clk                                    ),
+      .rst_ni         ( rst_n                                  ),
+      .req_i          ( bw_rt_noc_ni_narrow_req[cl_id]         ),
+      .rsp_i          ( bw_rt_noc_ni_narrow_rsp[cl_id]         ),
+      .ar_in_flight_o (                                        ),
+      .aw_in_flight_o (                                        ),
+      .cfg_i          ( bw_rt_noc_ni_narrow_cfg[cl_id]         ),
+      .stats_o        ( bw_rt_noc_ni_narrow_stats[cl_id]       )
     );
   end
 
@@ -607,7 +643,8 @@ module tb_picobello_fpga_fair
       for (int j = 0; j < fpga_picobello_pkg::NumCores; j++) begin
         bw_rt_cl_cfg[i][j] = '{default: '0};
       end
-      bw_rt_noc_ni_cfg[i] = '{default: '0};
+      bw_rt_noc_ni_wide_cfg[i] = '{default: '0};
+      bw_rt_noc_ni_narrow_cfg[i] = '{default: '0};
     end
 
     // Wait for reset
@@ -671,7 +708,9 @@ module tb_picobello_fpga_fair
 
                 // Set AXI ID for DMA read
                 core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
-                dpi_rt.dma_read_set_arid(cl_id, core_id, core_axi_id);
+                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+                  dpi_rt.dma_read_set_arid(cl_id, core_id, noc_plane_id, core_axi_id);
+                end
 
                 // Configure read traffic generator
                 tb_tg_cfg_read.mem_port_id               = IdTestMem;  
@@ -687,7 +726,9 @@ module tb_picobello_fpga_fair
 
                 // Set AXI ID for DMA write
                 core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
-                dpi_rt.dma_write_set_awid(cl_id, core_id, core_axi_id);
+                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+                  dpi_rt.dma_write_set_awid(cl_id, core_id, noc_plane_id, core_axi_id);
+                end
 
                 // Configure write traffic generator
                 tb_tg_cfg_write.mem_port_id              = IdTestMem;  
@@ -921,13 +962,15 @@ module tb_picobello_fpga_fair
               // Initialize BW monitor for critical tasks
               bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
-                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
               end
 
               // Initialize BW monitor for interferers
               bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
                 automatic int cl_id = IdTestClInterf[i];
-                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
               end
 
               // Reset old timer counter value
@@ -962,21 +1005,25 @@ module tb_picobello_fpga_fair
 
                 // Start BW monitors for NoC NI
                 if(DmaReadEnable) begin
-                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
                 end
                 if(DmaWriteEnable) begin
-                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
                 end
 
                 dma_in_start_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                   automatic int core_id = j;
                   
                   // Start DMAs
-                  if(DmaReadEnable) begin
-                    dpi_rt.dma_read_start_high(cl_id, core_id);
-                  end
-                  if(DmaWriteEnable) begin
-                    dpi_rt.dma_write_start_high(cl_id, core_id);
+                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+                    if(DmaReadEnable) begin
+                      dpi_rt.dma_read_start_high(cl_id, core_id, noc_plane_id);
+                    end
+                    if(DmaWriteEnable) begin
+                      dpi_rt.dma_write_start_high(cl_id, core_id, noc_plane_id);
+                    end
                   end
 
                 end
@@ -1000,11 +1047,13 @@ module tb_picobello_fpga_fair
                   dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                     automatic int core_id = j;
 
-                    if(DmaReadEnable) begin
-                      dpi_rt.dma_read_start_low(cl_id, core_id);
-                    end
-                    if(DmaWriteEnable) begin
-                      dpi_rt.dma_write_start_low(cl_id, core_id);
+                    for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+                      if(DmaReadEnable) begin
+                        dpi_rt.dma_read_start_low(cl_id, core_id, noc_plane_id);
+                      end
+                      if(DmaWriteEnable) begin
+                        dpi_rt.dma_write_start_low(cl_id, core_id, noc_plane_id);
+                      end
                     end
                   end
                 end
@@ -1020,11 +1069,13 @@ module tb_picobello_fpga_fair
                   automatic int core_id = j;
 
                   // Wait for DMA idles
-                  if(DmaReadEnable) begin
-                    dpi_rt.dma_read_wait_idle(cl_id, core_id);
-                  end
-                  if(DmaWriteEnable) begin
-                    dpi_rt.dma_write_wait_idle(cl_id, core_id);
+                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+                    if(DmaReadEnable) begin
+                      dpi_rt.dma_read_wait_idle(cl_id, core_id, noc_plane_id);
+                    end
+                    if(DmaWriteEnable) begin
+                      dpi_rt.dma_write_wait_idle(cl_id, core_id, noc_plane_id);
+                    end
                   end
                 end
                 // Store timer value as dma read terminates
@@ -1065,10 +1116,12 @@ module tb_picobello_fpga_fair
               critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
                 automatic int cl_id = IdTestCl[i];
                 if(DmaReadEnable) begin
-                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
                 end
                 if(DmaWriteEnable) begin
-                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
                 end
               end
 
@@ -1078,11 +1131,13 @@ module tb_picobello_fpga_fair
                 interferer_task_dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
                   automatic int core_id = j;
                   // Wait for DMA idles
-                  if(DmaReadEnable) begin
-                    dpi_rt.dma_read_wait_idle(cl_id, core_id);
-                  end
-                  if(DmaWriteEnable) begin
-                    dpi_rt.dma_write_wait_idle(cl_id, core_id);
+                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+                    if(DmaReadEnable) begin
+                      dpi_rt.dma_read_wait_idle(cl_id, core_id, noc_plane_id);
+                    end
+                    if(DmaWriteEnable) begin
+                      dpi_rt.dma_write_wait_idle(cl_id, core_id, noc_plane_id);
+                    end
                   end
                 end                
               end  
@@ -1097,10 +1152,12 @@ module tb_picobello_fpga_fair
               interferer_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
                 automatic int cl_id = IdTestClInterf[i];
                 if(DmaReadEnable) begin
-                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
                 end
                 if(DmaWriteEnable) begin
-                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_cfg, cl_id);
+                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
                 end
               end
 
@@ -1196,18 +1253,18 @@ module tb_picobello_fpga_fair
 
                   // BW stats - Write values
                   $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
-                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_stats[cl_id].r_latency_mean);
-                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_stats[cl_id].r_latency_stddev);
-                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_noc_ni_stats[cl_id].r_bw_mean);
-                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].r_bw_stddev);
-                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].r_util_mean);
-                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_noc_ni_stats[cl_id].r_util_stddev);
-                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_noc_ni_stats[cl_id].w_latency_mean);
-                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_noc_ni_stats[cl_id].w_latency_stddev);
-                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_noc_ni_stats[cl_id].w_bw_mean);
-                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].w_bw_stddev);
-                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_stats[cl_id].w_util_mean);
-                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_stats[cl_id].w_util_stddev);
+                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_wide_stats[cl_id].r_latency_mean);
+                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_wide_stats[cl_id].r_latency_stddev);
+                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_noc_ni_wide_stats[cl_id].r_bw_mean);
+                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].r_bw_stddev);
+                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].r_util_mean);
+                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_noc_ni_wide_stats[cl_id].r_util_stddev);
+                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_noc_ni_wide_stats[cl_id].w_latency_mean);
+                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_noc_ni_wide_stats[cl_id].w_latency_stddev);
+                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_noc_ni_wide_stats[cl_id].w_bw_mean);
+                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].w_bw_stddev);
+                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].w_util_mean);
+                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_wide_stats[cl_id].w_util_stddev);
 
                   // BW stats - Close file
                   $fclose(fileDescriptor);
@@ -1235,28 +1292,28 @@ module tb_picobello_fpga_fair
 
                   // Latency - Write values
                   if(DmaReadEnable) begin
-                    foreach (bw_rt_noc_ni_stats[cl_id].r_burst_t0[i]) begin
+                    foreach (bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[i]) begin
                       $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
                         i,
-                        bw_rt_noc_ni_stats[cl_id].r_burst_t0[i], 
-                        bw_rt_noc_ni_stats[cl_id].r_burst_t1[i], 
-                        bw_rt_noc_ni_stats[cl_id].r_latency_val[i], 
-                        bw_rt_noc_ni_stats[cl_id].r_bw_val[i], 
-                        bw_rt_noc_ni_stats[cl_id].r_burst_n_beats[i], 
-                        bw_rt_noc_ni_stats[cl_id].r_burst_dw[i]
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t1[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_latency_val[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_bw_val[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_n_beats[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_dw[i]
                       );
                     end
                   end
                   if(DmaWriteEnable) begin
-                    foreach (bw_rt_noc_ni_stats[cl_id].w_burst_t0[i]) begin
+                    foreach (bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[i]) begin
                       $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
                         i,
-                        bw_rt_noc_ni_stats[cl_id].w_burst_t0[i], 
-                        bw_rt_noc_ni_stats[cl_id].w_burst_t1[i], 
-                        bw_rt_noc_ni_stats[cl_id].w_latency_val[i], 
-                        bw_rt_noc_ni_stats[cl_id].w_bw_val[i], 
-                        bw_rt_noc_ni_stats[cl_id].w_burst_n_beats[i], 
-                        bw_rt_noc_ni_stats[cl_id].w_burst_dw[i]
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t1[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_latency_val[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_bw_val[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_n_beats[i], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_dw[i]
                       );
                     end
                   end
