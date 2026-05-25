@@ -32,7 +32,11 @@ VSIM_FLAGS += -voptargs=+vpi
 
 VSIM_FLAGS_GUI = -voptargs=+acc
 
-VCD_COMMON_CMD = vcd file $(VSIM_RUN)/tb.vcd; vcd add -r /*;
+VCD_VIEWER = surfer
+
+VSIM_WLF_NAME = $(VSIM_RUN)/$(VSIM_NAME).wlf
+VSIM_VCD_NAME = $(VSIM_RUN)/$(VSIM_NAME).vcd
+VCD_COMMON_CMD = vcd file $(VSIM_VCD_NAME); vcd add -r /*;
 VSIM_COMMON_CMD = log -r /*; run -a;
 VSIM_WAVES_CMD = source "$(VSIM_DIR)/utils/tb-waves-fpga.tcl";
 
@@ -54,7 +58,9 @@ $(eval $(call add_vsim_flag,VSIM_LOG))
 
 TRAFFIC_GEN = $(FLOO_ROOT)/util/gen_jobs.py
 TRAFFIC_TB = import_traffic_cfg
-TRAFFIC_CFG ?= $(VSIM_SRC)/traffic/$(basename $(notdir $(FLOO_CFG))).yml
+
+TRAFFIC_CFG_NAME ?= $(basename $(notdir $(FLOO_CFG)))
+TRAFFIC_CFG = $(VSIM_SRC)/traffic/$(TRAFFIC_CFG_NAME).yml
 
 WIDE_BURST_NUM = 1
 WIDE_BURST_LENGTH = 256
@@ -81,7 +87,7 @@ vsim-jobs-clean:
 # RTL simulation #
 ##################
 
-.PHONY: vsim-compile vsim-clean vsim-run
+.PHONY: vsim-clean vsim-compile vsim-run-create vsim-run vsim-run-batch vsim-view-wlf
 
 vsim-clean:
 	rm -rf $(VSIM_RUN)
@@ -109,7 +115,13 @@ $(VSIM_RUN)/compile.tcl: vsim-run-create $(BENDER_YML) $(BENDER_LOCK)
 	done
 
 vsim-run:
-	cd $(VSIM_RUN) && $(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
+	cd $(VSIM_RUN) && $(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -wlf $(VSIM_WLF_NAME) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
 
 vsim-run-batch:
-	cd $(VSIM_RUN) && $(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "run -all; quit"
+	cd $(VSIM_RUN) && $(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -wlf $(VSIM_WLF_NAME) -do "$(VCD_COMMON_CMD) $(VSIM_COMMON_CMD) quit"
+
+vsim-view-wlf:
+	cd $(VSIM_RUN) && $(VSIM) -view $(VSIM_WLF_NAME) -do "$(VSIM_WAVES_CMD)" &>/dev/null
+
+vsim-view-vcd:
+	cd $(VSIM_RUN) && WGPU_BACKEND=gl $(VCD_VIEWER) $(VSIM_VCD_NAME) &>/dev/null
