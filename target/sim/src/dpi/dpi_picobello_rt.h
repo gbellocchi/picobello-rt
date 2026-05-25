@@ -17,13 +17,13 @@ extern "C" {
     // hello world
     char hello_world();
     // dma read control
-    void dma_read_set_arid(int cl_id, int core_id, int value); 
-    void dma_read_start(int cl_id, int core_id, int value, int use_hls_tg);
-    int dma_read_get_idle(int cl_id, int core_id, int use_hls_tg);
+    void dma_read_set_arid(int cl_id, int core_id, int noc_plane_id, int value);
+    void dma_read_start(int cl_id, int core_id, int noc_plane_id, int value, int use_hls_tg);
+    int dma_read_get_idle(int cl_id, int core_id, int noc_plane_id, int use_hls_tg);
     // dma write control
-    void dma_write_set_awid(int cl_id, int core_id, int value);
-    void dma_write_start(int cl_id, int core_id, int value, int use_hls_tg);
-    int dma_write_get_idle(int cl_id, int core_id, int use_hls_tg);
+    void dma_write_set_awid(int cl_id, int core_id, int noc_plane_id, int value);
+    void dma_write_start(int cl_id, int core_id, int noc_plane_id, int value, int use_hls_tg);
+    int dma_write_get_idle(int cl_id, int core_id, int noc_plane_id, int use_hls_tg);
     // axi-realm control
     void axi_rt_set_fragm_len(int cl_id, int core_id, int value);
 }
