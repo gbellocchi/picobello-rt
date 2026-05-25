@@ -49,6 +49,34 @@ package fpga_picobello_pkg;
   // Number of cores per tile
   localparam int unsigned NumCores = 8; // cores per cluster tile
 
+  // Number of NoC planes (narrow, wide)
+  localparam int unsigned NumNoCPlanes = 2;
+
+  // Indices of NoC planes
+  localparam int unsigned IdxNoCPlaneWide = 0;
+  localparam int unsigned IdxNoCPlaneNarrow = 1;
+
+  // Total number of DMA cores per tile
+  localparam int unsigned NumCoresTotal = NumCores * NumNoCPlanes;
+
+  // AXI4 narrow configuration for RT traffic (Traffic generator => MUX)
+  localparam axi_cfg_t AxiCfgNTrafficGen = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
+    InIdWidth: 5,
+    OutIdWidth: 5
+  };
+
+  typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_tg_addr_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth-1:0] axi_narrow_tg_data_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth/8-1:0] axi_narrow_tg_strb_t;
+  typedef logic [AxiCfgNTrafficGen.OutIdWidth-1:0] axi_narrow_tg_id_t;
+  typedef logic [AxiCfgNTrafficGen.UserWidth-1:0] axi_narrow_tg_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_tg, axi_narrow_tg_req_t, axi_narrow_tg_rsp_t,
+                      axi_narrow_tg_addr_t, axi_narrow_tg_id_t, axi_narrow_tg_data_t,
+                      axi_narrow_tg_strb_t, axi_narrow_tg_user_t)
+
   // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
   localparam axi_cfg_t AxiCfgWTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
@@ -128,7 +156,7 @@ package fpga_picobello_pkg;
   // Number of regions per master
   localparam int unsigned NumRegions      = 32'd1;
   // Max burst length
-  localparam int unsigned MaxBurstLength  = 32'd128;
+  localparam int unsigned MaxBurstLength  = 32'd256;
   // Number of outstanding transactions
   localparam int unsigned NumPending      = MaxBurstLength;
   // Write buffer depth

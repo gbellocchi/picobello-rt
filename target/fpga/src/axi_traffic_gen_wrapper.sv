@@ -17,6 +17,7 @@ module axi_traffic_gen_wrapper
     parameter int unsigned NumDmas = 1,
     parameter int unsigned NumPending = 32'd0,
     parameter id_t Id = '0,
+    parameter int unsigned FlooDmaIndex = '0,
     parameter logic [floo_picobello_noc_pkg::AxiCfgW.AddrWidth-1:0] FlooDmaMemBaseAddr = 32'h0,
     // AXI4 parameters
     parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
@@ -138,9 +139,6 @@ module axi_traffic_gen_wrapper
 
         end else begin: gen_floo_dma
 
-            // Calculate index
-            localparam int unsigned Index = int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
-
             // Traffic generator
             floo_dma_test_node #(
                 .TA             ( sim_picobello_pkg::ApplTime                ),
@@ -154,9 +152,9 @@ module axi_traffic_gen_wrapper
                 .axi_in_rsp_t   ( axi_in_rsp_t                               ),
                 .axi_out_req_t  ( axi_out_req_t                              ),
                 .axi_out_rsp_t  ( axi_out_rsp_t                              ),
-                .JobId          ( Index                                      ),
+                .JobId          ( FlooDmaIndex                               ),
                 .SlaveType      ( floo_test_pkg::IdealSlave                  )
-            ) i_wide_dma_node (
+            ) i_dma_node (
                 .clk_i          ( clk_i                        ),
                 .rst_ni         ( rst_ni                       ),
                 .axi_in_req_i   ( '0                           ),

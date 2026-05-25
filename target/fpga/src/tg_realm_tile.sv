@@ -130,8 +130,8 @@ module cluster_rt_tile
     .id_i,
     .route_table_i       ('0),
     .sram_cfg_i          ('0),
-    .axi_narrow_in_req_i ('0),
-    .axi_narrow_in_rsp_o (),
+    .axi_narrow_in_req_i (chimney_narrow_in_req),
+    .axi_narrow_in_rsp_o (chimney_narrow_in_rsp),
     .axi_narrow_out_req_o(chimney_narrow_out_req),
     .axi_narrow_out_rsp_i(chimney_narrow_out_rsp),
     .axi_wide_in_req_i   (chimney_wide_in_req),
@@ -157,15 +157,14 @@ module cluster_rt_tile
 
   // Core address map
   axi_narrow_out_addr_t core_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
-
-  axi_narrow_out_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCores;
+  axi_narrow_out_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCoresTotal;
 
   // Address map
-  axi_pkg::xbar_rule_64_t [NumCores-1:0] ni2cores_addr_map;
+  axi_pkg::xbar_rule_64_t [NumCoresTotal-1:0] ni2cores_addr_map;
 
   localparam axi_pkg::xbar_cfg_t XbarCfgNi2Cores = '{
     NoSlvPorts:         1, // Thus no ID expansion for outputs
-    NoMstPorts:         NumCores,
+    NoMstPorts:         NumCoresTotal,
     MaxMstTrans:        1,
     MaxSlvTrans:        1,
     FallThrough:        1'b0,
@@ -176,7 +175,7 @@ module cluster_rt_tile
     UniqueIds:          0,
     AxiAddrWidth:       floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
     AxiDataWidth:       floo_picobello_noc_pkg::AxiCfgN.DataWidth,
-    NoAddrRules:        NumCores
+    NoAddrRules:        NumCoresTotal
   };
 
   // AXI4 multi-core
@@ -185,10 +184,10 @@ module cluster_rt_tile
     .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgN.DataWidth),
     .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.OutIdWidth),
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
-  ) axi_core [NumCores-1:0]();
+  ) axi_core [NumCoresTotal-1:0]();
 
   // Address map
-  for (genvar i = 0; i < NumCores; i++) begin : gen_rt_tile_ni2cores_addr_map
+  for (genvar i = 0; i < NumCoresTotal; i++) begin : gen_rt_tile_ni2cores_addr_map
     assign ni2cores_addr_map[i] = '{
       idx:        i,
       start_addr: base_addr_i + i * core_addr_space_dim,
@@ -220,7 +219,7 @@ module cluster_rt_tile
   // - Traffic generator read configuration (from the Host processor)
   // - Traffic generator write configuration (from the Host processor)
   // - Traffic generator compute configuration (from the Host processor)
-  // - AXI-Realm wide port configuration (from the Host processor)
+  // - AXI-Realm port configuration (from the Host processor)
 
   localparam int unsigned NumCoreRegFiles = 4;
 
@@ -252,10 +251,10 @@ module cluster_rt_tile
     .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgN.DataWidth),
     .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.OutIdWidth),
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
-  ) axi_core_regfile [NumCores-1:0][NumCoreRegFiles-1:0]();
+  ) axi_core_regfile [NumCoresTotal-1:0][NumCoreRegFiles-1:0]();
 
   // Address map
-  axi_pkg::xbar_rule_64_t [NumCores-1:0][NumRulesCore2RegFile-1:0] core2regfile_addr_map;
+  axi_pkg::xbar_rule_64_t [NumCoresTotal-1:0][NumRulesCore2RegFile-1:0] core2regfile_addr_map;
 
   localparam axi_pkg::xbar_cfg_t XbarCfgCore2RegFile = '{
     NoSlvPorts:         1, // Thus no ID expansion for outputs
@@ -273,23 +272,23 @@ module cluster_rt_tile
     NoAddrRules:        NumRulesCore2RegFile
   };
 
-  for (genvar i = 0; i < NumCores; i++) begin : gen_rt_tile_core2regfile_xbar
+  for (genvar i = 0; i < NumCoresTotal; i++) begin : gen_rt_tile_core2regfile_xbar
 
-    // AXI-Realm wide configuration
+    // AXI-Realm port configuration
     assign core2regfile_addr_map[i][0] = '{
       idx:        IdxPortAxiRealm,
       start_addr: base_addr_i + i * core_addr_space_dim + cluster_rt_addr_offset,
       end_addr:   base_addr_i + i * core_addr_space_dim + cluster_rt_addr_offset + cluster_rt_addr_dim
     };
 
-    // Wide read
+    // Read configuration
     assign core2regfile_addr_map[i][1] = '{
       idx:        IdxPortTgRead,
       start_addr: base_addr_i + i * core_addr_space_dim + cluster_dma_r_addr_offset,
       end_addr:   base_addr_i + i * core_addr_space_dim + cluster_dma_r_addr_offset + cluster_dma_r_addr_dim
     };
 
-    // Wide write
+    // Write configuration
     assign core2regfile_addr_map[i][2] = '{
       idx:        IdxPortTgWrite,
       start_addr: base_addr_i + i * core_addr_space_dim + cluster_dma_w_addr_offset,
@@ -329,42 +328,42 @@ module cluster_rt_tile
     .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgDataDownsized.DataWidth),
     .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgDataDownsized.OutIdWidth),
     .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgDataDownsized.UserWidth)
-  ) axi_core_regfile_data_downsized [NumCores-1:0][NumCoreRegFiles-1:0]();
+  ) axi_core_regfile_data_downsized [NumCoresTotal-1:0][NumCoreRegFiles-1:0]();
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgAddrDownsized.AddrWidth),
     .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgAddrDownsized.DataWidth),
     .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgAddrDownsized.OutIdWidth),
     .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgAddrDownsized.UserWidth)
-  ) axi_core_regfile_addr_downsized [NumCores-1:0][NumCoreRegFiles-1:0]();
+  ) axi_core_regfile_addr_downsized [NumCoresTotal-1:0][NumCoreRegFiles-1:0]();
 
   AXI_LITE #(
     .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiLiteCfg.AddrWidth),
     .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiLiteCfg.DataWidth)
-  ) axi_lite_core_regfile [NumCores-1:0][NumCoreRegFiles-1:0]();
+  ) axi_lite_core_regfile [NumCoresTotal-1:0][NumCoreRegFiles-1:0]();
 
-  axi_lite_host_req_t [NumCores-1:0] axi_lite_read_regfile_req;
-  axi_lite_host_rsp_t [NumCores-1:0] axi_lite_read_regfile_rsp;
+  axi_lite_host_req_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_read_regfile_req;
+  axi_lite_host_rsp_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_read_regfile_rsp;
 
-  axi_lite_host_req_t [NumCores-1:0] axi_lite_write_regfile_req;
-  axi_lite_host_rsp_t [NumCores-1:0] axi_lite_write_regfile_rsp;
+  axi_lite_host_req_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_write_regfile_req;
+  axi_lite_host_rsp_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_write_regfile_rsp;
 
-  axi_lite_host_req_t [NumCores-1:0] axi_lite_comp_regfile_req;
-  axi_lite_host_rsp_t [NumCores-1:0] axi_lite_comp_regfile_rsp;
+  axi_lite_host_req_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_comp_regfile_req;
+  axi_lite_host_rsp_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_comp_regfile_rsp;
 
-  axi_lite_host_req_t [NumCores-1:0] axi_lite_realm_regfile_req;
-  axi_lite_host_rsp_t [NumCores-1:0] axi_lite_realm_regfile_rsp;
+  axi_lite_host_req_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_realm_regfile_req;
+  axi_lite_host_rsp_t [NumNoCPlanes-1:0][NumCores-1:0] axi_lite_realm_regfile_rsp;
 
-  axi_narrow_out_addr_downsized_addr_t axi_core_regfile_addr_downsized_aw_addr [NumCores-1:0][NumCoreRegFiles-1:0];
-  axi_narrow_out_addr_downsized_addr_t axi_core_regfile_addr_downsized_ar_addr [NumCores-1:0][NumCoreRegFiles-1:0];
+  axi_narrow_out_addr_downsized_addr_t axi_core_regfile_addr_downsized_aw_addr [NumCoresTotal-1:0][NumCoreRegFiles-1:0];
+  axi_narrow_out_addr_downsized_addr_t axi_core_regfile_addr_downsized_ar_addr [NumCoresTotal-1:0][NumCoreRegFiles-1:0];
 
-  for (genvar i = 0; i < NumCores; i++) begin : gen_core_regfile_axi_to_axi_lite_i
+  for (genvar i = 0; i < NumCoresTotal; i++) begin : gen_core_regfile_axi_to_axi_lite_i
     for (genvar j = 0; j < NumCoreRegFiles; j++) begin : gen_core_regfile_axi_to_axi_lite_j
 
       axi_dw_converter_intf #(
         .AXI_ID_WIDTH             (fpga_picobello_pkg::AxiCfgDataDownsized.OutIdWidth),
         .AXI_ADDR_WIDTH           (fpga_picobello_pkg::AxiCfgDataDownsized.AddrWidth),
-        .AXI_SLV_PORT_DATA_WIDTH  (fpga_picobello_pkg::AxiCfgDataDownsized.DataWidth),
+        .AXI_SLV_PORT_DATA_WIDTH  (fpga_picobello_pkg::AxiCfgDataDownsized.DataWidth), // Trick to force a 32-bit downsizing
         .AXI_MST_PORT_DATA_WIDTH  (fpga_picobello_pkg::AxiCfgDataDownsized.DataWidth),
         .AXI_USER_WIDTH           (fpga_picobello_pkg::AxiCfgDataDownsized.UserWidth),
         .AXI_MAX_READS            (8)
@@ -408,40 +407,115 @@ module cluster_rt_tile
         .mst        (axi_lite_core_regfile[i][j])
       );
     end
-
-    `AXI_LITE_ASSIGN_TO_REQ(axi_lite_realm_regfile_req[i], axi_lite_core_regfile[i][0])
-    `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i][0], axi_lite_realm_regfile_rsp[i])
-
-    `AXI_LITE_ASSIGN_TO_REQ(axi_lite_read_regfile_req[i], axi_lite_core_regfile[i][1])
-    `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i][1], axi_lite_read_regfile_rsp[i])
-
-    `AXI_LITE_ASSIGN_TO_REQ(axi_lite_write_regfile_req[i], axi_lite_core_regfile[i][2])
-    `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i][2], axi_lite_write_regfile_rsp[i])
-
-    `AXI_LITE_ASSIGN_TO_REQ(axi_lite_comp_regfile_req[i], axi_lite_core_regfile[i][3])
-    `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i][3], axi_lite_comp_regfile_rsp[i])
   end
 
-  ///////////////
-  // AXI-Realm //
-  ///////////////
+  ///////////////////////////////////////////////////////////////////////////////////
+  // AXI4-Lite core register files => AXI4-Lite core register files (Wide/Narrow)  //
+  ///////////////////////////////////////////////////////////////////////////////////
+
+  for (genvar i = 0; i < NumNoCPlanes; i++) begin : gen_core_regfile_axi_lite_noc_plane_i
+    for (genvar j = 0; j < NumCores; j++) begin : gen_core_regfile_axi_lite_noc_plane_j
+
+      `AXI_LITE_ASSIGN_TO_REQ(axi_lite_realm_regfile_req[i][j], axi_lite_core_regfile[i * NumCores + j][IdxPortAxiRealm])
+      `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i * NumCores + j][IdxPortAxiRealm], axi_lite_realm_regfile_rsp[i][j])
+
+      `AXI_LITE_ASSIGN_TO_REQ(axi_lite_read_regfile_req[i][j], axi_lite_core_regfile[i * NumCores + j][IdxPortTgRead])
+      `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i * NumCores + j][IdxPortTgRead], axi_lite_read_regfile_rsp[i][j])
+
+      `AXI_LITE_ASSIGN_TO_REQ(axi_lite_write_regfile_req[i][j], axi_lite_core_regfile[i * NumCores + j][IdxPortTgWrite])
+      `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i * NumCores + j][IdxPortTgWrite], axi_lite_write_regfile_rsp[i][j])
+
+      `AXI_LITE_ASSIGN_TO_REQ(axi_lite_comp_regfile_req[i][j], axi_lite_core_regfile[i * NumCores + j][IdxPortTgCompute])
+      `AXI_LITE_ASSIGN_FROM_RESP(axi_lite_core_regfile[i * NumCores + j][IdxPortTgCompute], axi_lite_comp_regfile_rsp[i][j])
+    end
+  end
+
+  //////////////////////////////////
+  // AXI4 wide traffic generators //
+  //////////////////////////////////
+
+  // Output data traffic
+  axi_wide_tg_req_t [NumCores-1:0] cluster_rt_wide_out_req;
+  axi_wide_tg_rsp_t [NumCores-1:0] cluster_rt_wide_out_rsp;
+
+  localparam int unsigned FlooDmaWideIndex = int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
+
+  axi_traffic_gen_wrapper #(
+    .NumDmas            ( NumCores                              ),
+    .NumPending         ( 32                                    ),
+    .Id                 ( Id                                    ),
+    .FlooDmaIndex       ( FlooDmaWideIndex                      ),
+    .FlooDmaMemBaseAddr ( BaseAddr                              ),
+    .AxiCfg             ( fpga_picobello_pkg::AxiCfgWTrafficGen ),
+    .AxiLock            ( 1                                     ),
+    .AxiLiteCfg         ( fpga_picobello_pkg::AxiLiteCfg        ),
+    .axi_in_req_t       ( axi_wide_tg_req_t                     ),
+    .axi_in_rsp_t       ( axi_wide_tg_rsp_t                     ),
+    .axi_out_req_t      ( axi_wide_tg_req_t                     ),
+    .axi_out_rsp_t      ( axi_wide_tg_rsp_t                     ),
+    .axi_lite_req_t     ( axi_lite_host_req_t                   ),
+    .axi_lite_rsp_t     ( axi_lite_host_rsp_t                   ),
+    .reg_req_t          ( cfg_req_t                             ),
+    .reg_rsp_t          ( cfg_rsp_t                             )
+  ) i_wide_axi_traffic_gen_wrapper (
+    .clk_i                        ( clk_i                                       ),
+    .rst_ni                       ( rst_ni                                      ),
+    .axi_in_req_i                 ( '0                                          ),
+    .axi_in_rsp_o                 (                                             ),
+    .axi_out_req_o                ( cluster_rt_wide_out_req                     ),
+    .axi_out_rsp_i                ( cluster_rt_wide_out_rsp                     ),
+    .axi_lite_read_regfile_req    ( axi_lite_read_regfile_req[IdxNoCPlaneWide]  ),
+    .axi_lite_read_regfile_rsp    ( axi_lite_read_regfile_rsp[IdxNoCPlaneWide]  ),
+    .axi_lite_write_regfile_req   ( axi_lite_write_regfile_req[IdxNoCPlaneWide] ),
+    .axi_lite_write_regfile_rsp   ( axi_lite_write_regfile_rsp[IdxNoCPlaneWide] ),
+    .axi_lite_compute_regfile_req ( axi_lite_comp_regfile_req[IdxNoCPlaneWide]  ),
+    .axi_lite_compute_regfile_rsp ( axi_lite_comp_regfile_rsp[IdxNoCPlaneWide]  )
+  );
+
+  // Bind wide cluster outputs to AXI-Realm wide inputs
+  for (genvar i = 0; i < NumCores; i++) begin : gen_axi_rt_wide_bindings
+    `AXI_ASSIGN_REQ_STRUCT(axi_realm_wide_in_req[i], cluster_rt_wide_out_req[i])
+    `AXI_ASSIGN_RESP_STRUCT(cluster_rt_wide_out_rsp[i], axi_realm_wide_in_rsp[i])
+  end
+
+  ////////////////////////////
+  // AXI-Realm wide traffic //
+  ////////////////////////////
 
   // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
 
-  axi_wide_tg_req_t [NumCores-1:0] axi_realm_in_req;
-  axi_wide_tg_rsp_t [NumCores-1:0] axi_realm_in_rsp;
-  axi_wide_tg_req_t [NumCores-1:0] axi_realm_out_req;
-  axi_wide_tg_rsp_t [NumCores-1:0] axi_realm_out_rsp;
+  // AXI-Realm wide input traffic
+  axi_wide_tg_req_t [NumCores-1:0] axi_realm_wide_in_req;
+  axi_wide_tg_rsp_t [NumCores-1:0] axi_realm_wide_in_rsp;
 
-  axi_lite_host_req_t axi_lite_realm_regfile_mux_req;
-  axi_lite_host_rsp_t axi_lite_realm_regfile_mux_rsp;
+  // AXI-Realm wide output traffic 
+  axi_wide_tg_req_t [NumCores-1:0] axi_realm_wide_out_req;
+  axi_wide_tg_rsp_t [NumCores-1:0] axi_realm_wide_out_rsp;
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
+    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth)
+  ) axi_realm_wide_out [NumCores-1:0]();
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (floo_picobello_noc_pkg::AxiCfgW.AddrWidth),
+    .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgW.DataWidth),
+    .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // Changed from OutIdWidth to InIdWidth
+    .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgW.UserWidth)
+  ) axi_realm_wide_out_mux ();
+
+  // AXI-Lite bus signals
+  axi_lite_host_req_t axi_lite_realm_wide_regfile_mux_req;
+  axi_lite_host_rsp_t axi_lite_realm_wide_regfile_mux_rsp;
 
   // Register bus signals
-  cfg_req_t regbus_realm_regfile_req; 
-  cfg_rsp_t regbus_realm_regfile_rsp;
+  cfg_req_t regbus_realm_wide_regfile_req; 
+  cfg_rsp_t regbus_realm_wide_regfile_rsp;
 
   // AXI RT IDs
-  slv_id_t realm_regfile_id;
+  slv_id_t realm_wide_regfile_id;
 
   // Mux AXI4-Lite inputs accessing the shared AXI-Realm register file
   axi_lite_mux #(
@@ -460,14 +534,14 @@ module cluster_rt_tile
     .SpillB         (1'b1),
     .SpillAr        (1'b1),
     .SpillR         (1'b1)
-  ) i_axi_lite_realm_regfile_mux (
+  ) i_axi_lite_regfile_mux_realm_wide (
     .clk_i,                
     .rst_ni,              
     .test_i       (1'b0),             
-    .slv_reqs_i   (axi_lite_realm_regfile_req),
-    .slv_resps_o  (axi_lite_realm_regfile_rsp),
-    .mst_req_o    (axi_lite_realm_regfile_mux_req),
-    .mst_resp_i   (axi_lite_realm_regfile_mux_rsp)
+    .slv_reqs_i   (axi_lite_realm_regfile_req[IdxNoCPlaneWide]),
+    .slv_resps_o  (axi_lite_realm_regfile_rsp[IdxNoCPlaneWide]),
+    .mst_req_o    (axi_lite_realm_wide_regfile_mux_req),
+    .mst_resp_i   (axi_lite_realm_wide_regfile_mux_rsp)
   );
 
   // Convert AXI4-Lite to custom register interface for the RT wide configuration bus
@@ -480,14 +554,17 @@ module cluster_rt_tile
     .axi_lite_rsp_t (fpga_picobello_pkg::axi_lite_host_rsp_t),
     .reg_req_t      (cfg_req_t),
     .reg_rsp_t      (cfg_rsp_t)
-  ) i_axi_lite_to_reg_wide (
+  ) i_axi_lite_to_reg_realm_wide (
     .clk_i,
     .rst_ni,
-    .axi_lite_req_i (axi_lite_realm_regfile_mux_req),
-    .axi_lite_rsp_o (axi_lite_realm_regfile_mux_rsp),
-    .reg_req_o      (regbus_realm_regfile_req),
-    .reg_rsp_i      (regbus_realm_regfile_rsp)
+    .axi_lite_req_i (axi_lite_realm_wide_regfile_mux_req),
+    .axi_lite_rsp_o (axi_lite_realm_wide_regfile_mux_rsp),
+    .reg_req_o      (regbus_realm_wide_regfile_req),
+    .reg_rsp_i      (regbus_realm_wide_regfile_rsp)
   );
+
+  // Calculate Realm register file ID
+  assign realm_wide_regfile_id = id_i.y + MeshDim.y * id_i.x;
 
   // AXI RT unit wide
   axi_rt_unit_top #(
@@ -516,38 +593,19 @@ module cluster_rt_tile
   ) i_axi_rt_unit_wide (
     .clk_i,
     .rst_ni,
-    .slv_req_i        (axi_realm_in_req),
-    .slv_resp_o       (axi_realm_in_rsp),
-    .mst_req_o        (axi_realm_out_req),
-    .mst_resp_i       (axi_realm_out_rsp), 
-    .reg_req_i        (regbus_realm_regfile_req), 
-    .reg_rsp_o        (regbus_realm_regfile_rsp), 
-    .reg_id_i         (realm_regfile_id)  
+    .slv_req_i        (axi_realm_wide_in_req),
+    .slv_resp_o       (axi_realm_wide_in_rsp),
+    .mst_req_o        (axi_realm_wide_out_req),
+    .mst_resp_i       (axi_realm_wide_out_rsp), 
+    .reg_req_i        (regbus_realm_wide_regfile_req), 
+    .reg_rsp_o        (regbus_realm_wide_regfile_rsp), 
+    .reg_id_i         (realm_wide_regfile_id)  
   );
 
-  assign realm_regfile_id = id_i.y + MeshDim.y * id_i.x;
-
-  ////////////////////////////////////////////////////
-  // AXI4 wide cores (traffic) => AXI4 wide chimney //
-  ////////////////////////////////////////////////////
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth)
-  ) axi_realm_out [NumCores-1:0]();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (floo_picobello_noc_pkg::AxiCfgW.AddrWidth),
-    .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgW.DataWidth),
-    .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // Changed from OutIdWidth to InIdWidth
-    .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgW.UserWidth)
-  ) axi_realm_out_mux ();
-
-  for (genvar i = 0; i < NumCores; i++) begin : gen_rt_tile_axirt2ni_assign
-    `AXI_ASSIGN_FROM_REQ(axi_realm_out[i], axi_realm_out_req[i])
-    `AXI_ASSIGN_TO_RESP(axi_realm_out_rsp[i], axi_realm_out[i])
+  // Bind AXI-Realm wide outputs
+  for (genvar i = 0; i < NumCores; i++) begin : gen_rt_tile_axirt2ni_wide_assign
+    `AXI_ASSIGN_FROM_REQ(axi_realm_wide_out[i], axi_realm_wide_out_req[i])
+    `AXI_ASSIGN_TO_RESP(axi_realm_wide_out_rsp[i], axi_realm_wide_out[i])
   end
 
   // Mux AXI4 wide outputs to the FlooNoC NI
@@ -569,57 +627,216 @@ module cluster_rt_tile
     .clk_i,                
     .rst_ni,
     .test_i   (1'b0),
-    .slv      (axi_realm_out),
-    .mst      (axi_realm_out_mux)
+    .slv      (axi_realm_wide_out),
+    .mst      (axi_realm_wide_out_mux)
   );
 
-  `AXI_ASSIGN_TO_REQ(chimney_wide_in_req, axi_realm_out_mux)
-  `AXI_ASSIGN_FROM_RESP(axi_realm_out_mux, chimney_wide_in_rsp)
+  `AXI_ASSIGN_TO_REQ(chimney_wide_in_req, axi_realm_wide_out_mux)
+  `AXI_ASSIGN_FROM_RESP(axi_realm_wide_out_mux, chimney_wide_in_rsp)
 
-  ////////////////////////
-  // Traffic generators //
-  ////////////////////////
+  //////////////////////////////////
+  // AXI4 narrow traffic generators //
+  //////////////////////////////////
 
   // Output data traffic
-  axi_wide_tg_req_t [NumCores-1:0] cluster_rt_wide_out_req;
-  axi_wide_tg_rsp_t [NumCores-1:0] cluster_rt_wide_out_rsp;
+  axi_narrow_tg_req_t [NumCores-1:0] cluster_rt_narrow_out_req;
+  axi_narrow_tg_rsp_t [NumCores-1:0] cluster_rt_narrow_out_rsp;
+
+  localparam int unsigned FlooDmaNarrowIndex = 100 + int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
 
   axi_traffic_gen_wrapper #(
     .NumDmas            ( NumCores                              ),
     .NumPending         ( 32                                    ),
     .Id                 ( Id                                    ),
+    .FlooDmaIndex       ( FlooDmaNarrowIndex                    ),
     .FlooDmaMemBaseAddr ( BaseAddr                              ),
-    .AxiCfg             ( fpga_picobello_pkg::AxiCfgWTrafficGen ),
+    .AxiCfg             ( fpga_picobello_pkg::AxiCfgNTrafficGen ),
     .AxiLock            ( 1                                     ),
     .AxiLiteCfg         ( fpga_picobello_pkg::AxiLiteCfg        ),
-    .axi_in_req_t       ( axi_wide_tg_req_t                     ),
-    .axi_in_rsp_t       ( axi_wide_tg_rsp_t                     ),
-    .axi_out_req_t      ( axi_wide_tg_req_t                     ),
-    .axi_out_rsp_t      ( axi_wide_tg_rsp_t                     ),
+    .axi_in_req_t       ( axi_narrow_tg_req_t                   ),
+    .axi_in_rsp_t       ( axi_narrow_tg_rsp_t                   ),
+    .axi_out_req_t      ( axi_narrow_tg_req_t                   ),
+    .axi_out_rsp_t      ( axi_narrow_tg_rsp_t                   ),
     .axi_lite_req_t     ( axi_lite_host_req_t                   ),
     .axi_lite_rsp_t     ( axi_lite_host_rsp_t                   ),
     .reg_req_t          ( cfg_req_t                             ),
     .reg_rsp_t          ( cfg_rsp_t                             )
-  ) i_axi_traffic_gen_wrapper (
-    .clk_i                        ( clk_i                      ),
-    .rst_ni                       ( rst_ni                     ),
-    .axi_in_req_i                 ( '0                         ),
-    .axi_in_rsp_o                 (                            ),
-    .axi_out_req_o                ( cluster_rt_wide_out_req    ),
-    .axi_out_rsp_i                ( cluster_rt_wide_out_rsp    ),
-    .axi_lite_read_regfile_req    ( axi_lite_read_regfile_req  ),
-    .axi_lite_read_regfile_rsp    ( axi_lite_read_regfile_rsp  ),
-    .axi_lite_write_regfile_req   ( axi_lite_write_regfile_req ),
-    .axi_lite_write_regfile_rsp   ( axi_lite_write_regfile_rsp ),
-    .axi_lite_compute_regfile_req ( axi_lite_comp_regfile_req  ),
-    .axi_lite_compute_regfile_rsp ( axi_lite_comp_regfile_rsp  )
+  ) i_narrow_axi_traffic_gen_wrapper (
+    .clk_i                        ( clk_i                                         ),
+    .rst_ni                       ( rst_ni                                        ),
+    .axi_in_req_i                 ( '0                                            ),
+    .axi_in_rsp_o                 (                                               ),
+    .axi_out_req_o                ( cluster_rt_narrow_out_req                     ),
+    .axi_out_rsp_i                ( cluster_rt_narrow_out_rsp                     ),
+    .axi_lite_read_regfile_req    ( axi_lite_read_regfile_req[IdxNoCPlaneNarrow]  ),
+    .axi_lite_read_regfile_rsp    ( axi_lite_read_regfile_rsp[IdxNoCPlaneNarrow]  ),
+    .axi_lite_write_regfile_req   ( axi_lite_write_regfile_req[IdxNoCPlaneNarrow] ),
+    .axi_lite_write_regfile_rsp   ( axi_lite_write_regfile_rsp[IdxNoCPlaneNarrow] ),
+    .axi_lite_compute_regfile_req ( axi_lite_comp_regfile_req[IdxNoCPlaneNarrow]  ),
+    .axi_lite_compute_regfile_rsp ( axi_lite_comp_regfile_rsp[IdxNoCPlaneNarrow]  )
   );
 
-  // Bind to AXI-Realm inputs
-  for (genvar i = 0; i < NumCores; i++) begin : gen_axi_rt_bindings
-    `AXI_ASSIGN_REQ_STRUCT(axi_realm_in_req[i], cluster_rt_wide_out_req[i])
-    `AXI_ASSIGN_RESP_STRUCT(cluster_rt_wide_out_rsp[i], axi_realm_in_rsp[i])
+  // Bind narrow cluster outputs to AXI-Realm narrow inputs
+  for (genvar i = 0; i < NumCores; i++) begin : gen_axi_rt_narrow_bindings
+    `AXI_ASSIGN_REQ_STRUCT(axi_realm_narrow_in_req[i], cluster_rt_narrow_out_req[i])
+    `AXI_ASSIGN_RESP_STRUCT(cluster_rt_narrow_out_rsp[i], axi_realm_narrow_in_rsp[i])
   end
+
+  //////////////////////////////
+  // AXI-Realm narrow traffic //
+  //////////////////////////////
+
+  // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
+
+  // AXI-Realm narrow input traffic
+  axi_narrow_tg_req_t [NumCores-1:0] axi_realm_narrow_in_req;
+  axi_narrow_tg_rsp_t [NumCores-1:0] axi_realm_narrow_in_rsp;
+
+  // AXI-Realm narrow output traffic 
+  axi_narrow_tg_req_t [NumCores-1:0] axi_realm_narrow_out_req;
+  axi_narrow_tg_rsp_t [NumCores-1:0] axi_realm_narrow_out_rsp;
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
+    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth)
+  ) axi_realm_narrow_out [NumCores-1:0]();
+
+  AXI_BUS #(
+    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgNTrafficGen.InIdWidth),
+    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth)
+  ) axi_realm_narrow_out_mux ();
+
+  // AXI-Lite bus signals
+  axi_lite_host_req_t axi_lite_realm_narrow_regfile_mux_req;
+  axi_lite_host_rsp_t axi_lite_realm_narrow_regfile_mux_rsp;
+
+  // Register bus signals
+  cfg_req_t regbus_realm_narrow_regfile_req; 
+  cfg_rsp_t regbus_realm_narrow_regfile_rsp;
+
+  // AXI RT IDs
+  slv_id_t realm_narrow_regfile_id;
+
+  // Mux AXI4-Lite inputs accessing the shared AXI-Realm register file
+  axi_lite_mux #(
+    .aw_chan_t      (axi_lite_host_aw_chan_t),
+    .w_chan_t       (axi_lite_host_w_chan_t),
+    .b_chan_t       (axi_lite_host_b_chan_t),
+    .ar_chan_t      (axi_lite_host_ar_chan_t),
+    .r_chan_t       (axi_lite_host_r_chan_t),
+    .axi_req_t      (axi_lite_host_req_t),
+    .axi_resp_t     (axi_lite_host_rsp_t),
+    .NoSlvPorts     (NumCores),
+    .MaxTrans       (1),
+    .FallThrough    (1'b0),
+    .SpillAw        (1'b1),
+    .SpillW         (1'b1),
+    .SpillB         (1'b1),
+    .SpillAr        (1'b1),
+    .SpillR         (1'b1)
+  ) i_axi_lite_regfile_mux_realm_narrow (
+    .clk_i,                
+    .rst_ni,              
+    .test_i       (1'b0),             
+    .slv_reqs_i   (axi_lite_realm_regfile_req[IdxNoCPlaneNarrow]),
+    .slv_resps_o  (axi_lite_realm_regfile_rsp[IdxNoCPlaneNarrow]),
+    .mst_req_o    (axi_lite_realm_narrow_regfile_mux_req),
+    .mst_resp_i   (axi_lite_realm_narrow_regfile_mux_rsp)
+  );
+
+  // Convert AXI4-Lite to custom register interface for the RT narrow configuration bus
+  axi_lite_to_reg #(
+    .ADDR_WIDTH     (fpga_picobello_pkg::AxiCfgAddrDownsized.AddrWidth),
+    .DATA_WIDTH     (fpga_picobello_pkg::AxiCfgAddrDownsized.DataWidth),
+    .BUFFER_DEPTH   (2),
+    .DECOUPLE_W     (1),
+    .axi_lite_req_t (fpga_picobello_pkg::axi_lite_host_req_t),
+    .axi_lite_rsp_t (fpga_picobello_pkg::axi_lite_host_rsp_t),
+    .reg_req_t      (cfg_req_t),
+    .reg_rsp_t      (cfg_rsp_t)
+  ) i_axi_lite_to_reg_realm_narrow (
+    .clk_i,
+    .rst_ni,
+    .axi_lite_req_i (axi_lite_realm_narrow_regfile_mux_req),
+    .axi_lite_rsp_o (axi_lite_realm_narrow_regfile_mux_rsp),
+    .reg_req_o      (regbus_realm_narrow_regfile_req),
+    .reg_rsp_i      (regbus_realm_narrow_regfile_rsp)
+  );
+
+  // Calculate Realm register file ID
+  assign realm_narrow_regfile_id = id_i.y + MeshDim.y * id_i.x;
+
+  // AXI RT unit wide
+  axi_rt_unit_top #(
+    .NumManagers      (NumCores),
+    .AddrWidth        (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .DataWidth        (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .IdWidth          (fpga_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
+    .UserWidth        (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth),
+    .NumPending       (NumPending),
+    .WBufferDepth     (WBufferDepth),
+    .NumAddrRegions   (NumRegions),
+    .BudgetWidth      (BudgetWidth),
+    .PeriodWidth      (PeriodWidth),
+    .RegIdWidth       (AxiSlvIdWidth),
+    .CutDecErrors     (1'b0),
+    .CutSplitterPaths (1'b0),
+    .aw_chan_t        (axi_narrow_tg_aw_chan_t),
+    .ar_chan_t        (axi_narrow_tg_ar_chan_t),
+    .w_chan_t         (axi_narrow_tg_w_chan_t),
+    .r_chan_t         (axi_narrow_tg_r_chan_t),
+    .b_chan_t         (axi_narrow_tg_b_chan_t),
+    .axi_req_t        (axi_narrow_tg_req_t),
+    .axi_resp_t       (axi_narrow_tg_rsp_t),
+    .req_req_t        (cfg_req_t),
+    .req_rsp_t        (cfg_rsp_t)
+  ) i_axi_rt_unit_narrow (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i        (axi_realm_narrow_in_req),
+    .slv_resp_o       (axi_realm_narrow_in_rsp),
+    .mst_req_o        (axi_realm_narrow_out_req),
+    .mst_resp_i       (axi_realm_narrow_out_rsp), 
+    .reg_req_i        (regbus_realm_narrow_regfile_req), 
+    .reg_rsp_o        (regbus_realm_narrow_regfile_rsp), 
+    .reg_id_i         (realm_narrow_regfile_id)  
+  );
+
+  // Bind AXI-Realm narrow outputs
+  for (genvar i = 0; i < NumCores; i++) begin : gen_rt_tile_axirt2ni_narrow_assign
+    `AXI_ASSIGN_FROM_REQ(axi_realm_narrow_out[i], axi_realm_narrow_out_req[i])
+    `AXI_ASSIGN_TO_RESP(axi_realm_narrow_out_rsp[i], axi_realm_narrow_out[i])
+  end
+
+  // Mux AXI4 narrow outputs to the FlooNoC NI
+  axi_mux_intf #(
+    .SLV_AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth), // traffic generator ID width
+    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.InIdWidth), // expanded, based on NumCores, and matching NI ID width
+    .AXI_ADDR_WIDTH     (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH     (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .AXI_USER_WIDTH     (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth),
+    .NO_SLV_PORTS       (NumCores),
+    .MAX_W_TRANS        (NumCoresMax),
+    .FALL_THROUGH       (1'b0),
+    .SPILL_AW           (1'b1),
+    .SPILL_W            (1'b1),
+    .SPILL_B            (1'b1),
+    .SPILL_AR           (1'b1),
+    .SPILL_R            (1'b1)
+  ) i_axi_narrow_out_rt2ni_mux (
+    .clk_i,                
+    .rst_ni,
+    .test_i   (1'b0),
+    .slv      (axi_realm_narrow_out),
+    .mst      (axi_realm_narrow_out_mux)
+  );
+
+  `AXI_ASSIGN_TO_REQ(chimney_narrow_in_req, axi_realm_narrow_out_mux)
+  `AXI_ASSIGN_FROM_RESP(axi_realm_narrow_out_mux, chimney_narrow_in_rsp)
 
   ///////////////////////
   // Local tile memory //
