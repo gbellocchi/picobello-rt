@@ -142,8 +142,8 @@ module mem_tile
       .sram_cfg_i          ('0),
       .axi_narrow_in_req_i ('0),
       .axi_narrow_in_rsp_o (),
-      .axi_narrow_out_req_o(), // axi_narrow_req
-      .axi_narrow_out_rsp_i('1), // axi_narrow_rsp
+      .axi_narrow_out_req_o(axi_narrow_req),
+      .axi_narrow_out_rsp_i(axi_narrow_rsp),
       .axi_wide_in_req_i   ('0),
       .axi_wide_in_rsp_o   (),
       .axi_wide_out_req_o  (axi_wide_req),
@@ -160,9 +160,8 @@ module mem_tile
   // NW Join //
   /////////////
 
-//   localparam axi_cfg_t AxiCfgJoin = floo_pkg::axi_join_cfg(AxiCfgN, picobello_pkg::AxiCfgWL2);
-
-localparam axi_cfg_t AxiCfgJoin = picobello_pkg::AxiCfgWL2;
+  localparam axi_cfg_t AxiCfgJoin = floo_pkg::axi_join_cfg(AxiCfgN, picobello_pkg::AxiCfgWL2);
+//   localparam axi_cfg_t AxiCfgJoin = picobello_pkg::AxiCfgWL2;
 
   typedef logic [AxiCfgJoin.OutIdWidth-1:0] nw_join_id_t;
   typedef logic [AxiCfgJoin.UserWidth-1:0] nw_join_user_t;
@@ -173,32 +172,32 @@ localparam axi_cfg_t AxiCfgJoin = picobello_pkg::AxiCfgWL2;
   axi_nw_join_req_t axi_req_join;
   axi_nw_join_rsp_t axi_rsp_join;
 
-//   floo_nw_join #(
-//       .AxiCfgN         (axi_cfg_swap_iw(AxiCfgN)),
-//       .AxiCfgW         (axi_cfg_swap_iw(picobello_pkg::AxiCfgWL2)),
-//       .AxiCfgJoin      (axi_cfg_swap_iw(AxiCfgJoin)),
-//       .EnAtopAdapter   (1'b0),
-//       .AtopUserAsId    (1'b1),
-//       .axi_narrow_req_t(axi_narrow_out_req_t),
-//       .axi_narrow_rsp_t(axi_narrow_out_rsp_t),
-//       .axi_wide_req_t  (axi_wide_out_req_t),
-//       .axi_wide_rsp_t  (axi_wide_out_rsp_t),
-//       .axi_req_t       (axi_nw_join_req_t),
-//       .axi_rsp_t       (axi_nw_join_rsp_t)
-//   ) i_floo_nw_join (
-//       .clk_i           (clk_i),
-//       .rst_ni          (rst_ni),
-//       .test_enable_i   (test_enable_i),
-//       .axi_narrow_req_i(axi_narrow_req),
-//       .axi_narrow_rsp_o(axi_narrow_rsp),
-//       .axi_wide_req_i  (axi_wide_req),
-//       .axi_wide_rsp_o  (axi_wide_rsp),
-//       .axi_req_o       (axi_req_join),
-//       .axi_rsp_i       (axi_rsp_join)
-//   );
+  floo_nw_join #(
+      .AxiCfgN         (axi_cfg_swap_iw(AxiCfgN)),
+      .AxiCfgW         (axi_cfg_swap_iw(picobello_pkg::AxiCfgWL2)),
+      .AxiCfgJoin      (axi_cfg_swap_iw(AxiCfgJoin)),
+      .EnAtopAdapter   (1'b0),
+      .AtopUserAsId    (1'b1),
+      .axi_narrow_req_t(axi_narrow_out_req_t),
+      .axi_narrow_rsp_t(axi_narrow_out_rsp_t),
+      .axi_wide_req_t  (axi_wide_out_req_t),
+      .axi_wide_rsp_t  (axi_wide_out_rsp_t),
+      .axi_req_t       (axi_nw_join_req_t),
+      .axi_rsp_t       (axi_nw_join_rsp_t)
+  ) i_floo_nw_join (
+      .clk_i           (clk_i),
+      .rst_ni          (rst_ni),
+      .test_enable_i   (test_enable_i),
+      .axi_narrow_req_i(axi_narrow_req),
+      .axi_narrow_rsp_o(axi_narrow_rsp),
+      .axi_wide_req_i  (axi_wide_req),
+      .axi_wide_rsp_o  (axi_wide_rsp),
+      .axi_req_o       (axi_req_join),
+      .axi_rsp_i       (axi_rsp_join)
+  );
 
-  assign axi_req_join = axi_wide_req;
-  assign axi_wide_rsp = axi_rsp_join;
+//   assign axi_req_join = axi_wide_req;
+//   assign axi_wide_rsp = axi_rsp_join;
 
   ///////////////
   // axi delay //
