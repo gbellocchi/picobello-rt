@@ -96,7 +96,7 @@ module cluster_rt_tile
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
   ) chimney_narrow_out[0:0]();
 
-  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b0);
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b1);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyClusterRtCfg, 1'b1, 1'b1);
 
   floo_nw_chimney #(
