@@ -108,16 +108,19 @@ vsim-run-create:
 	fi
 	
 $(VSIM_RUN)/compile.tcl: vsim-run-create $(BENDER_YML) $(BENDER_LOCK)
-	bender script vsim --compilation-mode common $(COMMON_TARGS) $(SIM_TARGS) --vlog-arg="$(VLOG_ARGS)"> $@
+	$(BENDER) script vsim --compilation-mode common $(COMMON_TARGS) $(SIM_TARGS) --vlog-arg="$(VLOG_ARGS)"> $@
 	echo 'vlog -work $(VSIM_WORK) "$(realpath $(CHS_ROOT))/target/sim/src/elfloader.cpp" -ccflags "-std=c++11"' >> $@
 	@for DPI_FILE in $(realpath $(VSIM_SRC))/dpi/*.cpp; do \
 		echo "vlog -work $(VSIM_WORK) \"$$DPI_FILE\" -ccflags \"-std=c++11\"" >> $@; \
 	done
 
 vsim-run:
-	cd $(VSIM_RUN) && $(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -wlf $(VSIM_WLF_NAME) -do "$(VCD_COMMON_CMD) $(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
+	cd $(VSIM_RUN) && $(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT) -do "$(VSIM_WAVES_CMD) $(VSIM_COMMON_CMD)" &>/dev/null
 
 vsim-run-batch:
+	cd $(VSIM_RUN) && $(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "$(VSIM_COMMON_CMD) quit"
+
+vsim-run-batch-waves:
 	cd $(VSIM_RUN) && $(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -wlf $(VSIM_WLF_NAME) -do "$(VCD_COMMON_CMD) $(VSIM_COMMON_CMD) quit"
 
 vsim-view-wlf:
