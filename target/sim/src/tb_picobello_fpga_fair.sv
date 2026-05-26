@@ -132,7 +132,6 @@ module tb_picobello_fpga_fair
 
   // NoC plane control
   localparam int unsigned NumNoCPlanes = fpga_picobello_pkg::NumNoCPlanes;
-  int NoCPlaneEnable[NumNoCPlanes] = '{1, 0}; // Wide=active, Narrow=inactive by default
 
   // Interferer reconfiguration after critical task termination
   localparam bit RuntimeInterfReconfig = 1'b0;
@@ -143,12 +142,7 @@ module tb_picobello_fpga_fair
   `ifdef INTRA_FLOW
     // Critical flow
     localparam int unsigned NumClustersActive = 1;
-    localparam int unsigned IdTestCl[NumClustersActive] = '{
-      ClusterX0Y0SamIdx, 
-      ClusterX0Y1SamIdx, 
-      ClusterX0Y2SamIdx, 
-      ClusterX0Y3SamIdx
-    };
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX0Y0SamIdx};
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
