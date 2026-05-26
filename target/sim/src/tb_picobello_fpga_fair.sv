@@ -1240,12 +1240,11 @@ module tb_picobello_fpga_fair
                     cl_id = IdTestClInterf[i - NumClustersActive];
                   end
 
-                  // BW stats - Open file
+                  // BW stats (wide) - Open file
                   $sformat(filePath, "%s/test%0d_noc_ni_statistics_cl_%0d.txt", fileDir, experimental_stats.id_test, cl_id);
-                  // $display("Writing results to file: %s", filePath);
                   fileDescriptor = $fopen(filePath, "w"); 
 
-                  // BW stats - Write values
+                  // BW stats (wide) - Write values
                   $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
                   $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_wide_stats[cl_id].r_latency_mean);
                   $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_wide_stats[cl_id].r_latency_stddev);
@@ -1260,7 +1259,29 @@ module tb_picobello_fpga_fair
                   $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].w_util_mean);
                   $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_wide_stats[cl_id].w_util_stddev);
 
-                  // BW stats - Close file
+                  // BW stats (wide) - Close file
+                  $fclose(fileDescriptor);
+
+                  // BW stats (narrow) - Open file
+                  $sformat(filePath, "%s/test%0d_noc_ni_narrow_statistics_cl_%0d.txt", fileDir, experimental_stats.id_test, cl_id);
+                  fileDescriptor = $fopen(filePath, "w"); 
+
+                  // BW stats (narrow) - Write values
+                  $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
+                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_narrow_stats[cl_id].r_latency_mean);
+                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_narrow_stats[cl_id].r_latency_stddev);
+                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_noc_ni_narrow_stats[cl_id].r_bw_mean);
+                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].r_bw_stddev);
+                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].r_util_mean);
+                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_noc_ni_narrow_stats[cl_id].r_util_stddev);
+                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_noc_ni_narrow_stats[cl_id].w_latency_mean);
+                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_noc_ni_narrow_stats[cl_id].w_latency_stddev);
+                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_noc_ni_narrow_stats[cl_id].w_bw_mean);
+                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].w_bw_stddev);
+                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].w_util_mean);
+                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_narrow_stats[cl_id].w_util_stddev);
+
+                  // BW stats (narrow) - Close file
                   $fclose(fileDescriptor);
                 end
               end
@@ -1276,43 +1297,80 @@ module tb_picobello_fpga_fair
                     cl_id = IdTestClInterf[i - NumClustersActive];
                   end
 
-                  // Latency - Open file
+                  // Latency (wide) - Open file
                   $sformat(filePath, "%s/test%0d_noc_ni_burst_stats_cl_%0d.txt", fileDir, experimental_stats.id_test, cl_id);
-                  // $display("Writing results to file: %s", filePath);
                   fileDescriptor = $fopen(filePath, "w"); 
 
-                  // Latency - Write header
+                  // Latency (wide) - Write header
                   $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
 
-                  // Latency - Write values
+                  // Latency (wide) - Write values
                   if(DmaReadEnable) begin
-                    foreach (bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[i]) begin
+                    foreach (bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[bi]) begin
                       $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-                        i,
-                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t1[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].r_latency_val[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].r_bw_val[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_n_beats[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_dw[i]
+                        bi,
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t1[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_latency_val[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_bw_val[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_n_beats[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_dw[bi]
                       );
                     end
                   end
                   if(DmaWriteEnable) begin
-                    foreach (bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[i]) begin
+                    foreach (bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[bi]) begin
                       $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-                        i,
-                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t1[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].w_latency_val[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].w_bw_val[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_n_beats[i], 
-                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_dw[i]
+                        bi,
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t1[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_latency_val[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_bw_val[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_n_beats[bi], 
+                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_dw[bi]
                       );
                     end
                   end
 
-                  // Latency - Close file
+                  // Latency (wide) - Close file
+                  $fclose(fileDescriptor);
+
+                  // Latency (narrow) - Open file
+                  $sformat(filePath, "%s/test%0d_noc_ni_narrow_burst_stats_cl_%0d.txt", fileDir, experimental_stats.id_test, cl_id);
+                  fileDescriptor = $fopen(filePath, "w"); 
+
+                  // Latency (narrow) - Write header
+                  $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
+
+                  // Latency (narrow) - Write values
+                  if(DmaReadEnable) begin
+                    foreach (bw_rt_noc_ni_narrow_stats[cl_id].r_burst_t0[bi]) begin
+                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+                        bi,
+                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_t0[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_t1[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].r_latency_val[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].r_bw_val[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_n_beats[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_dw[bi]
+                      );
+                    end
+                  end
+                  if(DmaWriteEnable) begin
+                    foreach (bw_rt_noc_ni_narrow_stats[cl_id].w_burst_t0[bi]) begin
+                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+                        bi,
+                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_t0[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_t1[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].w_latency_val[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].w_bw_val[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_n_beats[bi], 
+                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_dw[bi]
+                      );
+                    end
+                  end
+
+                  // Latency (narrow) - Close file
                   $fclose(fileDescriptor);
                 end
               end
