@@ -24,6 +24,7 @@
 // `define INTER_FLOW_2H
 // `define INTER_FLOW_4H
 // `define INTER_FLOW_8H
+// `define INTER_HOST_CTRL_PLANE_DIRECT_INTERF
 
 import fpga_picobello_pkg::*;
 import sim_picobello_pkg::*;
@@ -428,6 +429,42 @@ module tb_picobello_fpga_fair
     localparam int unsigned NumCoresActive = 1;
   `endif
   // ------------------------------------------------------------- //
+  // Inter-flow setup - Host control plane
+  `ifdef INTER_HOST_CTRL_PLANE_DIRECT_INTERF
+    // Critical flow
+    localparam int unsigned NumClustersActive = 1;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y0SamIdx};
+    localparam int unsigned IdTestMem = '{L2Spm1SamIdx}; // currently not used with floo dma
+
+    // Burst length for critical tasks
+    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Interferer flow
+    localparam int unsigned NumClustersInterf = 5;
+    localparam int unsigned NumClustersInterfActive = 5;
+    localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
+      ClusterX0Y0SamIdx,
+      ClusterX0Y1SamIdx,
+      ClusterX1Y1SamIdx,
+      ClusterX2Y0SamIdx,
+      ClusterX2Y1SamIdx
+    };
+    localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx, 
+      L2Spm0SamIdx
+    }; // currently not used with floo dma
+
+    int InterfBurstLengthMin = 32'd1; // burstless (single-beat)
+    int InterfBurstLengthMax = 32'd256; // max allowed by axi4
+
+    // Number of DMAs
+    localparam int unsigned NumCoresActive = 1;
+  `endif
+  // ------------------------------------------------------------- //
 
   ///////////////////////////////
   // TB exploration variables  //
@@ -459,7 +496,7 @@ module tb_picobello_fpga_fair
   localparam int unsigned NumHopsClMem = 1;
 
   // Number of AXI IDs per cluster
-  localparam int unsigned NAxiIds = 1; 
+  localparam int unsigned NAxiIds = 1;
   localparam int unsigned NAxiIdsMin = 1; // When each DMA is assigned with the same ID.
   localparam int unsigned NAxiIdsMax = NumClustersActive * NumCoresActive; // When each DMA is assigned with a unique ID.
   
