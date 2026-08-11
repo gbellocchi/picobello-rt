@@ -579,8 +579,10 @@ module cluster_rt_tile
     .BudgetWidth      (BudgetWidth),
     .PeriodWidth      (PeriodWidth),
     .RegIdWidth       (AxiSlvIdWidth),
+    .AxiSizeWidth     (axi_pkg::SizeWidth+1),
     .CutDecErrors     (1'b0),
     .CutSplitterPaths (1'b0),
+    .UseWriteBuffer   (1'b0),
     .aw_chan_t        (axi_wide_tg_aw_chan_t),
     .ar_chan_t        (axi_wide_tg_ar_chan_t),
     .w_chan_t         (axi_wide_tg_w_chan_t),
@@ -770,7 +772,7 @@ module cluster_rt_tile
   // Calculate Realm register file ID
   assign realm_narrow_regfile_id = id_i.y + MeshDim.y * id_i.x;
 
-  // AXI RT unit wide
+  // AXI RT unit narrow
   axi_rt_unit_top #(
     .NumManagers      (NumCores),
     .AddrWidth        (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
@@ -783,8 +785,10 @@ module cluster_rt_tile
     .BudgetWidth      (BudgetWidth),
     .PeriodWidth      (PeriodWidth),
     .RegIdWidth       (AxiSlvIdWidth),
+    .AxiSizeWidth     (axi_pkg::SizeWidth),
     .CutDecErrors     (1'b0),
     .CutSplitterPaths (1'b0),
+    .UseWriteBuffer   (1'b0),
     .aw_chan_t        (axi_narrow_tg_aw_chan_t),
     .ar_chan_t        (axi_narrow_tg_ar_chan_t),
     .w_chan_t         (axi_narrow_tg_w_chan_t),
