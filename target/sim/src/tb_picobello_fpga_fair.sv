@@ -18,7 +18,7 @@
 `define SAVE_BURST_TIMESTAMPS
 
 // Traffic flow setup
-// `define INTRA_FLOW   
+// `define INTRA_FLOW_1H_ENDPOINT    
 `define INTER_FLOW_1H_ENDPOINT  
 // `define INTER_FLOW_1H
 // `define INTER_FLOW_2H
@@ -140,7 +140,7 @@ module tb_picobello_fpga_fair
 
   // ------------------------------------------------------------- //
   // Intra-flow setup
-  `ifdef INTRA_FLOW
+  `ifdef INTRA_FLOW_1H_ENDPOINT
     // Critical flow
     localparam int unsigned NumClustersActive = 1;
     localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX0Y0SamIdx};

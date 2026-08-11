@@ -25,7 +25,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "interferer" # not used
     initiator: [2, 0]
@@ -46,7 +46,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "critical"
     initiator: [1, 1]
@@ -56,7 +56,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "interferer"
     initiator: [2, 1]
@@ -66,7 +66,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
 
   - name: "interferer"
@@ -77,7 +77,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "interferer"
     initiator: [1, 2]
@@ -87,7 +87,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "interferer"
     initiator: [2, 2]
@@ -97,7 +97,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
       
   - name: "interferer"
@@ -108,7 +108,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "interferer"
     initiator: [1, 4]
@@ -118,7 +118,7 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
   - name: "interferer"
     initiator: [2, 3]
@@ -128,5 +128,5 @@ traffic_flows:
       number: 0
       length: 0
     wide_burst:
-      number: 128
+      number: 32
       length: 256
