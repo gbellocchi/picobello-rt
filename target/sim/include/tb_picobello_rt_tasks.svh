@@ -128,11 +128,11 @@ task automatic picobello_rt_check_cfg(
   input rt_cfg_t tb_rt_cfg
 );
   // Check that the address region ID is consistent
-  assert (tb_rt_cfg.sbr_addr_reg_id < (NumReg - 1)) else
+  assert (tb_rt_cfg.sbr_addr_reg_id < NumReg) else
     $fatal(1, "Address region ID %0d is not supported! A maximum of %0d regions are supported.", tb_rt_cfg.sbr_addr_reg_id, axi_rt_reg_pkg::NumReg);
 
   // Check that the manager ID is consistent
-  assert (tb_rt_cfg.mgr_id < (NumMrg - 1)) else
+  assert (tb_rt_cfg.mgr_id < NumMrg) else
     $fatal(1, "RT manager ID %0d is not supported! A maximum of %0d RT managers are supported.", tb_rt_cfg.mgr_id, axi_rt_reg_pkg::NumMrg);
 endtask
 
@@ -186,26 +186,26 @@ task automatic picobello_rt_set_addr_reg(
   picobello_rt_check_cfg(tb_rt_cfg);
 
   // Start address sub low (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_LOW_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_START_ADDR_SUB_LOW_1_OFFSET - AXI_RT_START_ADDR_SUB_LOW_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_LOW_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_LOW_1_OFFSET - AXI_RT_START_ADDR_SUB_LOW_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
-  
+
   // Start address sub high (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_START_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // End address sub low (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_LOW_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_END_ADDR_SUB_LOW_1_OFFSET - AXI_RT_END_ADDR_SUB_LOW_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_LOW_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_LOW_1_OFFSET - AXI_RT_END_ADDR_SUB_LOW_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // End address sub high (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_END_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
@@ -222,26 +222,26 @@ task automatic picobello_rt_set_period_budget(
   picobello_rt_check_cfg(tb_rt_cfg);
 
   // Read budget (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_BUDGET_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_READ_BUDGET_1_OFFSET - AXI_RT_READ_BUDGET_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.read_budget[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_BUDGET_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_READ_BUDGET_1_OFFSET - AXI_RT_READ_BUDGET_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Write budget (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_BUDGET_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_WRITE_BUDGET_1_OFFSET - AXI_RT_WRITE_BUDGET_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.write_budget[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_BUDGET_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_BUDGET_1_OFFSET - AXI_RT_WRITE_BUDGET_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Read period (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_PERIOD_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_READ_PERIOD_1_OFFSET - AXI_RT_READ_PERIOD_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.read_period[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_PERIOD_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_READ_PERIOD_1_OFFSET - AXI_RT_READ_PERIOD_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Write period (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_PERIOD_0_OFFSET + tb_rt_cfg.sbr_addr_reg_id * (AXI_RT_WRITE_PERIOD_1_OFFSET - AXI_RT_WRITE_PERIOD_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.write_period[0] & 32'hFFFF_FFFF;
+  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_PERIOD_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_PERIOD_1_OFFSET - AXI_RT_WRITE_PERIOD_0_OFFSET);
+  int_write_data = tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
@@ -331,8 +331,10 @@ task automatic picobello_rt_enable_imtu(
 
   // IMTU enable (1b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ENABLE_OFFSET;
-  int_write_data = (tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id] & 1'b1) 
-                   << tb_rt_cfg.mgr_id;
+  picobello_read(int_addr, int_read_data, int_rsp);
+  assert(int_rsp == axi_pkg::RESP_OKAY);
+  int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) |
+                   ((tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
@@ -350,8 +352,10 @@ task automatic picobello_rt_abort_imtu(
 
   // IMTU abort (1b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ABORT_OFFSET;
-  int_write_data = (tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id] & 1'b1) 
-                   << tb_rt_cfg.mgr_id;
+  picobello_read(int_addr, int_read_data, int_rsp);
+  assert(int_rsp == axi_pkg::RESP_OKAY);
+  int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) |
+                   ((tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
   picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
