@@ -21,7 +21,7 @@ FLOO_ROOT = $(shell $(BENDER) path floo_noc)
 
 # Executables
 BENDER           ?= bender -d $(PB_ROOT)
-FLOO_GEN         ?= floogen
+FLOO_GEN         ?= .venv/bin/floogen
 VERIBLE_FMT      ?= verible-verilog-format
 VERIBLE_FMT_ARGS ?= --flagfile .verilog_format --inplace --verbose
 

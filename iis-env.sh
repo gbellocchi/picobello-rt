@@ -3,6 +3,8 @@
 # Solderpad Hardware License, Version 0.51, see LICENSE for details.
 # SPDX-License-Identifier: SHL-0.51
 
+export PICOBELLO_HOME_DIR=/scratch/gbellocchi/picobello-rt
+
 if [ -z "$PICOBELLO_HOME_DIR" ]; then
   echo "Error: PICOBELLO_HOME_DIR is not defined." >&2
   return 1
