@@ -47,7 +47,7 @@ package fpga_picobello_pkg;
   /////////////
 
   // Number of cores per tile
-  localparam int unsigned NumCores = 8; // cores per cluster tile
+  localparam int unsigned NumCores = 1; // cores per cluster tile
 
   // Number of NoC planes (narrow, wide)
   localparam int unsigned NumNoCPlanes = 2;
@@ -64,8 +64,8 @@ package fpga_picobello_pkg;
     AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
-    InIdWidth: 5,
-    OutIdWidth: 5
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores)
   };
 
   typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_tg_addr_t;
@@ -82,8 +82,8 @@ package fpga_picobello_pkg;
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: 5,
-    OutIdWidth: 5
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores)
   };
 
   typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_tg_addr_t;

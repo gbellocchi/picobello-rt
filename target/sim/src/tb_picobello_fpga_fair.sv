@@ -18,8 +18,8 @@
 `define SAVE_BURST_TIMESTAMPS
 
 // Traffic flow setup
-// `define INTRA_FLOW_1H_ENDPOINT    
-`define INTER_FLOW_1H_ENDPOINT  
+`define INTRA_FLOW_1H_ENDPOINT    
+// `define INTER_FLOW_1H_ENDPOINT  
 // `define INTER_FLOW_1H
 // `define INTER_FLOW_2H
 // `define INTER_FLOW_4H
@@ -160,11 +160,11 @@ module tb_picobello_fpga_fair
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd16; // burstless (single-beat)
-    int CriticalBurstLengthMax = 32'd16; // max allowed by axi4
+    int CriticalBurstLengthMin = 32'd1; // burstless (single-beat)
+    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
 
     // Budget for critical tasks
-    int CriticalBudgetMin = 32'd256;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
+    int CriticalBudgetMin = 32'd16384;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
     int CriticalBudgetMax = 32'd16384; // 16 kB = 64 bursts @FL-BE=16Beats
 
     // Period for critical tasks

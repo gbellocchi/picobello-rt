@@ -287,6 +287,9 @@ task automatic picobello_rt_set_burst_length(
   // A 32-bit register stores 4 len_limit entries each.
   int num_bytes_len_limit_reg = 4;
 
+  // Byte stride between consecutive 32-bit len_limit registers.
+  int len_limit_reg_byte_stride = 4;
+
   // Calculate manager entry in the len_limit register.
   int len_limit_reg_entry_bytes = tb_rt_cfg.mgr_id % num_bytes_len_limit_reg;
   int len_limit_reg_entry_bits = 8 * len_limit_reg_entry_bytes;
@@ -297,14 +300,20 @@ task automatic picobello_rt_set_burst_length(
   // Check input RT configuration validity
   picobello_rt_check_cfg(tb_rt_cfg);
 
-  // len_limit values are stored in groups of 4 within each 32-bit register. Therefore, a different 
-  // register offset is used to calculate the destination address for each group of 4 len_limit entries.
-  case (len_limit_reg_offset)
-    0: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_0_OFFSET;
-    1: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_1_OFFSET;
-    2: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_2_OFFSET;
-    3: int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_3_OFFSET;
-  endcase
+  // Define AXI_RT_SINGLE_MANAGER when the generated AXI-RT has a single manager, or undefine it when a multi-manager tile instance is used.
+  `define AXI_RT_SINGLE_MANAGER
+  
+  // Address the target len_limit register starting from the base register address. len_limit values 
+  // are stored in groups of 4 AXI4 managers within consecutive 32-bit registers. Each manager len_limit 
+  // is allocated 8-bit since the max len_limit value is 256 Beats. 
+`ifdef AXI_RT_SINGLE_MANAGER
+  // Single manager: one len_limit register, un-suffixed; mgr_id is always 0.
+  int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_OFFSET;
+`else
+  // Multi-manager: index off LEN_LIMIT_0 by 4 bytes per 32-bit register.
+  int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_0_OFFSET +
+             len_limit_reg_offset * len_limit_reg_byte_stride;
+`endif
 
   // Read old len_limit register value to preserve other manager entries
   picobello_read(int_addr, int_read_data, int_rsp);
