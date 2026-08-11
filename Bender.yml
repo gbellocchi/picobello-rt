@@ -19,6 +19,7 @@ dependencies:
   picobello-pd:  { path: "./pd" }
   fhg_spu_cluster:  { path: "./deps/fhg_spu_cluster" }
   axi2mem:  { path: "./target/fpga/src/axi2mem" }
+  timer_unit: { git: "https://github.com/pulp-platform/timer_unit.git", version: "1.0.0" }
 
 workspace:
   package_links:
