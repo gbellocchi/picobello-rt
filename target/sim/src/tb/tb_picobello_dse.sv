@@ -26,23 +26,23 @@
 // `define INTER_FLOW_8H
 // `define INTER_HOST_CTRL_PLANE_DIRECT_INTERF
 
-import fpga_picobello_pkg::*;
+import picobello_pkg::*;
 import sim_picobello_pkg::*;
 
-module tb_picobello_fpga_fair 
+module tb_picobello_dse 
   import picobello_pkg::*; 
   import floo_pkg::*; 
   import floo_picobello_noc_pkg::*; (
   input  logic clk,
   input  logic rst_n,
   // Host signals
-  input fpga_picobello_pkg::axi_host_req_t tb_axi_host_req_i,
-  output fpga_picobello_pkg::axi_host_rsp_t tb_axi_host_rsp_o,
+  input picobello_pkg::axi_host_req_t tb_axi_host_req_i,
+  output picobello_pkg::axi_host_rsp_t tb_axi_host_rsp_o,
   // Traffic generator configuration
-  input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
-  input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
+  input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
+  input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
   // AXI-Realm configuration
-  input fpga_picobello_pkg::rt_cfg_t tb_rt_cfg
+  input sim_picobello_pkg::rt_cfg_t tb_rt_cfg
 );
   `include "tb_picobello_sim_macros.svh"
   `include "tb_picobello_fpga_tasks.svh"
@@ -52,7 +52,7 @@ module tb_picobello_fpga_fair
   // TB signals //
   ////////////////
 
-  logic [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0] end_of_sim;
+  logic [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0] end_of_sim;
   
   // Timer
   sim_picobello_pkg::timer_cfg_t tb_timer_cfg; // Timer configuration
@@ -63,10 +63,10 @@ module tb_picobello_fpga_fair
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
 
   // BW monitoring
-  fpga_picobello_pkg::axi_wide_tg_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
-  fpga_picobello_pkg::axi_wide_tg_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
+  picobello_pkg::axi_wide_tg_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  picobello_pkg::axi_wide_tg_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
 
   floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
   floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
@@ -95,7 +95,7 @@ module tb_picobello_fpga_fair
 
   // AXI-Realm
   logic [picobello_pkg::NumClusters-1:0] rt_configured; // configuration flag
-  fpga_picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
+  picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
   
   // Clusters
   localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
@@ -132,7 +132,7 @@ module tb_picobello_fpga_fair
   int DmaWriteEnable = 1;
 
   // NoC plane control
-  localparam int unsigned NumNoCPlanes = fpga_picobello_pkg::NumNoCPlanes;
+  localparam int unsigned NumNoCPlanes = picobello_pkg::NumNoCPlanes;
 
   // Interferer reconfiguration after critical task termination
   localparam bit RuntimeInterfReconfig = 1'b0;
@@ -623,37 +623,22 @@ module tb_picobello_fpga_fair
 
   // Number of hops from memory tile
   localparam int unsigned NumHopsClMem = 1;
-
-  // Number of AXI IDs per cluster
-  localparam int unsigned NAxiIds = 1;
-  localparam int unsigned NAxiIdsMin = 1; // When each DMA is assigned with the same ID.
-  localparam int unsigned NAxiIdsMax = NumClustersActive * NumCoresActive; // When each DMA is assigned with a unique ID.
   
   /////////
   // DUT //
   /////////
 
-  fpga_picobello_top #(
+  picobello_dse_top #(
     // Parameters
-    .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),  
-    .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),    
-    .NumCores                 (fpga_picobello_pkg::NumCores),
+    .NumCores                 (picobello_pkg::NumCores),
     // AXI4 channel types
-    .axi_host_req_t           (fpga_picobello_pkg::axi_host_req_t),
-    .axi_host_rsp_t           (fpga_picobello_pkg::axi_host_rsp_t),
-    .axi_host_aw_chan_t       (fpga_picobello_pkg::axi_host_aw_chan_t),
-    .axi_host_w_chan_t        (fpga_picobello_pkg::axi_host_w_chan_t),
-    .axi_host_b_chan_t        (fpga_picobello_pkg::axi_host_b_chan_t),
-    .axi_host_ar_chan_t       (fpga_picobello_pkg::axi_host_ar_chan_t),
-    .axi_host_r_chan_t        (fpga_picobello_pkg::axi_host_r_chan_t),
-    // AXI4-Lite channel types
-    .axi_lite_host_req_t      (fpga_picobello_pkg::axi_lite_host_req_t),
-    .axi_lite_host_rsp_t      (fpga_picobello_pkg::axi_lite_host_rsp_t),
-    .axi_lite_host_aw_chan_t  (fpga_picobello_pkg::axi_lite_host_aw_chan_t),
-    .axi_lite_host_w_chan_t   (fpga_picobello_pkg::axi_lite_host_w_chan_t),
-    .axi_lite_host_b_chan_t   (fpga_picobello_pkg::axi_lite_host_b_chan_t),
-    .axi_lite_host_ar_chan_t  (fpga_picobello_pkg::axi_lite_host_ar_chan_t),
-    .axi_lite_host_r_chan_t   (fpga_picobello_pkg::axi_lite_host_r_chan_t)
+    .axi_host_req_t           (picobello_pkg::axi_host_req_t),
+    .axi_host_rsp_t           (picobello_pkg::axi_host_rsp_t),
+    .axi_host_aw_chan_t       (picobello_pkg::axi_host_aw_chan_t),
+    .axi_host_w_chan_t        (picobello_pkg::axi_host_w_chan_t),
+    .axi_host_b_chan_t        (picobello_pkg::axi_host_b_chan_t),
+    .axi_host_ar_chan_t       (picobello_pkg::axi_host_ar_chan_t),
+    .axi_host_r_chan_t        (picobello_pkg::axi_host_r_chan_t)
   ) dut (
     .clk_i                (clk),
     .rst_ni               (rst_n),
@@ -702,20 +687,20 @@ module tb_picobello_fpga_fair
 
   // Cluster wide input
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_cl_bw_monitor_loop_0
-    for (genvar core_id = 0; core_id < fpga_picobello_pkg::NumCores; core_id++) begin : gen_cl_bw_monitor_loop_1
+    for (genvar core_id = 0; core_id < picobello_pkg::NumCores; core_id++) begin : gen_cl_bw_monitor_loop_1
 
       localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_core_%0d", cl_id, core_id);
 
-      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_wide_in_req[core_id];
-      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_wide_in_rsp[core_id];
+      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[core_id];
+      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[core_id];
 
       axi_bw_monitor #(
-        .req_t        ( fpga_picobello_pkg::axi_wide_tg_req_t           ),
-        .rsp_t        ( fpga_picobello_pkg::axi_wide_tg_rsp_t           ),
+        .req_t        ( picobello_pkg::axi_wide_tg_req_t           ),
+        .rsp_t        ( picobello_pkg::axi_wide_tg_rsp_t           ),
         .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
         .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
-        .AxiDataWidth ( fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
-        .AxiIdWidth   ( fpga_picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
+        .AxiDataWidth ( picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
+        .AxiIdWidth   ( picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
         .Name         ( BwMonitorName                                   )
       ) i_axi_bw_monitor (
         .clk_i          ( clk                             ),
@@ -734,16 +719,16 @@ module tb_picobello_fpga_fair
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_wide_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_req;
-    assign bw_rt_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_rsp;
+    assign bw_rt_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_req;
+    assign bw_rt_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_wide_in_req_t       ),
       .rsp_t        ( floo_picobello_noc_pkg::axi_wide_in_rsp_t       ),
       .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
       .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
-      .AxiDataWidth ( fpga_picobello_pkg::AxiCfgW.DataWidth           ),
-      .AxiIdWidth   ( fpga_picobello_pkg::AxiCfgW.InIdWidth           ),
+      .AxiDataWidth ( picobello_pkg::AxiCfgW.DataWidth           ),
+      .AxiIdWidth   ( picobello_pkg::AxiCfgW.InIdWidth           ),
       .Name         ( BwMonitorName                                   )
     ) i_axi_bw_monitor (
       .clk_i          ( clk                             ),
@@ -761,8 +746,8 @@ module tb_picobello_fpga_fair
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_narrow_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_narrow_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_narrow_in_req;
-    assign bw_rt_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_narrow_in_rsp;
+    assign bw_rt_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_req;
+    assign bw_rt_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_narrow_in_req_t     ),
@@ -800,7 +785,7 @@ module tb_picobello_fpga_fair
     rt_configured = '{default: '0};
     // Initialization - bw monitors
     for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
-      for (int j = 0; j < fpga_picobello_pkg::NumCores; j++) begin
+      for (int j = 0; j < picobello_pkg::NumCores; j++) begin
         bw_rt_cl_cfg[i][j] = '{default: '0};
       end
       bw_rt_noc_ni_wide_cfg[i] = '{default: '0};
@@ -854,93 +839,6 @@ module tb_picobello_fpga_fair
           tb_tg_cfg_write.TrafficGenTrafficDim      = TrafficDim; // DMA payload size (hardwired)
           tb_tg_cfg_write.TrafficGenComputeDim      = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
           `wait_n_clk(1);
-
-          // If using HLS traffic generator, then program it.
-          // If using Floo DMA test node, then you do not need this because you generate traffic stream files.
-          if(fpga_picobello_pkg::UseHlsTg == 1'b1) begin
-            // Program traffic generators of critical tasks
-            cl_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-              automatic int cl_id = IdTestCl[i];
-
-              rt_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
-                automatic int core_axi_id;
-
-                // Set AXI ID for DMA read
-                core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
-                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-                  dpi_rt.dma_read_set_arid(cl_id, core_id, noc_plane_id, core_axi_id);
-                end
-
-                // Configure read traffic generator
-                tb_tg_cfg_read.mem_port_id               = IdTestMem;  
-                tb_tg_cfg_read.mem_addr_offset           = 0;   
-                tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMem].start_addr;
-
-                tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
-                tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-                tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
-                tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_read);
-
-                // Set AXI ID for DMA write
-                core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
-                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-                  dpi_rt.dma_write_set_awid(cl_id, core_id, noc_plane_id, core_axi_id);
-                end
-
-                // Configure write traffic generator
-                tb_tg_cfg_write.mem_port_id              = IdTestMem;  
-                tb_tg_cfg_write.mem_addr_offset          = 0;   
-                tb_tg_cfg_write.mem_addr_base            = Sam[IdTestMem].start_addr;
-
-                tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
-                tb_tg_cfg_write.TrafficGenIdx            = cl_id;
-                tb_tg_cfg_write.traffic_gen_addr_offset  = core_id * core_addr_space_dim + cluster_dma_w_addr_offset;
-                tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_write);
-
-                `wait_n_clk(1);
-              end
-            end
-
-            // Program traffic generators of interferers
-            cl_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
-              automatic int cl_id = IdTestClInterf[i];
-
-              rt_interf_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
-
-                // Configure read traffic generator
-                tb_tg_cfg_read.mem_port_id               = IdTestMemInterf[i];  
-                tb_tg_cfg_read.mem_addr_offset           = 0;   
-                tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMemInterf[i]].start_addr;
-
-                tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
-                tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-                tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
-                tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_read);
-
-                // Configure write traffic generator
-                tb_tg_cfg_write.mem_port_id              = IdTestMemInterf[i];  
-                tb_tg_cfg_write.mem_addr_offset          = 0;   
-                tb_tg_cfg_write.mem_addr_base            = Sam[IdTestMemInterf[i]].start_addr;
-
-                tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
-                tb_tg_cfg_write.TrafficGenIdx            = cl_id;
-                tb_tg_cfg_write.traffic_gen_addr_offset  = core_id * core_addr_space_dim + cluster_dma_w_addr_offset;
-                tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_write);
-
-                `wait_n_clk(1);
-              end
-            end
-          end
 
           // Loop over burst length values of critical tasks (geometric progression)
           critical_task_burst_length_loop: for (int CriticalBurstLength = CriticalBurstLengthMin; CriticalBurstLength <= CriticalBurstLengthMax; CriticalBurstLength = CriticalBurstLength * 2) begin
@@ -1233,30 +1131,27 @@ module tb_picobello_fpga_fair
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
 				              end
 
-				              // DMA: lower start signal if using floo DMA test node
-				              if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
-                
-				                // Wait one cycle before lowering start signal to ensure DMAs have been triggered
-				                `wait_n_clk(1);
+				              // DMA: lower start signal
+				              // Wait one cycle before lowering start signal to ensure DMAs have been triggered
+				              `wait_n_clk(1);
 
-				                dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
-				                  automatic int cl_id;
-				                  if(i < NumClustersActive) begin
-				                    cl_id = IdTestCl[i];
-				                  end else begin
-				                    cl_id = IdTestClInterf[i - NumClustersActive];
-				                  end
+				              dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
+				                automatic int cl_id;
+				                if(i < NumClustersActive) begin
+				                  cl_id = IdTestCl[i];
+				                end else begin
+				                  cl_id = IdTestClInterf[i - NumClustersActive];
+				                end
 
-				                  dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                    automatic int core_id = j;
+				                dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+				                  automatic int core_id = j;
 
-				                    for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                      if(DmaReadEnable) begin
-				                        dpi_rt.dma_read_start_low(cl_id, core_id, noc_plane_id);
-				                      end
-				                      if(DmaWriteEnable) begin
-				                        dpi_rt.dma_write_start_low(cl_id, core_id, noc_plane_id);
-				                      end
+				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                    if(DmaReadEnable) begin
+				                      dpi_rt.dma_read_start_low(cl_id, core_id, noc_plane_id);
+				                    end
+				                    if(DmaWriteEnable) begin
+				                      dpi_rt.dma_write_start_low(cl_id, core_id, noc_plane_id);
 				                    end
 				                  end
 				                end
@@ -1301,7 +1196,7 @@ module tb_picobello_fpga_fair
 				                  // automatic int cl_id = IdTestClInterf[i];
 				                  automatic int ai = i;
 				                  automatic int cl_id = IdTestClInterf[ai];
-				                  automatic fpga_picobello_pkg::rt_cfg_t local_rt_cfg = '0;
+				                  automatic sim_picobello_pkg::rt_cfg_t local_rt_cfg = '0;
 
 				                  // programming and propagation time from host to RT unit
 				                  `wait_n_clk(10);

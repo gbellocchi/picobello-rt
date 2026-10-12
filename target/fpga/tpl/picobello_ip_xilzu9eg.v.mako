@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
-  
+
 module picobello_ip (
   ${port('clk', 1, False)},\
   ${port('rst', 1, False, True)},

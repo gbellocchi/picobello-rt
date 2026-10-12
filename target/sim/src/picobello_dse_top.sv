@@ -7,14 +7,10 @@
 `include "axi/typedef.svh"
 `include "axi/assign.svh"
 
-module fpga_picobello_top 
+module picobello_dse_top 
   import picobello_pkg::*; 
   import floo_pkg::*; 
   import floo_picobello_noc_pkg::*; #(
-  // Number of FPGA host processor ports
-  parameter int unsigned NumFpgaHostPorts = 1,
-  // Number of FPGA dummy tiles
-  parameter int unsigned NumFpgaDummyTiles = 2,
   // Number of cores within each cluster tile
   parameter int unsigned NumCores = 1,
   // AXI4 channel types
@@ -24,15 +20,7 @@ module fpga_picobello_top
   parameter type axi_host_w_chan_t = logic,
   parameter type axi_host_b_chan_t = logic,
   parameter type axi_host_ar_chan_t = logic,
-  parameter type axi_host_r_chan_t = logic,
-  // AXI4-Lite channel types
-  parameter type axi_lite_host_req_t = logic,
-  parameter type axi_lite_host_rsp_t = logic,
-  parameter type axi_lite_host_aw_chan_t = logic,
-  parameter type axi_lite_host_w_chan_t = logic,
-  parameter type axi_lite_host_b_chan_t = logic,
-  parameter type axi_lite_host_ar_chan_t = logic,
-  parameter type axi_lite_host_r_chan_t = logic
+  parameter type axi_host_r_chan_t = logic
 ) (
   input  logic                        clk_i,
   input  logic                        rst_ni,
@@ -61,11 +49,11 @@ module fpga_picobello_top
     localparam int Y = int'(ClusterId.y);
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
-    cluster_rt_tile #(
+    traffic_gen_tile #(
       .NumCores         (NumCores),
       .BaseAddr         (ClusterBaseAddr),
       .Id               (ClusterId)  
-    ) i_cluster_rt_tile (
+    ) i_traffic_gen_tile (
       .clk_i,
       .rst_ni,
       .test_enable_i    (test_mode_i),
@@ -86,10 +74,10 @@ module fpga_picobello_top
 
   localparam id_t CheshireId = Sam[CheshireInternalSamIdx].idx;
 
-  fpga_host_tile #(
+  ext_narrow_tile #(
     .axi_host_req_t     (axi_host_req_t),
     .axi_host_rsp_t     (axi_host_rsp_t)
-  ) i_fpga_host_tile (
+  ) i_ext_narrow_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),
@@ -101,7 +89,10 @@ module fpga_picobello_top
     .floo_rsp_o         (floo_rsp_out[CheshireId.x][CheshireId.y]),
     .floo_wide_i        (floo_wide_in[CheshireId.x][CheshireId.y]),
     .ext_host_req_i     (ext_axi_host_req_i),
-    .ext_host_rsp_o     (ext_axi_host_rsp_o)
+    .ext_host_rsp_o     (ext_axi_host_rsp_o),
+    // No external subordinate attached yet
+    .ext_narrow_out_req_o (),
+    .ext_narrow_out_rsp_i ('0)
   );
 
   //////////////
@@ -130,19 +121,6 @@ module fpga_picobello_top
       .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
       .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
     );
-
-    // fpga_l2_tile i_mem_tile (
-    //   .clk_i,
-    //   .rst_ni,
-    //   .test_enable_i(test_mode_i),
-    //   .id_i         (MemTileId),
-    //   .floo_req_o   (floo_req_out[MemTileX][MemTileY]),
-    //   .floo_rsp_i   (floo_rsp_in[MemTileX][MemTileY]),
-    //   .floo_wide_o  (floo_wide_out[MemTileX][MemTileY]),
-    //   .floo_req_i   (floo_req_in[MemTileX][MemTileY]),
-    //   .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
-    //   .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
-    // );
   end
 
   ////////////////

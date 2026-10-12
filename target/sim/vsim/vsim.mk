@@ -38,7 +38,8 @@ VSIM_WLF_NAME = $(VSIM_RUN)/$(VSIM_NAME).wlf
 VSIM_VCD_NAME = $(VSIM_RUN)/$(VSIM_NAME).vcd
 VCD_COMMON_CMD = vcd file $(VSIM_VCD_NAME); vcd add -r /*;
 VSIM_COMMON_CMD = log -r /*; run -a;
-VSIM_WAVES_CMD = source "$(VSIM_DIR)/utils/tb-waves-fpga.tcl";
+VSIM_WAVES_FILE = $(VSIM_DIR)/utils/$(TB_DUT).wave.do
+VSIM_WAVES_CMD = $(if $(wildcard $(VSIM_WAVES_FILE)),source "$(VSIM_WAVES_FILE)";)
 
 define add_vsim_flag
 ifdef $(1)

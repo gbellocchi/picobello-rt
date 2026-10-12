@@ -108,4 +108,44 @@ package sim_picobello_pkg;
     real w_util_stddev;
   } bw_monitor_stats_t;
 
+  ///////////////
+  // AXI-Realm //
+  ///////////////
+
+  // AXI-Realm configuration struct
+  typedef struct packed {
+    // Register file base address
+    picobello_pkg::axi_host_addr_t rt_reg_addr_base;
+    // Register file base address offset
+    picobello_pkg::axi_host_addr_t rt_reg_addr_offset;
+    // Manager ID
+    int mgr_id;
+    // Manager address space dimension
+    picobello_pkg::axi_host_addr_t mgr_addr_space_dim;
+    // Subordinate address region ID
+    int sbr_addr_reg_id;
+    // Configuration registers
+    axi_rt_reg_pkg::axi_rt_reg2hw_t rt_regfile_cfg;
+  } rt_cfg_t;
+
+  ///////////////////////
+  // Traffic Generator //
+  ///////////////////////
+
+  // Traffic generator configuration struct
+  typedef struct packed {
+    // Port IDs
+    logic [3:0] traffic_gen_port_id;
+    logic [3:0] mem_port_id;
+    // Addresses and offsets
+    picobello_pkg::axi_host_addr_t traffic_gen_addr_base; // Traffic generator base address
+    picobello_pkg::axi_host_addr_t traffic_gen_addr_offset; // Traffic generator address offset
+    picobello_pkg::axi_host_addr_t mem_addr_base; // Memory base address
+    picobello_pkg::axi_host_addr_t mem_addr_offset; // Memory address offset
+    // Traffic generator parameters
+    picobello_pkg::axi_host_data_t TrafficGenTrafficDim; // Traffic dimension
+    picobello_pkg::axi_host_data_t TrafficGenComputeDim; // Compute dimension
+    picobello_pkg::axi_host_data_t TrafficGenIdx; // Index
+  } tg_cfg_t;
+
 endpackage

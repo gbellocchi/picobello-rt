@@ -8,7 +8,7 @@
 `include "floo_noc/typedef.svh"
 `include "axi/assign.svh"
 
-module fpga_host_tile
+module ext_narrow_tile
   import floo_pkg::*;
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*; #(
@@ -28,9 +28,12 @@ module fpga_host_tile
   input  floo_req_t                 [ West:North] floo_req_i,
   output floo_rsp_t                 [ West:North] floo_rsp_o,
   input  floo_wide_t                [ West:North] floo_wide_i,
-  // FPGA host ports
+  // External manager port (external -> NoC)
   input  axi_host_req_t                           ext_host_req_i,
-  output axi_host_rsp_t                           ext_host_rsp_o
+  output axi_host_rsp_t                           ext_host_rsp_o,
+  // External subordinate port (NoC -> external)
+  output axi_narrow_out_req_t                     ext_narrow_out_req_o,
+  input  axi_narrow_out_rsp_t                     ext_narrow_out_rsp_i
 );
 
   ////////////
@@ -81,7 +84,7 @@ module fpga_host_tile
   floo_picobello_noc_pkg::axi_narrow_in_req_t  narrow_in_req;
   floo_picobello_noc_pkg::axi_narrow_in_rsp_t  narrow_in_rsp;
 
-  localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b0, 1'b1);
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(ChimneyDefaultCfg, 1'b1, 1'b1);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(ChimneyDefaultCfg, 1'b0, 1'b0);
 
   floo_nw_chimney #(
@@ -117,8 +120,8 @@ module fpga_host_tile
     .sram_cfg_i          ('0),
     .axi_narrow_in_req_i (narrow_in_req),
     .axi_narrow_in_rsp_o (narrow_in_rsp),
-    .axi_narrow_out_req_o(),
-    .axi_narrow_out_rsp_i('0),
+    .axi_narrow_out_req_o(ext_narrow_out_req_o),
+    .axi_narrow_out_rsp_i(ext_narrow_out_rsp_i),
     .axi_wide_in_req_i   ('0),
     .axi_wide_in_rsp_o   (),
     .axi_wide_out_req_o  (),

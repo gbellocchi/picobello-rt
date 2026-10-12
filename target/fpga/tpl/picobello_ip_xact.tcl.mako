@@ -17,9 +17,9 @@ set_property part $PL_PART_NAME [current_project]
 
 source $VIVADO_BUILD/define_sources.tcl
 source $VIVADO_BUILD/define_defines_includes.tcl
-add_files -norecurse -fileset constrs_1 {picobello_txilzu9eg_synth.xdc picobello_txilzu9eg_impl.xdc}
-set_property used_in_implementation false [get_files $VIVADO_BUILD/picobello_txilzu9eg_synth.xdc]
-set_property used_in_synthesis false [get_files $VIVADO_BUILD/picobello_txilzu9eg_impl.xdc]
+add_files -norecurse -fileset constrs_1 {picobello_t${fpga_target}_synth.xdc picobello_t${fpga_target}_impl.xdc}
+set_property used_in_implementation false [get_files $VIVADO_BUILD/picobello_t${fpga_target}_synth.xdc]
+set_property used_in_synthesis false [get_files $VIVADO_BUILD/picobello_t${fpga_target}_impl.xdc]
 
 # Select top
 set_property top $PRJ_IP_NAME [current_fileset]
@@ -51,6 +51,7 @@ set_property bus_type_vlnv xilinx.com:signal:reset:1.0 $rst
 ipx::add_port_map RST $rst
 set_property physical_name rst_ni [ipx::get_port_maps RST -of_objects $rst]
 
+% if fpga_target == 'xilzu9eg':
 # AXI Slave
 ipx::add_bus_interface slv [ipx::current_core]
 set slv [ipx::get_bus_interfaces slv -of_objects [ipx::current_core]]
@@ -117,6 +118,11 @@ set_property width 32 [ipx::get_address_spaces Data -of_objects [ipx::current_co
 set_property range_format string [ipx::get_address_spaces Data -of_objects [ipx::current_core]]
 set_property range 16E [ipx::get_address_spaces Data -of_objects [ipx::current_core]]
 
+% elif fpga_target == 'xilvu9p':
+# Peripherals (JTAG, UART, I2C, SPI host, GPIO)
+# TBD: the peripheral ports are packaged as plain ports for now.
+
+% endif
 # Save IP
 set_property core_revision 4 [ipx::current_core]
 ipx::update_source_project_archive -component [ipx::current_core]

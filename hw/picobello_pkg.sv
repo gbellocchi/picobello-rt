@@ -4,7 +4,9 @@
 //
 // Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+`include "axi/typedef.svh"
 `include "cheshire/typedef.svh"
+`include "register_interface/typedef.svh"
 
 package picobello_pkg;
 
@@ -226,5 +228,114 @@ package picobello_pkg;
   // Max number of outstanding transactions
   // This should be larger than round-trip latency from converter to SRAM (approx 2Ck)
   localparam int unsigned ObiMaxTxns = (MemRttInputExpected > 32) ? MemRttInputExpected : 32;
+
+  /////////////////////
+  //  External host  //
+  /////////////////////
+
+  // AXI4 narrow configuration of the external host port (see `ext_narrow_tile`)
+  localparam axi_cfg_t AxiCfgHost = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth,
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.OutIdWidth
+  };
+  typedef logic [AxiCfgHost.AddrWidth-1:0] axi_host_addr_t;
+  typedef logic [AxiCfgHost.DataWidth-1:0] axi_host_data_t;
+  typedef logic [AxiCfgHost.DataWidth/8-1:0] axi_host_strb_t;
+  typedef logic [AxiCfgHost.OutIdWidth-1:0] axi_host_id_t;
+  typedef logic [AxiCfgHost.UserWidth-1:0] axi_host_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_host, axi_host_req_t, axi_host_rsp_t, axi_host_addr_t,
+                      axi_host_id_t, axi_host_data_t, axi_host_strb_t,
+                      axi_host_user_t)
+
+  //////////////////////////////
+  //  Traffic Generator Tile  //
+  //////////////////////////////
+
+  // Number of cores per tile
+  localparam int unsigned NumCores = 1; // cores per cluster tile
+
+  // Number of NoC planes (narrow, wide)
+  localparam int unsigned NumNoCPlanes = 2;
+
+  // Indices of NoC planes
+  localparam int unsigned IdxNoCPlaneWide = 0;
+  localparam int unsigned IdxNoCPlaneNarrow = 1;
+
+  // Total number of DMA cores per tile
+  localparam int unsigned NumCoresTotal = NumCores * NumNoCPlanes;
+
+  // AXI4 narrow configuration for RT traffic (Traffic generator => MUX)
+  localparam axi_cfg_t AxiCfgNTrafficGen = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores)
+  };
+
+  typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_tg_addr_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth-1:0] axi_narrow_tg_data_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth/8-1:0] axi_narrow_tg_strb_t;
+  typedef logic [AxiCfgNTrafficGen.OutIdWidth-1:0] axi_narrow_tg_id_t;
+  typedef logic [AxiCfgNTrafficGen.UserWidth-1:0] axi_narrow_tg_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_tg, axi_narrow_tg_req_t, axi_narrow_tg_rsp_t,
+                      axi_narrow_tg_addr_t, axi_narrow_tg_id_t, axi_narrow_tg_data_t,
+                      axi_narrow_tg_strb_t, axi_narrow_tg_user_t)
+
+  // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
+  localparam axi_cfg_t AxiCfgWTrafficGen = '{
+    AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
+    DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
+    UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores)
+  };
+
+  typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_tg_addr_t;
+  typedef logic [AxiCfgWTrafficGen.DataWidth-1:0] axi_wide_tg_data_t;
+  typedef logic [AxiCfgWTrafficGen.DataWidth/8-1:0] axi_wide_tg_strb_t;
+  typedef logic [AxiCfgWTrafficGen.OutIdWidth-1:0] axi_wide_tg_id_t;
+  typedef logic [AxiCfgWTrafficGen.UserWidth-1:0] axi_wide_tg_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_wide_tg, axi_wide_tg_req_t, axi_wide_tg_rsp_t,
+                      axi_wide_tg_addr_t, axi_wide_tg_id_t, axi_wide_tg_data_t,
+                      axi_wide_tg_strb_t, axi_wide_tg_user_t)
+
+  /////////////////
+  //  AXI-Realm  //
+  /////////////////
+
+  // Number of masters
+  localparam int unsigned NumManagers     = NumCores;
+  // Number of slaves
+  localparam int unsigned NumSubordinates = 32'd1;
+  // Number of regions per master
+  localparam int unsigned NumRegions      = 32'd1;
+  // Max burst length
+  localparam int unsigned MaxBurstLength  = 32'd256;
+  // Number of outstanding transactions
+  localparam int unsigned NumPending      = MaxBurstLength;
+  // Write buffer depth
+  localparam int unsigned WBufferDepth    = MaxBurstLength;
+  // QoS parameters
+  localparam int unsigned PeriodWidth     = 32'd32;
+  localparam int unsigned BudgetWidth     = 32'd32;
+
+  // RT ID
+  localparam int unsigned AxiSlvIdWidth = (NumManagers == 32'd1 & NumSubordinates == 32'd1) ?
+                                            AxiCfgW.OutIdWidth :
+                                            AxiCfgW.OutIdWidth + cf_math_pkg::idx_width(NumManagers);
+
+  typedef logic [AxiSlvIdWidth-1 :0] slv_id_t;
+
+  // Configuration register bus (AXI4 narrow => 32-bit registers).
+  // Used by the AXI-Realm register files and by the traffic generator registers.
+  localparam int unsigned AxiRtCfgDataWidth = 32'd32;
+  typedef logic [floo_picobello_noc_pkg::AxiCfgN.AddrWidth-1:0] axi_rt_cfg_addr_t;
+  typedef logic [AxiRtCfgDataWidth-1:0] axi_rt_cfg_data_t;
+  typedef logic [AxiRtCfgDataWidth/8-1:0] axi_rt_cfg_strb_t;
+  `REG_BUS_TYPEDEF_ALL(axi_rt_cfg, axi_rt_cfg_addr_t, axi_rt_cfg_data_t, axi_rt_cfg_strb_t)
 
 endpackage
