@@ -58,9 +58,9 @@ add wave -noupdate -group {tb_timer} {/tb_picobello_fpga_fair/timer_i/*}
 add wave -noupdate -group {top} {/tb_picobello_fpga_fair/dut/*}
 
 # FPGA host tile
-add wave -noupdate -group {host_tile} {/tb_picobello_fpga_fair/dut/i_fpga_host_tile/*}
-add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_fpga_fair/dut/i_fpga_host_tile/i_router/*}
-add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_fpga_fair/dut/i_fpga_host_tile/i_chimney/*}
+add wave -noupdate -group {host_tile} {/tb_picobello_fpga_fair/dut/i_ext_narrow_tile/*}
+add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_fpga_fair/dut/i_ext_narrow_tile/i_router/*}
+add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_fpga_fair/dut/i_ext_narrow_tile/i_chimney/*}
 
 # Cluster tiles
 for {set cl 0} {$cl < $n_cl} {incr cl} {

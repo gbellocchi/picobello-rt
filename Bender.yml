@@ -46,6 +46,7 @@ sources:
   - hw/cheshire_tile.sv
   - hw/mem_tile.sv
   - hw/dummy_tile.sv
+  - hw/ext_narrow_tile.sv
   - hw/axi_delay.sv
   - hw/axi_id_flattening.sv
 
@@ -94,8 +95,6 @@ sources:
       - target/fpga/src/axi_traffic_gen_wrapper.sv
       # Level 3
       - target/fpga/src/tg_realm_tile.sv
-      - target/fpga/src/fpga_l2_tile.sv
-      - target/fpga/src/fpga_host_tile.sv
       # Level 4
       - target/fpga/src/fpga_picobello_top.sv
       - target/fpga/src/fpga_picobello_top_wrapper.sv
@@ -105,5 +104,6 @@ sources:
 
   - target: all(any(fpga), not(any(asic, simulation, test)))
     files:
+      - target/fpga/src/fpga_l2_tile.sv
       - target/fpga/src/axi_iw_converter_flat/axi_iw_converter_flat.sv
       - target/fpga/vivado/build/picobello_ip.v

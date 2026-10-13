@@ -86,10 +86,10 @@ module fpga_picobello_top
 
   localparam id_t CheshireId = Sam[CheshireInternalSamIdx].idx;
 
-  fpga_host_tile #(
+  ext_narrow_tile #(
     .axi_host_req_t     (axi_host_req_t),
     .axi_host_rsp_t     (axi_host_rsp_t)
-  ) i_fpga_host_tile (
+  ) i_ext_narrow_tile (
     .clk_i,
     .rst_ni,
     .test_enable_i      (test_mode_i),
@@ -101,7 +101,10 @@ module fpga_picobello_top
     .floo_rsp_o         (floo_rsp_out[CheshireId.x][CheshireId.y]),
     .floo_wide_i        (floo_wide_in[CheshireId.x][CheshireId.y]),
     .ext_host_req_i     (ext_axi_host_req_i),
-    .ext_host_rsp_o     (ext_axi_host_rsp_o)
+    .ext_host_rsp_o     (ext_axi_host_rsp_o),
+    // No external subordinate attached yet
+    .ext_narrow_out_req_o (),
+    .ext_narrow_out_rsp_i ('0)
   );
 
   //////////////
@@ -114,6 +117,22 @@ module fpga_picobello_top
     localparam int MemTileX = int'(MemTileId.x);
     localparam int MemTileY = int'(MemTileId.y);
 
+    // On FPGA, use the memory tile with FPGA-specific SRAM macros.
+`ifdef TARGET_FPGA
+    fpga_l2_tile i_mem_tile (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i(test_mode_i),
+      .id_i         (MemTileId),
+      .floo_req_o   (floo_req_out[MemTileX][MemTileY]),
+      .floo_rsp_i   (floo_rsp_in[MemTileX][MemTileY]),
+      .floo_wide_o  (floo_wide_out[MemTileX][MemTileY]),
+      .floo_req_i   (floo_req_in[MemTileX][MemTileY]),
+      .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
+      .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
+    );
+`else
+    // In simulation, use the standard memory tile.
     mem_tile #(
       .AxiUserAtop (1'b0),
       .AxiUserAtopMsb (1),
@@ -130,19 +149,7 @@ module fpga_picobello_top
       .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
       .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
     );
-
-    // fpga_l2_tile i_mem_tile (
-    //   .clk_i,
-    //   .rst_ni,
-    //   .test_enable_i(test_mode_i),
-    //   .id_i         (MemTileId),
-    //   .floo_req_o   (floo_req_out[MemTileX][MemTileY]),
-    //   .floo_rsp_i   (floo_rsp_in[MemTileX][MemTileY]),
-    //   .floo_wide_o  (floo_wide_out[MemTileX][MemTileY]),
-    //   .floo_req_i   (floo_req_in[MemTileX][MemTileY]),
-    //   .floo_rsp_o   (floo_rsp_out[MemTileX][MemTileY]),
-    //   .floo_wide_i  (floo_wide_in[MemTileX][MemTileY])
-    // );
+`endif
   end
 
   ////////////////
