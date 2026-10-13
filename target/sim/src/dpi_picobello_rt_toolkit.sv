@@ -19,14 +19,12 @@ module dpi_picobello_rt_toolkit (
   import "DPI-C" context task hello_world();
 
   // DMA read control
-  import "DPI-C" function void dma_read_set_arid(input int cl_id, input int core_id, input int noc_plane_id, input int value);
-  import "DPI-C" function void dma_read_start(input int cl_id, input int core_id, input int noc_plane_id, input int value, int use_hls_tg);
-  import "DPI-C" function int dma_read_get_idle(input int cl_id, input int core_id, input int noc_plane_id, int use_hls_tg);
+  import "DPI-C" function void dma_read_start(input int cl_id, input int core_id, input int noc_plane_id, input int value);
+  import "DPI-C" function int dma_read_get_idle(input int cl_id, input int core_id, input int noc_plane_id);
 
   // DMA write control
-  import "DPI-C" function void dma_write_set_awid(input int cl_id, input int core_id, input int noc_plane_id, input int value);
-  import "DPI-C" function void dma_write_start(input int cl_id, input int core_id, input int noc_plane_id, input int value, int use_hls_tg);
-  import "DPI-C" function int dma_write_get_idle(input int cl_id, input int core_id, input int noc_plane_id, int use_hls_tg);
+  import "DPI-C" function void dma_write_start(input int cl_id, input int core_id, input int noc_plane_id, input int value);
+  import "DPI-C" function int dma_write_get_idle(input int cl_id, input int core_id, input int noc_plane_id);
 
   // AXI Realm control
   import "DPI-C" function void axi_rt_set_fragm_len(input int cl_id, input int core_id, input int value);
@@ -47,32 +45,32 @@ module dpi_picobello_rt_toolkit (
 
   // Start DMA read
   task dma_read_start_high(input int cl_id, input int core_id, input int noc_plane_id);
-    dma_read_start(cl_id, core_id, noc_plane_id, 1, fpga_picobello_pkg::UseHlsTg);
+    dma_read_start(cl_id, core_id, noc_plane_id, 1);
   endtask
 
   task dma_read_start_low(input int cl_id, input int core_id, input int noc_plane_id);
-    dma_read_start(cl_id, core_id, noc_plane_id, 0, fpga_picobello_pkg::UseHlsTg);
+    dma_read_start(cl_id, core_id, noc_plane_id, 0);
   endtask
 
   // Wait for DMA read to become idle 
   task dma_read_wait_idle(input int cl_id, input int core_id, input int noc_plane_id);
-    while (dma_read_get_idle(cl_id, core_id, noc_plane_id, fpga_picobello_pkg::UseHlsTg) != 1) begin
+    while (dma_read_get_idle(cl_id, core_id, noc_plane_id) != 1) begin
       sv_wait_clocks(1);
     end
   endtask
 
   // Start DMA write
   task dma_write_start_high(input int cl_id, input int core_id, input int noc_plane_id);
-    dma_write_start(cl_id, core_id, noc_plane_id, 1, fpga_picobello_pkg::UseHlsTg);
+    dma_write_start(cl_id, core_id, noc_plane_id, 1);
   endtask
 
   task dma_write_start_low(input int cl_id, input int core_id, input int noc_plane_id);
-    dma_write_start(cl_id, core_id, noc_plane_id, 0, fpga_picobello_pkg::UseHlsTg);
+    dma_write_start(cl_id, core_id, noc_plane_id, 0);
   endtask
 
   // Wait for DMA write to become idle 
   task dma_write_wait_idle(input int cl_id, input int core_id, input int noc_plane_id);
-    while (dma_write_get_idle(cl_id, core_id, noc_plane_id, fpga_picobello_pkg::UseHlsTg) != 1) begin
+    while (dma_write_get_idle(cl_id, core_id, noc_plane_id) != 1) begin
       sv_wait_clocks(1);
     end
   endtask

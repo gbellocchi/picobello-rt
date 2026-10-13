@@ -623,11 +623,6 @@ module tb_picobello_fpga_fair
 
   // Number of hops from memory tile
   localparam int unsigned NumHopsClMem = 1;
-
-  // Number of AXI IDs per cluster
-  localparam int unsigned NAxiIds = 1;
-  localparam int unsigned NAxiIdsMin = 1; // When each DMA is assigned with the same ID.
-  localparam int unsigned NAxiIdsMax = NumClustersActive * NumCoresActive; // When each DMA is assigned with a unique ID.
   
   /////////
   // DUT //
@@ -854,93 +849,6 @@ module tb_picobello_fpga_fair
           tb_tg_cfg_write.TrafficGenTrafficDim      = TrafficDim; // DMA payload size (hardwired)
           tb_tg_cfg_write.TrafficGenComputeDim      = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
           `wait_n_clk(1);
-
-          // If using HLS traffic generator, then program it.
-          // If using Floo DMA test node, then you do not need this because you generate traffic stream files.
-          if(fpga_picobello_pkg::UseHlsTg == 1'b1) begin
-            // Program traffic generators of critical tasks
-            cl_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
-              automatic int cl_id = IdTestCl[i];
-
-              rt_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
-                automatic int core_axi_id;
-
-                // Set AXI ID for DMA read
-                core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
-                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-                  dpi_rt.dma_read_set_arid(cl_id, core_id, noc_plane_id, core_axi_id);
-                end
-
-                // Configure read traffic generator
-                tb_tg_cfg_read.mem_port_id               = IdTestMem;  
-                tb_tg_cfg_read.mem_addr_offset           = 0;   
-                tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMem].start_addr;
-
-                tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
-                tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-                tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
-                tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_read);
-
-                // Set AXI ID for DMA write
-                core_axi_id = (cl_id * NumCoresActive + core_id) * (NAxiIds / NAxiIdsMax);
-                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-                  dpi_rt.dma_write_set_awid(cl_id, core_id, noc_plane_id, core_axi_id);
-                end
-
-                // Configure write traffic generator
-                tb_tg_cfg_write.mem_port_id              = IdTestMem;  
-                tb_tg_cfg_write.mem_addr_offset          = 0;   
-                tb_tg_cfg_write.mem_addr_base            = Sam[IdTestMem].start_addr;
-
-                tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
-                tb_tg_cfg_write.TrafficGenIdx            = cl_id;
-                tb_tg_cfg_write.traffic_gen_addr_offset  = core_id * core_addr_space_dim + cluster_dma_w_addr_offset;
-                tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_write);
-
-                `wait_n_clk(1);
-              end
-            end
-
-            // Program traffic generators of interferers
-            cl_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
-              automatic int cl_id = IdTestClInterf[i];
-
-              rt_interf_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-                automatic int core_id = j;
-
-                // Configure read traffic generator
-                tb_tg_cfg_read.mem_port_id               = IdTestMemInterf[i];  
-                tb_tg_cfg_read.mem_addr_offset           = 0;   
-                tb_tg_cfg_read.mem_addr_base             = Sam[IdTestMemInterf[i]].start_addr;
-
-                tb_tg_cfg_read.traffic_gen_port_id       = cl_id;
-                tb_tg_cfg_read.TrafficGenIdx             = cl_id;
-                tb_tg_cfg_read.traffic_gen_addr_offset   = core_id * core_addr_space_dim + cluster_dma_r_addr_offset;
-                tb_tg_cfg_read.traffic_gen_addr_base     = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_read.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_read);
-
-                // Configure write traffic generator
-                tb_tg_cfg_write.mem_port_id              = IdTestMemInterf[i];  
-                tb_tg_cfg_write.mem_addr_offset          = 0;   
-                tb_tg_cfg_write.mem_addr_base            = Sam[IdTestMemInterf[i]].start_addr;
-
-                tb_tg_cfg_write.traffic_gen_port_id      = cl_id;
-                tb_tg_cfg_write.TrafficGenIdx            = cl_id;
-                tb_tg_cfg_write.traffic_gen_addr_offset  = core_id * core_addr_space_dim + cluster_dma_w_addr_offset;
-                tb_tg_cfg_write.traffic_gen_addr_base    = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_tg_cfg_write.traffic_gen_addr_offset;
-                
-                picobello_tg_cfg(tb_tg_cfg_write);
-
-                `wait_n_clk(1);
-              end
-            end
-          end
 
           // Loop over burst length values of critical tasks (geometric progression)
           critical_task_burst_length_loop: for (int CriticalBurstLength = CriticalBurstLengthMin; CriticalBurstLength <= CriticalBurstLengthMax; CriticalBurstLength = CriticalBurstLength * 2) begin
@@ -1233,30 +1141,27 @@ module tb_picobello_fpga_fair
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
 				              end
 
-				              // DMA: lower start signal if using floo DMA test node
-				              if(fpga_picobello_pkg::UseHlsTg == 1'b0) begin
-                
-				                // Wait one cycle before lowering start signal to ensure DMAs have been triggered
-				                `wait_n_clk(1);
+				              // DMA: lower start signal
+				              // Wait one cycle before lowering start signal to ensure DMAs have been triggered
+				              `wait_n_clk(1);
 
-				                dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
-				                  automatic int cl_id;
-				                  if(i < NumClustersActive) begin
-				                    cl_id = IdTestCl[i];
-				                  end else begin
-				                    cl_id = IdTestClInterf[i - NumClustersActive];
-				                  end
+				              dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
+				                automatic int cl_id;
+				                if(i < NumClustersActive) begin
+				                  cl_id = IdTestCl[i];
+				                end else begin
+				                  cl_id = IdTestClInterf[i - NumClustersActive];
+				                end
 
-				                  dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                    automatic int core_id = j;
+				                dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
+				                  automatic int core_id = j;
 
-				                    for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                      if(DmaReadEnable) begin
-				                        dpi_rt.dma_read_start_low(cl_id, core_id, noc_plane_id);
-				                      end
-				                      if(DmaWriteEnable) begin
-				                        dpi_rt.dma_write_start_low(cl_id, core_id, noc_plane_id);
-				                      end
+				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                    if(DmaReadEnable) begin
+				                      dpi_rt.dma_read_start_low(cl_id, core_id, noc_plane_id);
+				                    end
+				                    if(DmaWriteEnable) begin
+				                      dpi_rt.dma_write_start_low(cl_id, core_id, noc_plane_id);
 				                    end
 				                  end
 				                end
