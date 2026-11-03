@@ -69,7 +69,7 @@ sources:
       - target/sim/src/floo_dma_regs/floo_dma_reg_top.sv
       - target/sim/src/axi_bw_monitor.sv
       - target/sim/src/fixture_picobello_top.sv
-      - target/sim/src/tb_picobello_top.sv
+      - target/sim/src/tb/tb_picobello_top.sv
 
   - target: asic
     files:
@@ -100,7 +100,7 @@ sources:
       - target/fpga/src/fpga_picobello_top_wrapper.sv
       # Level 5
       # - target/sim/src/tb_picobello_fpga.sv
-      - target/sim/src/tb_picobello_fpga_fair.sv
+      - target/sim/src/tb/tb_picobello_dse.sv
 
   - target: all(any(fpga), not(any(asic, simulation, test)))
     files:

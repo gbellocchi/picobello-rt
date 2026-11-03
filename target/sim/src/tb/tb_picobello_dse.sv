@@ -29,7 +29,7 @@
 import fpga_picobello_pkg::*;
 import sim_picobello_pkg::*;
 
-module tb_picobello_fpga_fair 
+module tb_picobello_dse 
   import picobello_pkg::*; 
   import floo_pkg::*; 
   import floo_picobello_noc_pkg::*; (

@@ -26,14 +26,14 @@ set n_mem_y 1
 set n_mem [expr {$n_mem_x * $n_mem_y}]
 
 # TB top
-add wave -noupdate -group {tb} {/tb_picobello_fpga_fair/*}
+add wave -noupdate -group {tb} {/tb_picobello_dse/*}
 
 # TB BW monitors - Clusters
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
     for {set co 0} {$co < $n_core} {incr co} {
-        add wave -noupdate -group {cl_bw_monitor} -group "gen_cl_bw_monitor[$cl][$co]" /tb_picobello_fpga_fair/gen_cl_bw_monitor_loop_0\[$cl\]/gen_cl_bw_monitor_loop_1\[$co\]/i_axi_bw_monitor/*
+        add wave -noupdate -group {cl_bw_monitor} -group "gen_cl_bw_monitor[$cl][$co]" /tb_picobello_dse/gen_cl_bw_monitor_loop_0\[$cl\]/gen_cl_bw_monitor_loop_1\[$co\]/i_axi_bw_monitor/*
     }
 }
 
@@ -41,32 +41,32 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
-    add wave -noupdate -group {noc_ni_bw_monitor_wide} -group "gen_noc_ni_bw_monitor_wide[$cl]" /tb_picobello_fpga_fair/gen_noc_ni_bw_monitor_loop_0\[$cl\]/i_axi_bw_monitor/*
+    add wave -noupdate -group {noc_ni_bw_monitor_wide} -group "gen_noc_ni_bw_monitor_wide[$cl]" /tb_picobello_dse/gen_noc_ni_bw_monitor_loop_0\[$cl\]/i_axi_bw_monitor/*
 }
 
 # TB BW monitors - NoC NI narrow
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
-    add wave -noupdate -group {noc_ni_bw_monitor_narrow} -group "gen_noc_ni_bw_monitor_narrow[$cl]" /tb_picobello_fpga_fair/gen_noc_ni_narrow_bw_monitor_loop_0\[$cl\]/i_axi_bw_monitor/*
+    add wave -noupdate -group {noc_ni_bw_monitor_narrow} -group "gen_noc_ni_bw_monitor_narrow[$cl]" /tb_picobello_dse/gen_noc_ni_narrow_bw_monitor_loop_0\[$cl\]/i_axi_bw_monitor/*
 }
 
 # TB timer
-add wave -noupdate -group {tb_timer} {/tb_picobello_fpga_fair/timer_i/*}
+add wave -noupdate -group {tb_timer} {/tb_picobello_dse/timer_i/*}
 
 # DUT top
-add wave -noupdate -group {top} {/tb_picobello_fpga_fair/dut/*}
+add wave -noupdate -group {top} {/tb_picobello_dse/dut/*}
 
 # FPGA host tile
-add wave -noupdate -group {host_tile} {/tb_picobello_fpga_fair/dut/i_ext_narrow_tile/*}
-add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_fpga_fair/dut/i_ext_narrow_tile/i_router/*}
-add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_fpga_fair/dut/i_ext_narrow_tile/i_chimney/*}
+add wave -noupdate -group {host_tile} {/tb_picobello_dse/dut/i_ext_narrow_tile/*}
+add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_dse/dut/i_ext_narrow_tile/i_router/*}
+add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_dse/dut/i_ext_narrow_tile/i_chimney/*}
 
 # Cluster tiles
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
-    set tile_path "/tb_picobello_fpga_fair/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
+    set tile_path "/tb_picobello_dse/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
     add wave -noupdate -group "dma_track" -group "cl_ni[$cl]" ${tile_path}/i_chimney/*
 }
 
@@ -74,7 +74,7 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
-    set tile_path "/tb_picobello_fpga_fair/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
+    set tile_path "/tb_picobello_dse/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
 
     add wave -noupdate -group "cluster_tile[$cl]" -group {top} ${tile_path}/*
 
@@ -194,7 +194,7 @@ for {set mem 0} {$mem < $n_mem} {incr mem} {
     # set y [expr {$mem % $n_mem_y}]
     set x 0
     set y 4
-    set tile_path "/tb_picobello_fpga_fair/dut/gen_memtile\[$mem\]/i_mem_tile"
+    set tile_path "/tb_picobello_dse/dut/gen_memtile\[$mem\]/i_mem_tile"
 
     add wave -noupdate -group "mem_tile[$cl]" -group {top} ${tile_path}/*
 
