@@ -13,6 +13,10 @@ VIVADO_UTILS = $(VIVADO_DIR)/utils
 VIVADO_BUILD = $(VIVADO_DIR)/build
 
 VIVADO_GEN = $(VIVADO_UTILS)/vivado-gen.py
+
+FPGA_TARGET ?= xilvu9p
+FPGA_TARGS += -t $(FPGA_TARGET)
+
 VIVADO_FLAGS = -mode batch
 
 fpga-all: fpga-gen fpga-bender fpga-ip fpga-build fpga-reports
@@ -45,10 +49,15 @@ fpga-bender:
 
 fpga-gen:
 	mkdir -p $(VIVADO_BUILD)
-	$(VIVADO_GEN) $(FPGA_TPL)/picobello_ip.v.mako > $(VIVADO_BUILD)/picobello_ip.v
-	$(VIVADO_GEN) $(FPGA_TPL)/picobello_cfg.tcl.mako > $(VIVADO_BUILD)/picobello_cfg.tcl
-	$(VIVADO_GEN) $(FPGA_TPL)/picobello_ip_xact.tcl.mako > $(VIVADO_BUILD)/picobello_ip_xact.tcl
-	$(VIVADO_GEN) $(FPGA_TPL)/picobello_build.tcl.mako > $(VIVADO_BUILD)/picobello_build.tcl
+	$(VIVADO_GEN) $(FPGA_TPL)/fpga_picobello_top_wrapper.sv.mako $(FPGA_TARGET) > \
+		$(VIVADO_BUILD)/fpga_picobello_top_wrapper.sv
+	$(VIVADO_GEN) $(FPGA_TPL)/picobello_ip_$(FPGA_TARGET).v.mako $(FPGA_TARGET) > \
+		$(VIVADO_BUILD)/picobello_ip.v
+	$(VIVADO_GEN) $(FPGA_TPL)/picobello_cfg.tcl.mako $(FPGA_TARGET) > $(VIVADO_BUILD)/picobello_cfg.tcl
+	$(VIVADO_GEN) $(FPGA_TPL)/picobello_ip_xact.tcl.mako $(FPGA_TARGET) > \
+		$(VIVADO_BUILD)/picobello_ip_xact.tcl
+	$(VIVADO_GEN) $(FPGA_TPL)/picobello_build.tcl.mako $(FPGA_TARGET) > \
+		$(VIVADO_BUILD)/picobello_build.tcl
 
 fpga-clean:
 	rm -rf $(VIVADO_BUILD)

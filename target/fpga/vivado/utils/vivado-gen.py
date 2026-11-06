@@ -14,17 +14,20 @@ def clog2(x):
     return math.ceil(math.log(x))
 
 filename = sys.argv[1]
+fpga_target = sys.argv[2] if len(sys.argv) > 2 else 'xilvu9p'
 
 # Parameters
 
 # Vivado project
 soc_name                = 'picobello'
-soc_prj_name            = 'picobello_exilzcu102'
+soc_prj_name            = {'xilzu9eg': 'picobello_exilzcu102', 'xilvu9p': 'picobello_exilvcu118'}[fpga_target]
 soc_prj_ip_name         = 'picobello_ip'
-fpga_target             = 'xilzu9eg'
 
 # Host interface
 n_host_ports = 1
+
+# Cheshire peripherals
+spih_num_cs             = 2
 
 # AXI4 parameters
 aw                      = 64 
@@ -63,6 +66,7 @@ string = target_template.render(
     uw_ps2pl                = uw_ps2pl,
     aw_lite                 = aw_lite, 
     dw_lite                 = dw_lite,
+    spih_num_cs             = spih_num_cs,
 )
 
 re_trailws = re.compile(r'[ \t\r]+$', re.MULTILINE)

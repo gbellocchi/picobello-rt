@@ -26,6 +26,7 @@ update_ip_catalog
 create_bd_design "$PRJ_NAME"
 update_compile_order -fileset sources_1
 
+% if fpga_target == 'xilzu9eg':
 # Add Zynq UltraScale+ Processor System (Host)
 create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.3 i_zynq_ps
 apply_bd_automation -rule xilinx.com:bd_rule:zynq_ultra_ps_e -config {apply_board_preset "1" } \
@@ -92,6 +93,14 @@ set_property offset 0x00A0000000 [get_bd_addr_segs {i_zynq_ps/Data/SEG_i_picobel
 # set_property range 32G [get_bd_addr_segs {i_picobello/Data/SEG_i_zynq_ps_HP1_DDR_HIGH}]
 # set_property offset 0x0800000000 [get_bd_addr_segs {i_picobello/Data/SEG_i_zynq_ps_HP1_DDR_HIGH}]
 
+% elif fpga_target == 'xilvu9p':
+# Add Picobello IP
+create_bd_cell -type ip -vlnv ethz.ch:user:$PRJ_IP_NAME:1.0 i_picobello
+
+# TBD: clocking from the VCU118 system clock (clock wizard), reset (proc_sys_reset from the
+# board reset), RTC clock, boot mode, and external ports for JTAG, UART, I2C, SPI host and GPIO.
+
+% endif
 # Validate and save Top-Level Block Design
 save_bd_design
 validate_bd_design
@@ -164,6 +173,7 @@ if {! [string match -nocase {*timing constraints are met*} $timingrep]} {
 launch_runs impl_1 -to_step write_bitstream -jobs 12
 wait_on_run impl_1
 
+% if fpga_target == 'xilzu9eg':
 # Export Hardware Definition file
 file mkdir $VIVADO_PRJ/$PRJ_NAME.sdk
 write_hwdef -force -file $VIVADO_PRJ/$PRJ_NAME.sdk/$PRJ_NAME\_wrapper.hdf
@@ -173,3 +183,4 @@ file copy -force $VIVADO_PRJ/$PRJ_NAME.runs/impl_1/$PRJ_NAME\_wrapper.bit $VIVAD
 
 # Export Xilinx Support Archive (XSA) file
 write_hw_platform -fixed -force -include_bit -file $VIVADO_PRJ/$PRJ_NAME\_wrapper.xsa
+% endif
