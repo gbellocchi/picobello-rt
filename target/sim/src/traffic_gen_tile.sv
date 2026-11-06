@@ -7,7 +7,7 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
-module cluster_rt_tile
+module traffic_gen_tile
   import floo_pkg::*;
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*;
@@ -440,7 +440,7 @@ module cluster_rt_tile
 
   localparam int unsigned FlooDmaWideIndex = int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
 
-  axi_traffic_gen_wrapper #(
+  floo_dma_test_wrapper #(
     .NumDmas            ( NumCores                              ),
     .NumPending         ( 32                                    ),
     .Id                 ( Id                                    ),
@@ -647,7 +647,7 @@ module cluster_rt_tile
 
   localparam int unsigned FlooDmaNarrowIndex = 100 + int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
 
-  axi_traffic_gen_wrapper #(
+  floo_dma_test_wrapper #(
     .NumDmas            ( NumCores                              ),
     .NumPending         ( 32                                    ),
     .Id                 ( Id                                    ),

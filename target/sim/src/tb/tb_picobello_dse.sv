@@ -628,7 +628,7 @@ module tb_picobello_dse
   // DUT //
   /////////
 
-  fpga_picobello_top #(
+  picobello_dse_top #(
     // Parameters
     .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),  
     .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),    
@@ -701,8 +701,8 @@ module tb_picobello_dse
 
       localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_core_%0d", cl_id, core_id);
 
-      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_wide_in_req[core_id];
-      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.axi_realm_wide_in_rsp[core_id];
+      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[core_id];
+      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[core_id];
 
       axi_bw_monitor #(
         .req_t        ( fpga_picobello_pkg::axi_wide_tg_req_t           ),
@@ -729,8 +729,8 @@ module tb_picobello_dse
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_wide_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_req;
-    assign bw_rt_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_wide_in_rsp;
+    assign bw_rt_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_req;
+    assign bw_rt_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_wide_in_req_t       ),
@@ -756,8 +756,8 @@ module tb_picobello_dse
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_narrow_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_narrow_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_narrow_in_req;
-    assign bw_rt_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_cluster_rt_tile.chimney_narrow_in_rsp;
+    assign bw_rt_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_req;
+    assign bw_rt_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_narrow_in_req_t     ),

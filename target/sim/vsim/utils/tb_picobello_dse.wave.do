@@ -66,7 +66,7 @@ add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_dse/dut/i_ext_n
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
-    set tile_path "/tb_picobello_dse/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
+    set tile_path "/tb_picobello_dse/dut/gen_clusters\[$cl\]/i_traffic_gen_tile"
     add wave -noupdate -group "dma_track" -group "cl_ni[$cl]" ${tile_path}/i_chimney/*
 }
 
@@ -74,7 +74,7 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
     set y [expr {$cl % $n_cl_y}]
-    set tile_path "/tb_picobello_dse/dut/gen_clusters\[$cl\]/i_cluster_rt_tile"
+    set tile_path "/tb_picobello_dse/dut/gen_clusters\[$cl\]/i_traffic_gen_tile"
 
     add wave -noupdate -group "cluster_tile[$cl]" -group {top} ${tile_path}/*
 
@@ -217,7 +217,6 @@ for {set mem 0} {$mem < $n_mem} {incr mem} {
 
     # # FPGA L2 memory interface
     # add wave -noupdate -group "mem_tile[$cl]" -group {l2_slv_cut} ${tile_path}/i_l2_slv_cut/*
-    # add wave -noupdate -group "mem_tile[$cl]" -group {axi2mem} ${tile_path}/i_axi2mem/*
 
     # Picobello L2 memory interface
     # add wave -noupdate -group "mem_tile[$cl]" -group {floo_nw_join} -group {top} ${tile_path}/i_floo_nw_join/*

@@ -7,7 +7,7 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
-module axi_traffic_gen_wrapper 
+module floo_dma_test_wrapper 
     import floo_pkg::*;
     import floo_picobello_noc_pkg::*;
     import picobello_pkg::*;

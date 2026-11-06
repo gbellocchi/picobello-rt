@@ -41,7 +41,7 @@ extern "C" void dma_read_start(int cl_id, int core_id, int noc_plane_id, int val
   // Construct base path
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
-    "tb_picobello_dse.dut.gen_clusters[%d].i_cluster_rt_tile.%s.gen_traffic_generators[%d]", 
+    "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
     cl_id, tg_instance, core_id
   );
 
@@ -78,7 +78,7 @@ extern "C" int dma_read_get_idle(int cl_id, int core_id, int noc_plane_id)
   // Construct base path
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
-    "tb_picobello_dse.dut.gen_clusters[%d].i_cluster_rt_tile.%s.gen_traffic_generators[%d]", 
+    "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
     cl_id, tg_instance, core_id
   );
 
@@ -118,7 +118,7 @@ extern "C" void dma_write_start(int cl_id, int core_id, int noc_plane_id, int va
   // Construct base path
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
-    "tb_picobello_dse.dut.gen_clusters[%d].i_cluster_rt_tile.%s.gen_traffic_generators[%d]", 
+    "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
     cl_id, tg_instance, core_id
   );
 
@@ -155,7 +155,7 @@ extern "C" int dma_write_get_idle(int cl_id, int core_id, int noc_plane_id)
   // Construct base path
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
-    "tb_picobello_dse.dut.gen_clusters[%d].i_cluster_rt_tile.%s.gen_traffic_generators[%d]", 
+    "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
     cl_id, tg_instance, core_id
   );
 
@@ -191,11 +191,11 @@ extern "C" void axi_rt_set_fragm_len(int cl_id, int core_id, int value)
   // Construct target signal path to fragment length
   snprintf(
     vsim_path, sizeof(vsim_path), 
-    "tb_picobello_dse.dut.gen_clusters[%d].i_cluster_rt_tile.i_axi_rt_unit_wide.i_axi_rt_reg_top.reg2hw.len_limit[%d].q", 
+    "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.i_axi_rt_unit_wide.i_axi_rt_reg_top.reg2hw.len_limit[%d].q", 
     cl_id, core_id
   );
 
-  // "tb_picobello_dse.dut.gen_clusters[%d].i_cluster_rt_tile.i_axi_rt_unit_wide.gen_rt_units[%d].i_axi_rt_unit.fragm_len_new"
+  // "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.i_axi_rt_unit_wide.gen_rt_units[%d].i_axi_rt_unit.fragm_len_new"
 
   // Get VPI handle
   vpiHandle vpi_handle = vpi_get_handle(vsim_path);
