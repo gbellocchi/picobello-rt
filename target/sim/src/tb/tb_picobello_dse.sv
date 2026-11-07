@@ -26,7 +26,7 @@
 // `define INTER_FLOW_8H
 // `define INTER_HOST_CTRL_PLANE_DIRECT_INTERF
 
-import fpga_picobello_pkg::*;
+import picobello_pkg::*;
 import sim_picobello_pkg::*;
 
 module tb_picobello_dse 
@@ -36,13 +36,13 @@ module tb_picobello_dse
   input  logic clk,
   input  logic rst_n,
   // Host signals
-  input fpga_picobello_pkg::axi_host_req_t tb_axi_host_req_i,
-  output fpga_picobello_pkg::axi_host_rsp_t tb_axi_host_rsp_o,
+  input picobello_pkg::axi_host_req_t tb_axi_host_req_i,
+  output picobello_pkg::axi_host_rsp_t tb_axi_host_rsp_o,
   // Traffic generator configuration
-  input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
-  input fpga_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
+  input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
+  input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
   // AXI-Realm configuration
-  input fpga_picobello_pkg::rt_cfg_t tb_rt_cfg
+  input sim_picobello_pkg::rt_cfg_t tb_rt_cfg
 );
   `include "tb_picobello_sim_macros.svh"
   `include "tb_picobello_fpga_tasks.svh"
@@ -52,7 +52,7 @@ module tb_picobello_dse
   // TB signals //
   ////////////////
 
-  logic [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0] end_of_sim;
+  logic [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0] end_of_sim;
   
   // Timer
   sim_picobello_pkg::timer_cfg_t tb_timer_cfg; // Timer configuration
@@ -63,10 +63,10 @@ module tb_picobello_dse
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
 
   // BW monitoring
-  fpga_picobello_pkg::axi_wide_tg_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
-  fpga_picobello_pkg::axi_wide_tg_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0];
+  picobello_pkg::axi_wide_tg_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  picobello_pkg::axi_wide_tg_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
 
   floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
   floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
@@ -95,7 +95,7 @@ module tb_picobello_dse
 
   // AXI-Realm
   logic [picobello_pkg::NumClusters-1:0] rt_configured; // configuration flag
-  fpga_picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
+  picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
   
   // Clusters
   localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
@@ -132,7 +132,7 @@ module tb_picobello_dse
   int DmaWriteEnable = 1;
 
   // NoC plane control
-  localparam int unsigned NumNoCPlanes = fpga_picobello_pkg::NumNoCPlanes;
+  localparam int unsigned NumNoCPlanes = picobello_pkg::NumNoCPlanes;
 
   // Interferer reconfiguration after critical task termination
   localparam bit RuntimeInterfReconfig = 1'b0;
@@ -630,17 +630,15 @@ module tb_picobello_dse
 
   picobello_dse_top #(
     // Parameters
-    .NumFpgaHostPorts         (fpga_picobello_pkg::NumFpgaHostPorts),  
-    .NumFpgaDummyTiles        (fpga_picobello_pkg::NumFpgaDummyTiles),    
-    .NumCores                 (fpga_picobello_pkg::NumCores),
+    .NumCores                 (picobello_pkg::NumCores),
     // AXI4 channel types
-    .axi_host_req_t           (fpga_picobello_pkg::axi_host_req_t),
-    .axi_host_rsp_t           (fpga_picobello_pkg::axi_host_rsp_t),
-    .axi_host_aw_chan_t       (fpga_picobello_pkg::axi_host_aw_chan_t),
-    .axi_host_w_chan_t        (fpga_picobello_pkg::axi_host_w_chan_t),
-    .axi_host_b_chan_t        (fpga_picobello_pkg::axi_host_b_chan_t),
-    .axi_host_ar_chan_t       (fpga_picobello_pkg::axi_host_ar_chan_t),
-    .axi_host_r_chan_t        (fpga_picobello_pkg::axi_host_r_chan_t)
+    .axi_host_req_t           (picobello_pkg::axi_host_req_t),
+    .axi_host_rsp_t           (picobello_pkg::axi_host_rsp_t),
+    .axi_host_aw_chan_t       (picobello_pkg::axi_host_aw_chan_t),
+    .axi_host_w_chan_t        (picobello_pkg::axi_host_w_chan_t),
+    .axi_host_b_chan_t        (picobello_pkg::axi_host_b_chan_t),
+    .axi_host_ar_chan_t       (picobello_pkg::axi_host_ar_chan_t),
+    .axi_host_r_chan_t        (picobello_pkg::axi_host_r_chan_t)
   ) dut (
     .clk_i                (clk),
     .rst_ni               (rst_n),
@@ -689,7 +687,7 @@ module tb_picobello_dse
 
   // Cluster wide input
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_cl_bw_monitor_loop_0
-    for (genvar core_id = 0; core_id < fpga_picobello_pkg::NumCores; core_id++) begin : gen_cl_bw_monitor_loop_1
+    for (genvar core_id = 0; core_id < picobello_pkg::NumCores; core_id++) begin : gen_cl_bw_monitor_loop_1
 
       localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_core_%0d", cl_id, core_id);
 
@@ -697,12 +695,12 @@ module tb_picobello_dse
       assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[core_id];
 
       axi_bw_monitor #(
-        .req_t        ( fpga_picobello_pkg::axi_wide_tg_req_t           ),
-        .rsp_t        ( fpga_picobello_pkg::axi_wide_tg_rsp_t           ),
+        .req_t        ( picobello_pkg::axi_wide_tg_req_t           ),
+        .rsp_t        ( picobello_pkg::axi_wide_tg_rsp_t           ),
         .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
         .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
-        .AxiDataWidth ( fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
-        .AxiIdWidth   ( fpga_picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
+        .AxiDataWidth ( picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
+        .AxiIdWidth   ( picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
         .Name         ( BwMonitorName                                   )
       ) i_axi_bw_monitor (
         .clk_i          ( clk                             ),
@@ -729,8 +727,8 @@ module tb_picobello_dse
       .rsp_t        ( floo_picobello_noc_pkg::axi_wide_in_rsp_t       ),
       .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
       .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
-      .AxiDataWidth ( fpga_picobello_pkg::AxiCfgW.DataWidth           ),
-      .AxiIdWidth   ( fpga_picobello_pkg::AxiCfgW.InIdWidth           ),
+      .AxiDataWidth ( picobello_pkg::AxiCfgW.DataWidth           ),
+      .AxiIdWidth   ( picobello_pkg::AxiCfgW.InIdWidth           ),
       .Name         ( BwMonitorName                                   )
     ) i_axi_bw_monitor (
       .clk_i          ( clk                             ),
@@ -787,7 +785,7 @@ module tb_picobello_dse
     rt_configured = '{default: '0};
     // Initialization - bw monitors
     for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
-      for (int j = 0; j < fpga_picobello_pkg::NumCores; j++) begin
+      for (int j = 0; j < picobello_pkg::NumCores; j++) begin
         bw_rt_cl_cfg[i][j] = '{default: '0};
       end
       bw_rt_noc_ni_wide_cfg[i] = '{default: '0};
@@ -1198,7 +1196,7 @@ module tb_picobello_dse
 				                  // automatic int cl_id = IdTestClInterf[i];
 				                  automatic int ai = i;
 				                  automatic int cl_id = IdTestClInterf[ai];
-				                  automatic fpga_picobello_pkg::rt_cfg_t local_rt_cfg = '0;
+				                  automatic sim_picobello_pkg::rt_cfg_t local_rt_cfg = '0;
 
 				                  // programming and propagation time from host to RT unit
 				                  `wait_n_clk(10);

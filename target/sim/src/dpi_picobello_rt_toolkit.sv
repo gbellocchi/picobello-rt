@@ -4,7 +4,6 @@
 //
 // Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-import fpga_picobello_pkg::*;
 
 module dpi_picobello_rt_toolkit (
   input logic clk,

@@ -11,10 +11,6 @@ module picobello_dse_top
   import picobello_pkg::*; 
   import floo_pkg::*; 
   import floo_picobello_noc_pkg::*; #(
-  // Number of FPGA host processor ports
-  parameter int unsigned NumFpgaHostPorts = 1,
-  // Number of FPGA dummy tiles
-  parameter int unsigned NumFpgaDummyTiles = 2,
   // Number of cores within each cluster tile
   parameter int unsigned NumCores = 1,
   // AXI4 channel types

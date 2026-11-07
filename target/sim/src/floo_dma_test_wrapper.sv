@@ -11,7 +11,6 @@ module floo_dma_test_wrapper
     import floo_pkg::*;
     import floo_picobello_noc_pkg::*;
     import picobello_pkg::*;
-    import fpga_picobello_pkg::*;
 #(
     // Traffic generator
     parameter int unsigned NumDmas = 1,

@@ -11,7 +11,6 @@ module traffic_gen_tile
   import floo_pkg::*;
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*;
-  import fpga_picobello_pkg::*;
 #(
   /// Number of cores in the tile.
   parameter int unsigned NumCores = 1,
@@ -356,7 +355,7 @@ module traffic_gen_tile
         .AxiDataWidth (floo_picobello_noc_pkg::AxiCfgN.DataWidth),
         .AxiIdWidth   (floo_picobello_noc_pkg::AxiCfgN.OutIdWidth),
         .AxiUserWidth (floo_picobello_noc_pkg::AxiCfgN.UserWidth),
-        .RegDataWidth (fpga_picobello_pkg::AxiRtCfgDataWidth),
+        .RegDataWidth (picobello_pkg::AxiRtCfgDataWidth),
         .CutMemReqs   (1'b0),
         .CutMemRsps   (1'b0),
         .axi_req_t    (floo_picobello_noc_pkg::axi_narrow_out_req_t),
@@ -429,7 +428,7 @@ module traffic_gen_tile
     .Id                 ( Id                                    ),
     .FlooDmaIndex       ( FlooDmaWideIndex                      ),
     .FlooDmaMemBaseAddr ( BaseAddr                              ),
-    .AxiCfg             ( fpga_picobello_pkg::AxiCfgWTrafficGen ),
+    .AxiCfg             ( picobello_pkg::AxiCfgWTrafficGen ),
     .AxiLock            ( 1                                     ),
     .axi_in_req_t       ( axi_wide_tg_req_t                     ),
     .axi_in_rsp_t       ( axi_wide_tg_rsp_t                     ),
@@ -473,10 +472,10 @@ module traffic_gen_tile
   axi_wide_tg_rsp_t [NumCores-1:0] axi_realm_wide_out_rsp;
 
   AXI_BUS #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth)
+    .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+    .AXI_ID_WIDTH   (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
+    .AXI_USER_WIDTH (picobello_pkg::AxiCfgWTrafficGen.UserWidth)
   ) axi_realm_wide_out [NumCores-1:0]();
 
   AXI_BUS #(
@@ -508,10 +507,10 @@ module traffic_gen_tile
   // AXI RT unit wide
   axi_rt_unit_top #(
     .NumManagers       (NumCores),
-    .AddrWidth         (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .DataWidth         (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .IdWidth           (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-    .UserWidth         (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
+    .AddrWidth         (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+    .DataWidth         (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+    .IdWidth           (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
+    .UserWidth         (picobello_pkg::AxiCfgWTrafficGen.UserWidth),
     .NumPending        (NumPending),
     .WBufferDepth      (WBufferDepth),
     .NumAddrRegions    (NumRegions),
@@ -552,11 +551,11 @@ module traffic_gen_tile
 
   // Mux AXI4 wide outputs to the FlooNoC NI
   axi_mux_intf #(
-    .SLV_AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth), // traffic generator ID width
+    .SLV_AXI_ID_WIDTH   (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth), // traffic generator ID width
     .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // expanded, based on NumCores, and matching NI ID width
-    .AXI_ADDR_WIDTH     (fpga_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH     (fpga_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .AXI_USER_WIDTH     (fpga_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
+    .AXI_ADDR_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+    .AXI_USER_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.UserWidth),
     .NO_SLV_PORTS       (NumCores),
     .MAX_W_TRANS        (NumCoresMax),
     .FALL_THROUGH       (1'b0),
@@ -596,7 +595,7 @@ module traffic_gen_tile
     .Id                 ( Id                                    ),
     .FlooDmaIndex       ( FlooDmaNarrowIndex                    ),
     .FlooDmaMemBaseAddr ( BaseAddr                              ),
-    .AxiCfg             ( fpga_picobello_pkg::AxiCfgNTrafficGen ),
+    .AxiCfg             ( picobello_pkg::AxiCfgNTrafficGen ),
     .AxiLock            ( 1                                     ),
     .axi_in_req_t       ( axi_narrow_tg_req_t                   ),
     .axi_in_rsp_t       ( axi_narrow_tg_rsp_t                   ),
@@ -640,17 +639,17 @@ module traffic_gen_tile
   axi_narrow_tg_rsp_t [NumCores-1:0] axi_realm_narrow_out_rsp;
 
   AXI_BUS #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
-    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth)
+    .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
+    .AXI_USER_WIDTH (picobello_pkg::AxiCfgNTrafficGen.UserWidth)
   ) axi_realm_narrow_out [NumCores-1:0]();
 
   AXI_BUS #(
-    .AXI_ADDR_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgNTrafficGen.InIdWidth),
-    .AXI_USER_WIDTH (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth)
+    .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.InIdWidth),
+    .AXI_USER_WIDTH (picobello_pkg::AxiCfgNTrafficGen.UserWidth)
   ) axi_realm_narrow_out_mux ();
 
   // Register bus signals
@@ -675,10 +674,10 @@ module traffic_gen_tile
   // AXI RT unit narrow
   axi_rt_unit_top #(
     .NumManagers       (NumCores),
-    .AddrWidth         (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .DataWidth         (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .IdWidth           (fpga_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
-    .UserWidth         (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth),
+    .AddrWidth         (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .DataWidth         (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .IdWidth           (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
+    .UserWidth         (picobello_pkg::AxiCfgNTrafficGen.UserWidth),
     .NumPending        (NumPending),
     .WBufferDepth      (WBufferDepth),
     .NumAddrRegions    (NumRegions),
@@ -719,11 +718,11 @@ module traffic_gen_tile
 
   // Mux AXI4 narrow outputs to the FlooNoC NI
   axi_mux_intf #(
-    .SLV_AXI_ID_WIDTH   (fpga_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth), // traffic generator ID width
+    .SLV_AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth), // traffic generator ID width
     .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.InIdWidth), // expanded, based on NumCores, and matching NI ID width
-    .AXI_ADDR_WIDTH     (fpga_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH     (fpga_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .AXI_USER_WIDTH     (fpga_picobello_pkg::AxiCfgNTrafficGen.UserWidth),
+    .AXI_ADDR_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .AXI_DATA_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .AXI_USER_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.UserWidth),
     .NO_SLV_PORTS       (NumCores),
     .MAX_W_TRANS        (NumCoresMax),
     .FALL_THROUGH       (1'b0),
@@ -769,7 +768,7 @@ module traffic_gen_tile
   `ifndef VERILATOR
   initial begin
     assert (NumCores < NumCoresMax) else $fatal(1, "Wrong number of cores");
-    assert (fpga_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth + $clog2(NumCores) == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
+    assert (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth + $clog2(NumCores) == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
   end
   `endif
   // pragma translate_on

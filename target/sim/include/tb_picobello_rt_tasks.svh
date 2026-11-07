@@ -4,7 +4,7 @@
 //
 // Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-import fpga_picobello_pkg::*;
+import picobello_pkg::*;
 import sim_picobello_pkg::*;
 import axi_rt_reg_pkg::* ;
 
@@ -67,7 +67,7 @@ endtask
 
 // Reset and initialize BW monitor
 task automatic picobello_reset_bw_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
 );
@@ -81,7 +81,7 @@ endtask
 
 // Start BW monitor on read channels
 task automatic picobello_start_bw_r_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
 );
@@ -91,7 +91,7 @@ endtask
 
 // Start BW monitor on write channels
 task automatic picobello_start_bw_w_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
 );
@@ -101,7 +101,7 @@ endtask
 
 // Stop BW monitor on read channels
 task automatic picobello_stop_bw_r_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
 );
@@ -111,7 +111,7 @@ endtask
 
 // Stop BW monitor on write channels
 task automatic picobello_stop_bw_w_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][fpga_picobello_pkg::NumCores-1:0],
+  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0],
   input int cl_idx,
   input int core_idx
 );

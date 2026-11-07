@@ -28,77 +28,61 @@ sources:
   # Source files grouped in levels. Files in level 0 have no dependencies on files in this
   # package. Files in level 1 only depend on files in level 0, files in level 2 on files in
   # levels 1 and 0, etc. Files within a level are ordered alphabetically.
+
+  ###############
+  # RTL sources #
+  ###############
+
   # Level 0
   - target: floogen_pkg
     files:
-    - .generated/floo_picobello_noc_pkg.sv
+      - .generated/floo_picobello_noc_pkg.sv
   - target: snitch_cluster
     files:
-    - .generated/snitch_cluster_pkg.sv
+      - .generated/snitch_cluster_pkg.sv
+  - hw/axi_delay.sv
+  - hw/axi_id_flattening.sv
   # Level 1
   - target: snitch_cluster
     files:
-    - .generated/snitch_cluster_wrapper.sv
+      - .generated/snitch_cluster_wrapper.sv
   - hw/picobello_pkg.sv
   # Level 2
-  - hw/cluster_tile.sv
   - hw/cheshire_tile.sv
-  - hw/mem_tile.sv
+  - hw/cluster_tile.sv
   - hw/dummy_tile.sv
   - hw/ext_narrow_tile.sv
-  - hw/axi_delay.sv
-  - hw/axi_id_flattening.sv
-
+  - hw/mem_tile.sv
   - target: not(asic)
     files:
-    - hw/fhg_spu_tile.sv
-
-  - target: asic
-    files:
-    - deps/fhg_spu_cluster/hw/fhg_spu_tile.sv
-
+      - hw/fhg_spu_tile.sv
   # Level 3
   - hw/picobello_top.sv
 
-  - target: any(simulation, test)
-    include_dirs:
-      - target/sim/include
-    files:
-      - target/sim/src/floo_dma_regs/floo_dma_reg_pkg.sv
-      - target/sim/src/floo_dma_regs/floo_dma_reg_top.sv
-      - target/sim/src/axi_bw_monitor.sv
-      - target/sim/src/fixture_picobello_top.sv
-      - target/sim/src/tb/tb_picobello_top.sv
+  ###############
+  # ASIC design #
+  ###############
 
   - target: asic
     files:
-    - pd/hw/picobello_chip.sv
+      - deps/fhg_spu_cluster/hw/fhg_spu_tile.sv
+
+  - target: asic
+    files:
+      - pd/hw/picobello_chip.sv
 
   - target: all(any(simulation, test), asic)
     include_dirs:
       - pd/target/sim/include
     files:
+      # Level 0
       - pd/target/sim/src/fixture_picobello_chip.sv
+      # Level 1
       - pd/target/sim/src/tb_picobello_chip.sv
 
-  - target: all(any(simulation, test), not(asic))
-    include_dirs:
-      - target/sim/include
-    files:
-      # Level 0
-      - target/sim/src/sim_picobello_pkg.sv
-      - target/fpga/src/fpga_picobello_pkg.sv
-      # Level 1
-      - target/sim/src/dpi_picobello_rt_toolkit.sv
-      # Level 2
-      - target/sim/src/floo_dma_test_wrapper.sv
-      # Level 3
-      - target/sim/src/traffic_gen_tile.sv
-      # Level 4
-      - target/sim/src/picobello_dse_top.sv
-      # Level 5
-      # - target/sim/src/tb_picobello_fpga.sv
-      - target/sim/src/tb/tb_picobello_dse.sv
+  ###############
+  # FPGA design #
+  ###############
 
   - target: all(fpga, not(any(asic, simulation, test)))
     files:
@@ -109,3 +93,36 @@ sources:
       - target/fpga/vivado/build/fpga_picobello_top_wrapper.sv
       # Level 1
       - target/fpga/vivado/build/picobello_ip.v
+
+  ##################
+  # RTL simulation #
+  ##################
+
+  # RTL verification of the full SoC, including Cheshire and Snitch clusters.
+  - target: any(simulation, test)
+    include_dirs:
+      - target/sim/include
+    files:
+      # Level 0
+      - target/sim/src/axi_bw_monitor.sv
+      - target/sim/src/fixture_picobello_top.sv
+      - target/sim/src/floo_dma_regs/floo_dma_reg_pkg.sv
+      - target/sim/src/sim_picobello_pkg.sv
+      # Level 1
+      - target/sim/src/floo_dma_regs/floo_dma_reg_top.sv
+      - target/sim/src/tb/tb_picobello_top.sv
+
+  # Design-space exploration, including an emulated host and traffic generators.
+  - target: all(any(simulation, test), not(asic))
+    include_dirs:
+      - target/sim/include
+    files:
+      # Level 0
+      - target/sim/src/dpi_picobello_rt_toolkit.sv
+      - target/sim/src/floo_dma_test_wrapper.sv
+      # Level 1
+      - target/sim/src/traffic_gen_tile.sv
+      # Level 2
+      - target/sim/src/picobello_dse_top.sv
+      # Level 3
+      - target/sim/src/tb/tb_picobello_dse.sv

@@ -4,7 +4,7 @@
 //
 // Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-import fpga_picobello_pkg::*;
+import picobello_pkg::*;
 
 `define wait_for(signal) do @(posedge `CLK_SIGNAL); while (!signal);
 
