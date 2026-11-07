@@ -68,11 +68,14 @@ task automatic picobello_write(
   input axi_host_strb_t write_strb,
   output axi_host_rsp_t write_rsp
 );
+  // 32-bit access on the 64-bit host port: the address selects the byte lanes
+  int unsigned lane;
+  lane = (write_addr[2]) ? 4 : 0;
   // AW channel
   tb_axi_host_req_i.aw.id = '0;
   tb_axi_host_req_i.aw.addr = write_addr;
   tb_axi_host_req_i.aw.len = '0;
-  tb_axi_host_req_i.aw.size = $clog2(AxiCfgHost.DataWidth/8);
+  tb_axi_host_req_i.aw.size = 3'd2;
   tb_axi_host_req_i.aw.burst = axi_pkg::BURST_INCR;
   tb_axi_host_req_i.aw.lock = 1'b0;
   tb_axi_host_req_i.aw.cache = '0;
@@ -85,8 +88,8 @@ task automatic picobello_write(
   `wait_for(tb_axi_host_rsp_o.aw_ready)
   tb_axi_host_req_i.aw_valid = 1'b0;
   // W channel
-  tb_axi_host_req_i.w.data = write_data;
-  tb_axi_host_req_i.w.strb = write_strb;
+  tb_axi_host_req_i.w.data = write_data << (8 * lane);
+  tb_axi_host_req_i.w.strb = write_strb << lane;
   tb_axi_host_req_i.w.last = 1'b1;
   tb_axi_host_req_i.w.user = '0;
   tb_axi_host_req_i.w_valid = 1'b1;
@@ -108,11 +111,14 @@ task automatic picobello_read(
   output axi_host_data_t read_data, 
   output axi_host_rsp_t read_rsp
 );
+  // 32-bit access on the 64-bit host port: the address selects the byte lanes
+  int unsigned lane;
+  lane = (read_addr[2]) ? 4 : 0;
   // AR channel
   tb_axi_host_req_i.ar.id = '0;
   tb_axi_host_req_i.ar.addr = read_addr;
   tb_axi_host_req_i.ar.len = '0;
-  tb_axi_host_req_i.ar.size = $clog2(AxiCfgHost.DataWidth/8);
+  tb_axi_host_req_i.ar.size = 3'd2;
   tb_axi_host_req_i.ar.burst = axi_pkg::BURST_INCR;
   tb_axi_host_req_i.ar.lock = 1'b0;
   tb_axi_host_req_i.ar.cache = '0;
@@ -126,7 +132,7 @@ task automatic picobello_read(
   // R channel
   tb_axi_host_req_i.r_ready = 1'b1;
   `wait_for(tb_axi_host_rsp_o.r_valid)
-  read_data = tb_axi_host_rsp_o.r.data;
+  read_data = (tb_axi_host_rsp_o.r.data >> (8 * lane)) & 32'hFFFF_FFFF;
   read_rsp = tb_axi_host_rsp_o.r.resp;
   tb_axi_host_req_i.r_ready = 1'b0;
 `ifdef VERBOSE

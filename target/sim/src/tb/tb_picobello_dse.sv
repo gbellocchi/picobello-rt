@@ -640,15 +640,7 @@ module tb_picobello_dse
     .axi_host_w_chan_t        (fpga_picobello_pkg::axi_host_w_chan_t),
     .axi_host_b_chan_t        (fpga_picobello_pkg::axi_host_b_chan_t),
     .axi_host_ar_chan_t       (fpga_picobello_pkg::axi_host_ar_chan_t),
-    .axi_host_r_chan_t        (fpga_picobello_pkg::axi_host_r_chan_t),
-    // AXI4-Lite channel types
-    .axi_lite_host_req_t      (fpga_picobello_pkg::axi_lite_host_req_t),
-    .axi_lite_host_rsp_t      (fpga_picobello_pkg::axi_lite_host_rsp_t),
-    .axi_lite_host_aw_chan_t  (fpga_picobello_pkg::axi_lite_host_aw_chan_t),
-    .axi_lite_host_w_chan_t   (fpga_picobello_pkg::axi_lite_host_w_chan_t),
-    .axi_lite_host_b_chan_t   (fpga_picobello_pkg::axi_lite_host_b_chan_t),
-    .axi_lite_host_ar_chan_t  (fpga_picobello_pkg::axi_lite_host_ar_chan_t),
-    .axi_lite_host_r_chan_t   (fpga_picobello_pkg::axi_lite_host_r_chan_t)
+    .axi_host_r_chan_t        (fpga_picobello_pkg::axi_host_r_chan_t)
   ) dut (
     .clk_i                (clk),
     .rst_ni               (rst_n),

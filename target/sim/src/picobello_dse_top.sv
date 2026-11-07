@@ -24,15 +24,7 @@ module picobello_dse_top
   parameter type axi_host_w_chan_t = logic,
   parameter type axi_host_b_chan_t = logic,
   parameter type axi_host_ar_chan_t = logic,
-  parameter type axi_host_r_chan_t = logic,
-  // AXI4-Lite channel types
-  parameter type axi_lite_host_req_t = logic,
-  parameter type axi_lite_host_rsp_t = logic,
-  parameter type axi_lite_host_aw_chan_t = logic,
-  parameter type axi_lite_host_w_chan_t = logic,
-  parameter type axi_lite_host_b_chan_t = logic,
-  parameter type axi_lite_host_ar_chan_t = logic,
-  parameter type axi_lite_host_r_chan_t = logic
+  parameter type axi_host_r_chan_t = logic
 ) (
   input  logic                        clk_i,
   input  logic                        rst_ni,

@@ -22,16 +22,11 @@ module floo_dma_test_wrapper
     // AXI4 parameters
     parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
     parameter int unsigned AxiLock = 1,
-    // AXI4-Lite parameters
-    parameter floo_pkg::axi_cfg_t AxiLiteCfg = '{default:0},
     // AXI4 types
     parameter type axi_in_req_t = logic,
     parameter type axi_in_rsp_t = logic,
     parameter type axi_out_req_t = logic,
     parameter type axi_out_rsp_t = logic,
-    // AXI4-Lite types
-    parameter type axi_lite_req_t = logic,
-    parameter type axi_lite_rsp_t = logic,
     // Register bus types
     parameter type reg_req_t = logic,
     parameter type reg_rsp_t = logic
@@ -43,22 +38,14 @@ module floo_dma_test_wrapper
     output axi_in_rsp_t [NumDmas-1:0] axi_in_rsp_o,
     output axi_out_req_t [NumDmas-1:0] axi_out_req_o,
     input axi_out_rsp_t [NumDmas-1:0] axi_out_rsp_i,
-    // AXI4-Lite control
-    input axi_lite_host_req_t [NumDmas-1:0] axi_lite_read_regfile_req,
-    output axi_lite_host_rsp_t [NumDmas-1:0] axi_lite_read_regfile_rsp,
-    input axi_lite_host_req_t [NumDmas-1:0] axi_lite_write_regfile_req,
-    output axi_lite_host_rsp_t [NumDmas-1:0] axi_lite_write_regfile_rsp,
-    input axi_lite_host_req_t [NumDmas-1:0] axi_lite_compute_regfile_req,
-    output axi_lite_host_rsp_t [NumDmas-1:0] axi_lite_compute_regfile_rsp
-);  
-    // Register bus interfaces
-    reg_req_t [NumDmas-1:0] regbus_read_regfile_req; 
-    reg_rsp_t [NumDmas-1:0] regbus_read_regfile_rsp;
-    reg_req_t [NumDmas-1:0] regbus_write_regfile_req; 
-    reg_rsp_t [NumDmas-1:0] regbus_write_regfile_rsp;
-    reg_req_t [NumDmas-1:0] regbus_compute_regfile_req; 
-    reg_rsp_t [NumDmas-1:0] regbus_compute_regfile_rsp;
-
+    // Register bus control
+    input reg_req_t [NumDmas-1:0] regbus_read_regfile_req,
+    output reg_rsp_t [NumDmas-1:0] regbus_read_regfile_rsp,
+    input reg_req_t [NumDmas-1:0] regbus_write_regfile_req,
+    output reg_rsp_t [NumDmas-1:0] regbus_write_regfile_rsp,
+    input reg_req_t [NumDmas-1:0] regbus_compute_regfile_req,
+    output reg_rsp_t [NumDmas-1:0] regbus_compute_regfile_rsp
+);
     // Register interfaces
     floo_dma_reg_pkg::floo_dma_reg2hw_t [NumDmas-1:0] reg2hw_read;
     floo_dma_reg_pkg::floo_dma_hw2reg_t [NumDmas-1:0] hw2reg_read;
@@ -110,24 +97,6 @@ module floo_dma_test_wrapper
         assign write_done[i] = traffic_gen_generic_done[i];
 
         // Register file for read transactions
-        axi_lite_to_reg #(
-            .ADDR_WIDTH     ( AxiLiteCfg.AddrWidth ),
-            .DATA_WIDTH     ( AxiLiteCfg.DataWidth ),
-            .BUFFER_DEPTH   ( 2                    ),
-            .DECOUPLE_W     ( 1                    ),
-            .axi_lite_req_t ( axi_lite_req_t       ),
-            .axi_lite_rsp_t ( axi_lite_rsp_t       ),
-            .reg_req_t      ( reg_req_t            ),
-            .reg_rsp_t      ( reg_rsp_t            )
-        ) i_axi_lite_to_reg_read (
-            .clk_i,
-            .rst_ni,
-            .axi_lite_req_i ( axi_lite_read_regfile_req[i] ),
-            .axi_lite_rsp_o ( axi_lite_read_regfile_rsp[i] ),
-            .reg_req_o      ( regbus_read_regfile_req[i]   ),
-            .reg_rsp_i      ( regbus_read_regfile_rsp[i]   )
-        );
-        
         floo_dma_reg_top #(
             .reg_req_t ( reg_req_t ),
             .reg_rsp_t ( reg_rsp_t )
@@ -145,24 +114,6 @@ module floo_dma_test_wrapper
         assign hw2reg_read[i].done = read_done[i];
 
         // Register file for write transactions
-        axi_lite_to_reg #(
-            .ADDR_WIDTH     ( AxiLiteCfg.AddrWidth ),
-            .DATA_WIDTH     ( AxiLiteCfg.DataWidth ),
-            .BUFFER_DEPTH   ( 2                    ),
-            .DECOUPLE_W     ( 1                    ),
-            .axi_lite_req_t ( axi_lite_req_t       ),
-            .axi_lite_rsp_t ( axi_lite_rsp_t       ),
-            .reg_req_t      ( reg_req_t            ),
-            .reg_rsp_t      ( reg_rsp_t            )
-        ) i_axi_lite_to_reg_write (
-            .clk_i,
-            .rst_ni,
-            .axi_lite_req_i ( axi_lite_write_regfile_req[i] ),
-            .axi_lite_rsp_o ( axi_lite_write_regfile_rsp[i] ),
-            .reg_req_o      ( regbus_write_regfile_req[i]   ),
-            .reg_rsp_i      ( regbus_write_regfile_rsp[i]   )
-        );
-        
         floo_dma_reg_top #(
             .reg_req_t ( reg_req_t ),
             .reg_rsp_t ( reg_rsp_t )
@@ -179,25 +130,7 @@ module floo_dma_test_wrapper
         assign write_start[i] = reg2hw_write[i].start;
         assign hw2reg_write[i].done = write_done[i];
 
-        // Register file for compute transactions
-        axi_lite_to_reg #(
-            .ADDR_WIDTH     ( AxiLiteCfg.AddrWidth ),
-            .DATA_WIDTH     ( AxiLiteCfg.DataWidth ),
-            .BUFFER_DEPTH   ( 2                    ),
-            .DECOUPLE_W     ( 1                    ),
-            .axi_lite_req_t ( axi_lite_req_t       ),
-            .axi_lite_rsp_t ( axi_lite_rsp_t       ),
-            .reg_req_t      ( reg_req_t            ),
-            .reg_rsp_t      ( reg_rsp_t            )
-        ) i_axi_lite_to_reg_compute (
-            .clk_i,
-            .rst_ni,
-            .axi_lite_req_i ( axi_lite_compute_regfile_req[i] ),
-            .axi_lite_rsp_o ( axi_lite_compute_regfile_rsp[i] ),
-            .reg_req_o      ( regbus_compute_regfile_req[i]   ),
-            .reg_rsp_i      ( regbus_compute_regfile_rsp[i]   )
-        );
-        
+        // Register file for compute operations
         floo_dma_reg_top #(
             .reg_req_t ( reg_req_t ),
             .reg_rsp_t ( reg_rsp_t )
