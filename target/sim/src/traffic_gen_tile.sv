@@ -160,7 +160,6 @@ module traffic_gen_tile
 
   // Traffic generator address map
   axi_narrow_out_addr_t traffic_gen_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
-  axi_narrow_out_addr_t traffic_gen_total_addr_space_dim = traffic_gen_addr_space_dim * NumTrafficGenTotal;
 
   // Address map
   axi_pkg::xbar_rule_64_t [NumTrafficGenTotal-1:0] ni2tg_addr_map;
