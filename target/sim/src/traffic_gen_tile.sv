@@ -11,6 +11,7 @@ module traffic_gen_tile
   import floo_pkg::*;
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*;
+  import sim_picobello_pkg::*;
 #(
   parameter logic [floo_picobello_noc_pkg::AxiCfgW.AddrWidth-1:0] BaseAddr = 32'h0,
   parameter id_t Id = '0
@@ -421,7 +422,7 @@ module traffic_gen_tile
     .Id                 ( Id                               ),
     .FlooDmaIndex       ( FlooDmaWideIndex                 ),
     .FlooDmaMemBaseAddr ( BaseAddr                         ),
-    .AxiCfg             ( picobello_pkg::AxiCfgWTrafficGen ),
+    .AxiCfg             ( sim_picobello_pkg::AxiCfgWTrafficGen ),
     .AxiLock            ( 1                                ),
     .axi_in_req_t       ( axi_wide_traffic_gen_req_t       ),
     .axi_in_rsp_t       ( axi_wide_traffic_gen_rsp_t       ),
@@ -479,10 +480,10 @@ module traffic_gen_tile
   // AXI RT unit wide
   axi_rt_unit_top #(
     .NumManagers       (NumManagers),
-    .AddrWidth         (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .DataWidth         (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .IdWidth           (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-    .UserWidth         (picobello_pkg::AxiCfgWTrafficGen.UserWidth),
+    .AddrWidth         (sim_picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
+    .DataWidth         (sim_picobello_pkg::AxiCfgWTrafficGen.DataWidth),
+    .IdWidth           (sim_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
+    .UserWidth         (sim_picobello_pkg::AxiCfgWTrafficGen.UserWidth),
     .NumPending        (NumPending),
     .WBufferDepth      (WBufferDepth),
     .NumAddrRegions    (NumRegions),
@@ -538,7 +539,7 @@ module traffic_gen_tile
     .Id                 ( Id                               ),
     .FlooDmaIndex       ( FlooDmaNarrowIndex               ),
     .FlooDmaMemBaseAddr ( BaseAddr                         ),
-    .AxiCfg             ( picobello_pkg::AxiCfgNTrafficGen ),
+    .AxiCfg             ( sim_picobello_pkg::AxiCfgNTrafficGen ),
     .AxiLock            ( 1                                ),
     .axi_in_req_t       ( axi_narrow_traffic_gen_req_t     ),
     .axi_in_rsp_t       ( axi_narrow_traffic_gen_rsp_t     ),
@@ -596,10 +597,10 @@ module traffic_gen_tile
   // AXI RT unit narrow
   axi_rt_unit_top #(
     .NumManagers       (NumManagers),
-    .AddrWidth         (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .DataWidth         (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .IdWidth           (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
-    .UserWidth         (picobello_pkg::AxiCfgNTrafficGen.UserWidth),
+    .AddrWidth         (sim_picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
+    .DataWidth         (sim_picobello_pkg::AxiCfgNTrafficGen.DataWidth),
+    .IdWidth           (sim_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
+    .UserWidth         (sim_picobello_pkg::AxiCfgNTrafficGen.UserWidth),
     .NumPending        (NumPending),
     .WBufferDepth      (WBufferDepth),
     .NumAddrRegions    (NumRegions),
@@ -661,8 +662,8 @@ module traffic_gen_tile
   // pragma translate_off
   `ifndef VERILATOR
   initial begin
-    assert (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
-    assert (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgN.InIdWidth) else $fatal(1, "Wrong ID width configuration for narrow traffic toward FlooNoC!");
+    assert (sim_picobello_pkg::AxiCfgWTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
+    assert (sim_picobello_pkg::AxiCfgNTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgN.InIdWidth) else $fatal(1, "Wrong ID width configuration for narrow traffic toward FlooNoC!");
   end
   `endif
   // pragma translate_on

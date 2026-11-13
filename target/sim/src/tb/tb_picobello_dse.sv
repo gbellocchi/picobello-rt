@@ -110,7 +110,7 @@ module tb_picobello_dse
   int DmaWriteEnable = 1;
 
   // NoC plane control
-  localparam int unsigned NumNoCPlanes = picobello_pkg::NumNoCPlanes;
+  localparam int unsigned NumNoCPlanes = sim_picobello_pkg::NumNoCPlanes;
 
   // Interferer reconfiguration after critical task termination
   localparam bit RuntimeInterfReconfig = 1'b0;
