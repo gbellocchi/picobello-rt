@@ -6,7 +6,7 @@
 //  - Tim Fischer <fischeti@iis.ee.ethz.ch>
 //  - Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-/// A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus
+/// An AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus
 module axi_bw_monitor #(
   parameter type req_t = logic,
   parameter type rsp_t = logic,
