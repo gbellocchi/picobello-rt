@@ -317,12 +317,10 @@ package picobello_pkg;
   localparam int unsigned NumSubordinates = 32'd1;
   // Number of regions per master
   localparam int unsigned NumRegions      = 32'd1;
-  // Max burst length
-  localparam int unsigned MaxBurstLength  = 32'd256;
   // Number of outstanding transactions
-  localparam int unsigned NumPending      = MaxBurstLength;
+  localparam int unsigned NumPending      = 16;
   // Write buffer depth
-  localparam int unsigned WBufferDepth    = MaxBurstLength;
+  localparam int unsigned WBufferDepth    = 16;
   // QoS parameters
   localparam int unsigned PeriodWidth     = 32'd32;
   localparam int unsigned BudgetWidth     = 32'd32;
