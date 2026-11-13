@@ -52,7 +52,7 @@ module tb_picobello_dse
   // TB signals //
   ////////////////
 
-  logic [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0] end_of_sim;
+  logic [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0] end_of_sim;
   
   // Timer
   sim_picobello_pkg::timer_cfg_t tb_timer_cfg; // Timer configuration
@@ -63,10 +63,10 @@ module tb_picobello_dse
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
 
   // BW monitoring
-  picobello_pkg::axi_wide_tg_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
-  picobello_pkg::axi_wide_tg_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumCores-1:0];
+  picobello_pkg::axi_wide_traffic_gen_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  picobello_pkg::axi_wide_traffic_gen_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
 
   floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
   floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
@@ -103,10 +103,10 @@ module tb_picobello_dse
   floo_picobello_noc_pkg::id_t cluster_idx;
 
   // Cluster peripheral address map
-  axi_host_addr_t core_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
+  axi_host_addr_t traffic_gen_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
 
   axi_host_addr_t cluster_addr_space_dim = ep_addr_size(floo_picobello_noc_pkg::ClusterX0Y0SamIdx);
-  axi_host_addr_t many_core_addr_space_dim = core_addr_space_dim * NumCores;
+  axi_host_addr_t traffic_gen_total_addr_space_dim = traffic_gen_addr_space_dim * NumTrafficGen;
 
   axi_host_addr_t cluster_rt_addr_dim = 32'h0000_1000;
   axi_host_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
@@ -190,7 +190,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd0; // 0 Ck
 
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 1 hop (interference at endpoint only, so 1 task per memory router port)
@@ -239,7 +239,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
 
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 1 hop
@@ -298,7 +298,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
 
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 2 hops
@@ -363,7 +363,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
 
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 4 hops
@@ -440,7 +440,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
     
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 8 hops
@@ -541,7 +541,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
 
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - Host control plane
@@ -594,7 +594,7 @@ module tb_picobello_dse
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
 
     // Number of DMAs
-    localparam int unsigned NumCoresActive = 1;
+    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
 
@@ -630,7 +630,7 @@ module tb_picobello_dse
 
   picobello_dse_top #(
     // Parameters
-    .NumCores                 (picobello_pkg::NumCores),
+    .NumTrafficGen            (picobello_pkg::NumTrafficGen),
     // AXI4 channel types
     .axi_host_req_t           (picobello_pkg::axi_host_req_t),
     .axi_host_rsp_t           (picobello_pkg::axi_host_rsp_t),
@@ -687,30 +687,30 @@ module tb_picobello_dse
 
   // Cluster wide input
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_cl_bw_monitor_loop_0
-    for (genvar core_id = 0; core_id < picobello_pkg::NumCores; core_id++) begin : gen_cl_bw_monitor_loop_1
+    for (genvar traffic_gen_id = 0; traffic_gen_id < picobello_pkg::NumTrafficGen; traffic_gen_id++) begin : gen_cl_bw_monitor_loop_1
 
-      localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_core_%0d", cl_id, core_id);
+      localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_traffic_gen_%0d", cl_id, traffic_gen_id);
 
-      assign bw_rt_cl_req[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[core_id];
-      assign bw_rt_cl_rsp[cl_id][core_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[core_id];
+      assign bw_rt_cl_req[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[traffic_gen_id];
+      assign bw_rt_cl_rsp[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[traffic_gen_id];
 
       axi_bw_monitor #(
-        .req_t        ( picobello_pkg::axi_wide_tg_req_t           ),
-        .rsp_t        ( picobello_pkg::axi_wide_tg_rsp_t           ),
-        .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t             ),
-        .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t           ),
+        .req_t        ( picobello_pkg::axi_wide_traffic_gen_req_t  ),
+        .rsp_t        ( picobello_pkg::axi_wide_traffic_gen_rsp_t  ),
+        .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t        ),
+        .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t      ),
         .AxiDataWidth ( picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
         .AxiIdWidth   ( picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
-        .Name         ( BwMonitorName                                   )
+        .Name         ( BwMonitorName                              )
       ) i_axi_bw_monitor (
-        .clk_i          ( clk                             ),
-        .rst_ni         ( rst_n                           ),
-        .req_i          ( bw_rt_cl_req[cl_id][core_id]    ),
-        .rsp_i          ( bw_rt_cl_rsp[cl_id][core_id]    ),
-        .ar_in_flight_o (                                 ),
-        .aw_in_flight_o (                                 ),
-        .cfg_i          ( bw_rt_cl_cfg[cl_id][core_id]    ),
-        .stats_o        ( bw_rt_cl_stats[cl_id][core_id]  )
+        .clk_i          ( clk                                   ),
+        .rst_ni         ( rst_n                                 ),
+        .req_i          ( bw_rt_cl_req[cl_id][traffic_gen_id]   ),
+        .rsp_i          ( bw_rt_cl_rsp[cl_id][traffic_gen_id]   ),
+        .ar_in_flight_o (                                       ),
+        .aw_in_flight_o (                                       ),
+        .cfg_i          ( bw_rt_cl_cfg[cl_id][traffic_gen_id]   ),
+        .stats_o        ( bw_rt_cl_stats[cl_id][traffic_gen_id] )
       );
     end
   end
@@ -785,7 +785,7 @@ module tb_picobello_dse
     rt_configured = '{default: '0};
     // Initialization - bw monitors
     for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
-      for (int j = 0; j < picobello_pkg::NumCores; j++) begin
+      for (int j = 0; j < picobello_pkg::NumTrafficGen; j++) begin
         bw_rt_cl_cfg[i][j] = '{default: '0};
       end
       bw_rt_noc_ni_wide_cfg[i] = '{default: '0};
@@ -872,7 +872,7 @@ module tb_picobello_dse
 				                tb_rt_cfg.mgr_id                                                        = 0;
 
 				                // Set manager address space dimension
-				                tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
+				                tb_rt_cfg.mgr_addr_space_dim                                            = traffic_gen_addr_space_dim;
 
 				                // Set address region - Memory tile
 				                tb_rt_cfg.sbr_addr_reg_id                                               = 0;
@@ -906,11 +906,11 @@ module tb_picobello_dse
 				                picobello_rt_set_period_budget(tb_rt_cfg);
 
 				                // Set and configure AXI-Realm manager registers
-				                rt_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                rt_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 
 				                  // Set manager ID
-				                  tb_rt_cfg.mgr_id                                                    = core_id;
+				                  tb_rt_cfg.mgr_id                                                    = traffic_gen_id;
 
 				                  // Set the burst length limit (8b)
 				                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
@@ -953,7 +953,7 @@ module tb_picobello_dse
 				                tb_rt_cfg.mgr_id                                                        = 0;
 
 				                // Set manager address space dimension
-				                tb_rt_cfg.mgr_addr_space_dim                                            = core_addr_space_dim;
+				                tb_rt_cfg.mgr_addr_space_dim                                            = traffic_gen_addr_space_dim;
 
 				                // Set address region - Memory tile
 
@@ -988,11 +988,11 @@ module tb_picobello_dse
 				                picobello_rt_set_period_budget(tb_rt_cfg);
 
 				                // Set and configure AXI-Realm manager registers
-				                rt_interf_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                rt_interf_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 
 				                  // Set manager ID
-				                  tb_rt_cfg.mgr_id                                                    = core_id;
+				                  tb_rt_cfg.mgr_id                                                    = traffic_gen_id;
 
 				                  // Set the burst length limit (8b)
 				                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (InterfBurstLength - 1) & 8'hFF;
@@ -1031,10 +1031,10 @@ module tb_picobello_dse
 				              init_end_of_sim_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 
-				                init_end_of_sim_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                init_end_of_sim_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 
-				                  end_of_sim[cl_id][core_id] = 1'b0; 
+				                  end_of_sim[cl_id][traffic_gen_id] = 1'b0; 
 				                end
 				              end
 
@@ -1092,11 +1092,11 @@ module tb_picobello_dse
 				                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 
-				                dma_in_start_first_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                dma_in_start_first_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) dpi_rt.dma_read_start_high(cl_id, core_id, noc_plane_id);
-				                    if(DmaWriteEnable) dpi_rt.dma_write_start_high(cl_id, core_id, noc_plane_id);
+				                    if(DmaReadEnable) dpi_rt.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
+				                    if(DmaWriteEnable) dpi_rt.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
 				                  end
 				                end
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
@@ -1121,11 +1121,11 @@ module tb_picobello_dse
 				                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 
-				                dma_in_start_second_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                dma_in_start_second_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) dpi_rt.dma_read_start_high(cl_id, core_id, noc_plane_id);
-				                    if(DmaWriteEnable) dpi_rt.dma_write_start_high(cl_id, core_id, noc_plane_id);
+				                    if(DmaReadEnable) dpi_rt.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
+				                    if(DmaWriteEnable) dpi_rt.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
 				                  end
 				                end
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
@@ -1143,15 +1143,15 @@ module tb_picobello_dse
 				                  cl_id = IdTestClInterf[i - NumClustersActive];
 				                end
 
-				                dma_in_start_low_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                dma_in_start_low_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                    if(DmaReadEnable) begin
-				                      dpi_rt.dma_read_start_low(cl_id, core_id, noc_plane_id);
+				                      dpi_rt.dma_read_start_low(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                    if(DmaWriteEnable) begin
-				                      dpi_rt.dma_write_start_low(cl_id, core_id, noc_plane_id);
+				                      dpi_rt.dma_write_start_low(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                  end
 				                end
@@ -1163,16 +1163,16 @@ module tb_picobello_dse
 				              dma_in_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 
-				                dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                dma_in_idle_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 
 				                  // Wait for DMA idles
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                    if(DmaReadEnable) begin
-				                      dpi_rt.dma_read_wait_idle(cl_id, core_id, noc_plane_id);
+				                      dpi_rt.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                    if(DmaWriteEnable) begin
-				                      dpi_rt.dma_write_wait_idle(cl_id, core_id, noc_plane_id);
+				                      dpi_rt.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                  end
 				                end
@@ -1201,11 +1201,11 @@ module tb_picobello_dse
 				                  // programming and propagation time from host to RT unit
 				                  `wait_n_clk(10);
 
-				                  rt_interf_max_cfg_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                    automatic int core_id = j;
+				                  rt_interf_max_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                    automatic int traffic_gen_id = j;
 
 				                    // Set fragment length
-				                    dpi_rt.axi_rt_fragm_len(cl_id, core_id, (InterfBurstLengthReconfig - 1));
+				                    dpi_rt.axi_rt_fragm_len(cl_id, traffic_gen_id, (InterfBurstLengthReconfig - 1));
 				                  end              
 				                end
 				              end
@@ -1226,15 +1226,15 @@ module tb_picobello_dse
 				              // Wait for interferer clusters to terminate
 				              interferer_task_dma_in_idle_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
-				                interferer_task_dma_in_idle_loop_1: for (int j = 0; j < NumCoresActive; j++) begin
-				                  automatic int core_id = j;
+				                interferer_task_dma_in_idle_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  automatic int traffic_gen_id = j;
 				                  // Wait for DMA idles
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                    if(DmaReadEnable) begin
-				                      dpi_rt.dma_read_wait_idle(cl_id, core_id, noc_plane_id);
+				                      dpi_rt.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                    if(DmaWriteEnable) begin
-				                      dpi_rt.dma_write_wait_idle(cl_id, core_id, noc_plane_id);
+				                      dpi_rt.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                  end
 				                end                
@@ -1507,8 +1507,8 @@ module tb_picobello_dse
   end
 
   initial begin
-    assert (NumCoresActive <= NumCores) else $fatal(1, "Wrong number of active cores per cluster!");
-    assert (many_core_addr_space_dim <= cluster_addr_space_dim) else $fatal(1, "Cluster address space dimension exceeded!");
+    assert (NumTrafficGenActive <= NumTrafficGen) else $fatal(1, "Wrong number of active traffic generators per tile!");
+    assert (traffic_gen_total_addr_space_dim <= cluster_addr_space_dim) else $fatal(1, "Cluster address space dimension exceeded!");
   end
 
 endmodule
