@@ -47,7 +47,7 @@ module tb_picobello_dse
   // TB signals //
   ////////////////
 
-  logic [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0] end_of_sim;
+  logic [picobello_pkg::NumClusters-1:0] end_of_sim;
   
   // Timer
   sim_picobello_pkg::timer_cfg_t tb_timer_cfg; // Timer configuration
@@ -166,9 +166,6 @@ module tb_picobello_dse
     // Period for interferer tasks
     int InterfPeriodMin = 32'd0; // 0 Ck
     int InterfPeriodMax = 32'd0; // 0 Ck
-
-    // Number of DMAs
-    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 1 hop (interference at endpoint only, so 1 task per memory router port)
@@ -215,9 +212,6 @@ module tb_picobello_dse
     // Period for interferer tasks
     int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-
-    // Number of DMAs
-    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 1 hop
@@ -274,9 +268,6 @@ module tb_picobello_dse
     // Period for interferer tasks
     int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-
-    // Number of DMAs
-    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 2 hops
@@ -339,9 +330,6 @@ module tb_picobello_dse
     // Period for interferer tasks
     int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-
-    // Number of DMAs
-    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 4 hops
@@ -416,9 +404,6 @@ module tb_picobello_dse
     // Period for interferer tasks
     int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    
-    // Number of DMAs
-    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 8 hops
@@ -517,9 +502,6 @@ module tb_picobello_dse
     // Period for interferer tasks
     int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
     int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-
-    // Number of DMAs
-    localparam int unsigned NumTrafficGenActive = 1;
   `endif
   // ------------------------------------------------------------- //
 
@@ -554,8 +536,6 @@ module tb_picobello_dse
   /////////
 
   picobello_dse_top #(
-    // Parameters
-    .NumTrafficGen            (picobello_pkg::NumTrafficGen),
     // AXI4 channel types
     .axi_host_req_t           (picobello_pkg::axi_host_req_t),
     .axi_host_rsp_t           (picobello_pkg::axi_host_rsp_t),
@@ -777,37 +757,33 @@ module tb_picobello_dse
 				                dse_realm_set_period_budget(tb_realm_cfg);
 
 				                // Set and configure AXI-Realm manager registers
-				                realm_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
+				                // Set manager ID
+				                tb_realm_cfg.mgr_id                                                    = 0;
 
-				                  // Set manager ID
-				                  tb_realm_cfg.mgr_id                                                    = traffic_gen_id;
+				                // Set the burst length limit (8b)
+				                tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
 
-				                  // Set the burst length limit (8b)
-				                  tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
+				                // Set IMTU abort (1b)
+				                tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id]               = '0;
 
-				                  // Set IMTU abort (1b)
-				                  tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id]               = '0;
+				                // Set IMTU enable (1b)
+				                tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id]              = CriticalBudgetPeriodActive;
 
-				                  // Set IMTU enable (1b)
-				                  tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id]              = CriticalBudgetPeriodActive;
+				                // Enable real-time mode (1b)
+				                tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id]                = '1;
 
-				                  // Enable real-time mode (1b)
-				                  tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id]                = '1;
+				                // Activate AXI-Realm
 
-				                  // Activate AXI-Realm
-
-				                  // Set burst length
-				                  dse_realm_set_burst_length(tb_realm_cfg);
+				                // Set burst length
+				                dse_realm_set_burst_length(tb_realm_cfg);
 
                           // Enable IMTU
                           if(CriticalBudgetPeriodActive) begin
-				                    dse_realm_enable_imtu(tb_realm_cfg);
+				                  dse_realm_enable_imtu(tb_realm_cfg);
                           end
 
-				                  // Enable real-time mode
-				                  dse_realm_enable_rt(tb_realm_cfg);
-				                end
+				                // Enable real-time mode
+				                dse_realm_enable_rt(tb_realm_cfg);
 				              end
 
 				              // Configure AXI-Realm for interferers
@@ -859,35 +835,31 @@ module tb_picobello_dse
 				                dse_realm_set_period_budget(tb_realm_cfg);
 
 				                // Set and configure AXI-Realm manager registers
-				                realm_interf_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
+				                // Set manager ID
+				                tb_realm_cfg.mgr_id                                                    = 0;
 
-				                  // Set manager ID
-				                  tb_realm_cfg.mgr_id                                                    = traffic_gen_id;
+				                // Set the burst length limit (8b)
+				                tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id]                = (InterfBurstLength - 1) & 8'hFF;
 
-				                  // Set the burst length limit (8b)
-				                  tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id]                = (InterfBurstLength - 1) & 8'hFF;
+				                // Set IMTU abort (1b)
+				                tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id]               = '0;
 
-				                  // Set IMTU abort (1b)
-				                  tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id]               = '0;
+				                // Set IMTU enable (1b)
+				                tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id]              = InterfBudgetPeriodActive;
 
-				                  // Set IMTU enable (1b)
-				                  tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id]              = InterfBudgetPeriodActive;
+				                // Enable real-time mode (1b)
+				                tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id]                = '1;
 
-				                  // Enable real-time mode (1b)
-				                  tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id]                = '1;
-
-				                  // Set burst length
-				                  dse_realm_set_burst_length(tb_realm_cfg);
+				                // Set burst length
+				                dse_realm_set_burst_length(tb_realm_cfg);
 
                           // Enable IMTU
                           if(InterfBudgetPeriodActive) begin
-				                    dse_realm_enable_imtu(tb_realm_cfg);
+				                  dse_realm_enable_imtu(tb_realm_cfg);
                           end
 
-				                  // Enable real-time mode
-				                  dse_realm_enable_rt(tb_realm_cfg);
-				                end
+				                // Enable real-time mode
+				                dse_realm_enable_rt(tb_realm_cfg);
 				              end
 
 				              `wait_n_clk(`t_tb_wait);
@@ -902,11 +874,7 @@ module tb_picobello_dse
 				              init_end_of_sim_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 
-				                init_end_of_sim_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
-
-				                  end_of_sim[cl_id][traffic_gen_id] = 1'b0; 
-				                end
+				                end_of_sim[cl_id] = 1'b0; 
 				              end
 
 				              `wait_n_clk(1);
@@ -963,12 +931,9 @@ module tb_picobello_dse
 				                  dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 
-				                dma_in_start_first_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
-				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
-				                    if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
-				                  end
+				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                  if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, noc_plane_id);
+				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, noc_plane_id);
 				                end
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
 				              end
@@ -992,12 +957,9 @@ module tb_picobello_dse
 				                  dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 
-				                dma_in_start_second_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
-				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
-				                    if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
-				                  end
+				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                  if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, noc_plane_id);
+				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, noc_plane_id);
 				                end
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
 				              end
@@ -1014,16 +976,12 @@ module tb_picobello_dse
 				                  cl_id = IdTestClInterf[i - NumClustersActive];
 				                end
 
-				                dma_in_start_low_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
-
-				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) begin
-				                      i_dpi_dse.dma_read_start_low(cl_id, traffic_gen_id, noc_plane_id);
-				                    end
-				                    if(DmaWriteEnable) begin
-				                      i_dpi_dse.dma_write_start_low(cl_id, traffic_gen_id, noc_plane_id);
-				                    end
+				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                  if(DmaReadEnable) begin
+				                    i_dpi_dse.dma_read_start_low(cl_id, noc_plane_id);
+				                  end
+				                  if(DmaWriteEnable) begin
+				                    i_dpi_dse.dma_write_start_low(cl_id, noc_plane_id);
 				                  end
 				                end
 				              end
@@ -1034,17 +992,13 @@ module tb_picobello_dse
 				              dma_in_idle_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 
-				                dma_in_idle_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
-
-				                  // Wait for DMA idles
-				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) begin
-				                      i_dpi_dse.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
-				                    end
-				                    if(DmaWriteEnable) begin
-				                      i_dpi_dse.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
-				                    end
+				                // Wait for DMA idles
+				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                  if(DmaReadEnable) begin
+				                    i_dpi_dse.dma_read_wait_idle(cl_id, noc_plane_id);
+				                  end
+				                  if(DmaWriteEnable) begin
+				                    i_dpi_dse.dma_write_wait_idle(cl_id, noc_plane_id);
 				                  end
 				                end
 				                // Store timer value as dma read terminates
@@ -1072,12 +1026,8 @@ module tb_picobello_dse
 				                  // programming and propagation time from host to RT unit
 				                  `wait_n_clk(10);
 
-				                  realm_interf_max_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                    automatic int traffic_gen_id = j;
-
-				                    // Set fragment length
-				                    i_dpi_dse.realm_set_fragm_len(cl_id, traffic_gen_id, (InterfBurstLengthReconfig - 1));
-				                  end              
+				                  // Set fragment length
+				                  i_dpi_dse.realm_set_fragm_len(cl_id, (InterfBurstLengthReconfig - 1));
 				                end
 				              end
 
@@ -1097,18 +1047,15 @@ module tb_picobello_dse
 				              // Wait for interferer clusters to terminate
 				              interferer_task_dma_in_idle_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
-				                interferer_task_dma_in_idle_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
-				                  automatic int traffic_gen_id = j;
-				                  // Wait for DMA idles
-				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) begin
-				                      i_dpi_dse.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
-				                    end
-				                    if(DmaWriteEnable) begin
-				                      i_dpi_dse.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
-				                    end
+				                // Wait for DMA idles
+				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
+				                  if(DmaReadEnable) begin
+				                    i_dpi_dse.dma_read_wait_idle(cl_id, noc_plane_id);
 				                  end
-				                end                
+				                  if(DmaWriteEnable) begin
+				                    i_dpi_dse.dma_write_wait_idle(cl_id, noc_plane_id);
+				                  end
+				                end
 				              end  
 
 				              // Store timer value for interferer tasks
@@ -1375,10 +1322,6 @@ module tb_picobello_dse
 
     #1us; 
     $finish();
-  end
-
-  initial begin
-    assert (NumTrafficGenActive <= NumTrafficGen) else $fatal(1, "Wrong number of active traffic generators per tile!");
   end
 
 endmodule

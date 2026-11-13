@@ -254,8 +254,8 @@ package picobello_pkg;
   //  Traffic Generator Tile  //
   //////////////////////////////
 
-  // Number of traffic generators (DMA test nodes) per tile and NoC plane
-  localparam int unsigned NumTrafficGen = 1;
+  // One traffic generator (DMA test node) per NoC plane, as a Snitch cluster has one DMA on the
+  // wide plane and one narrow interface.
 
   // Number of NoC planes (narrow, wide)
   localparam int unsigned NumNoCPlanes = 2;
@@ -264,16 +264,13 @@ package picobello_pkg;
   localparam int unsigned IdxNoCPlaneWide = 0;
   localparam int unsigned IdxNoCPlaneNarrow = 1;
 
-  // Total number of traffic generators per tile (all NoC planes)
-  localparam int unsigned NumTrafficGenTotal = NumTrafficGen * NumNoCPlanes;
-
   // AXI4 narrow configuration for RT traffic (Traffic generator => MUX)
   localparam axi_cfg_t AxiCfgNTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumTrafficGen),
-    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumTrafficGen)
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth,
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth
   };
 
   typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_traffic_gen_addr_t;
@@ -292,8 +289,8 @@ package picobello_pkg;
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumTrafficGen),
-    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumTrafficGen)
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth,
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth
   };
 
   typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_traffic_gen_addr_t;
@@ -311,8 +308,8 @@ package picobello_pkg;
   //  AXI-Realm  //
   /////////////////
 
-  // Number of masters
-  localparam int unsigned NumManagers     = NumTrafficGen;
+  // Number of masters (one traffic generator per AXI-REALM unit)
+  localparam int unsigned NumManagers     = 32'd1;
   // Number of slaves
   localparam int unsigned NumSubordinates = 32'd1;
   // Number of regions per master
