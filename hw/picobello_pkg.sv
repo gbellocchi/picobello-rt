@@ -159,26 +159,12 @@ package picobello_pkg;
   // L1 memory size of every cluster tile
   localparam int unsigned ClusterTileSize = ep_addr_size(ClusterX0Y0SamIdx);
 
-  // Atop support is removed since not used.
-  // Moreover, there is an inconsistency when using MaxUniqueIds > 1 in the meta buffer with AtopSupport.
-  // To meet the conditions of the assertion TooFewIdBits2, OutIdWidth > InIdWidth is needed. However, this breaks ID queues that are expecting ID width = IdMinWidth = OutIdWidth (e.g., i_aw_no_atop_id_queue).
-  localparam bit ClusterRtAtopSupport = 1'b0;
-  localparam int unsigned ClusterRtMaxAtomicTxns = 0;
+  // NoC interface configuration
+  localparam chimney_cfg_t ChimneyClusterCfg = floo_pkg::ChimneyDefaultCfg;
 
-  // AXI4 wide configuration for cluster
-  localparam chimney_cfg_t ChimneyClusterRtCfg = '{
-    EnSbrPort: 1'b1,
-    EnMgrPort: 1'b1,
-    MaxTxns: 32,
-    MaxUniqueIds: 8,
-    MaxTxnsPerId: 32,
-    BRoBType: NoRoB,
-    BRoBSize: 0,
-    RRoBType: NoRoB,
-    RRoBSize: 0,
-    CutAx: 1'b0,
-    CutRsp: 1'b0
-  };
+  // Atomic support
+  localparam bit          ClusterAtopSupport   = 1'b1;
+  localparam int unsigned ClusterMaxAtomicTxns = 3;
 
   ////////////////
   //  Mem Tile  //
@@ -187,9 +173,9 @@ package picobello_pkg;
   // L2 memory size of every memory tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
 
-  // Atop support
-  localparam bit MemAtopSupport = 1'b0;
-  localparam int unsigned MemMaxAtomicTxns = 0;
+  // Atomic support
+  localparam bit MemAtopSupport = 1'b1;
+  localparam int unsigned MemMaxAtomicTxns = 1;
 
   // AXI4 wide configuration for L2 memory
   localparam axi_cfg_t AxiCfgWL2 = '{
@@ -205,7 +191,7 @@ package picobello_pkg;
     EnSbrPort: 1'b1, // Further customized within memory tile
     EnMgrPort: 1'b1, // Further customized within memory tile
     MaxTxns: 32, // Max outstanding transactions handled by meta buffer 
-    MaxUniqueIds: 8, // Max unique non-atomic IDs handled by meta buffer
+    MaxUniqueIds: 1, // Max unique non-atomic IDs handled by meta buffer (1 with atomics)
     MaxTxnsPerId: 4, // Used by RoB
     BRoBType: NoRoB,
     BRoBSize: 0,
@@ -219,7 +205,7 @@ package picobello_pkg;
   localparam int unsigned MemRttInputExpected = 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemRttOutputExpected = 0; // [Ck] R, B channels
   localparam int unsigned MemRttBase = 4; // [Ck] Baseline memory round-trip time (calculated @NI)
-  localparam int unsigned MemDelayOverhead = 0; // [Ck] AXI delay overhead.
+  localparam int unsigned MemDelayOverhead = 0; // [Ck] AXI delay overhead
   localparam int unsigned MemDelayInput = (MemRttInputExpected > MemRttBase + MemDelayOverhead) ? (MemRttInputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] AW, W, AR channels
   localparam int unsigned MemDelayOutput = (MemRttOutputExpected > MemRttBase + MemDelayOverhead) ? (MemRttOutputExpected - MemRttBase - MemDelayOverhead) : 0; // [Ck] R, B channels
 
