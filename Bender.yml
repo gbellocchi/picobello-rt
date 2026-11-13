@@ -118,7 +118,7 @@ sources:
       - target/sim/include
     files:
       # Level 0
-      - target/sim/src/dpi_picobello_rt_toolkit.sv
+      - target/sim/src/dpi/dpi_dse.sv
       - target/sim/src/floo_dma_test_wrapper.sv
       # Level 1
       - target/sim/src/traffic_gen_tile.sv

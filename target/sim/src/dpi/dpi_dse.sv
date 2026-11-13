@@ -4,8 +4,7 @@
 //
 // Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-
-module dpi_picobello_rt_toolkit (
+module dpi_dse (
   input logic clk,
   input logic rst_n
 );
@@ -15,18 +14,18 @@ module dpi_picobello_rt_toolkit (
   ///////////
 
   // hello world
-  import "DPI-C" context task hello_world();
+  import "DPI-C" context task dpi_dse_hello_world();
 
   // DMA read control
-  import "DPI-C" function void dma_read_start(input int cl_id, input int traffic_gen_id, input int noc_plane_id, input int value);
-  import "DPI-C" function int dma_read_get_idle(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
+  import "DPI-C" function void dpi_dse_dma_read_start(input int cl_id, input int traffic_gen_id, input int noc_plane_id, input int value);
+  import "DPI-C" function int dpi_dse_dma_read_get_idle(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
 
   // DMA write control
-  import "DPI-C" function void dma_write_start(input int cl_id, input int traffic_gen_id, input int noc_plane_id, input int value);
-  import "DPI-C" function int dma_write_get_idle(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
+  import "DPI-C" function void dpi_dse_dma_write_start(input int cl_id, input int traffic_gen_id, input int noc_plane_id, input int value);
+  import "DPI-C" function int dpi_dse_dma_write_get_idle(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
 
-  // AXI Realm control
-  import "DPI-C" function void axi_rt_set_fragm_len(input int cl_id, input int traffic_gen_id, input int value);
+  // AXI-REALM control
+  import "DPI-C" function void dpi_dse_realm_set_fragm_len(input int cl_id, input int traffic_gen_id, input int value);
 
   // Wait a certain number of clock cycles
   task sv_wait_clocks(
@@ -44,42 +43,42 @@ module dpi_picobello_rt_toolkit (
 
   // Start DMA read
   task dma_read_start_high(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
-    dma_read_start(cl_id, traffic_gen_id, noc_plane_id, 1);
+    dpi_dse_dma_read_start(cl_id, traffic_gen_id, noc_plane_id, 1);
   endtask
 
   task dma_read_start_low(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
-    dma_read_start(cl_id, traffic_gen_id, noc_plane_id, 0);
+    dpi_dse_dma_read_start(cl_id, traffic_gen_id, noc_plane_id, 0);
   endtask
 
   // Wait for DMA read to become idle 
   task dma_read_wait_idle(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
-    while (dma_read_get_idle(cl_id, traffic_gen_id, noc_plane_id) != 1) begin
+    while (dpi_dse_dma_read_get_idle(cl_id, traffic_gen_id, noc_plane_id) != 1) begin
       sv_wait_clocks(1);
     end
   endtask
 
   // Start DMA write
   task dma_write_start_high(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
-    dma_write_start(cl_id, traffic_gen_id, noc_plane_id, 1);
+    dpi_dse_dma_write_start(cl_id, traffic_gen_id, noc_plane_id, 1);
   endtask
 
   task dma_write_start_low(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
-    dma_write_start(cl_id, traffic_gen_id, noc_plane_id, 0);
+    dpi_dse_dma_write_start(cl_id, traffic_gen_id, noc_plane_id, 0);
   endtask
 
   // Wait for DMA write to become idle 
   task dma_write_wait_idle(input int cl_id, input int traffic_gen_id, input int noc_plane_id);
-    while (dma_write_get_idle(cl_id, traffic_gen_id, noc_plane_id) != 1) begin
+    while (dpi_dse_dma_write_get_idle(cl_id, traffic_gen_id, noc_plane_id) != 1) begin
       sv_wait_clocks(1);
     end
   endtask
 
   //////////////////////////////////
-  //  AXI Realm control wrappers  //
+  //  AXI-REALM control wrappers  //
   //////////////////////////////////
 
-  task axi_rt_fragm_len(input int cl_id, input int traffic_gen_id, input int value);
-    axi_rt_set_fragm_len(cl_id, traffic_gen_id, value);
+  task realm_set_fragm_len(input int cl_id, input int traffic_gen_id, input int value);
+    dpi_dse_realm_set_fragm_len(cl_id, traffic_gen_id, value);
   endtask
 
 endmodule
