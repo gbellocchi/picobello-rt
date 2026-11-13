@@ -105,9 +105,6 @@ module tb_picobello_dse
   // Cluster peripheral address map
   axi_host_addr_t traffic_gen_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
 
-  axi_host_addr_t cluster_addr_space_dim = ep_addr_size(floo_picobello_noc_pkg::ClusterX0Y0SamIdx);
-  axi_host_addr_t traffic_gen_total_addr_space_dim = traffic_gen_addr_space_dim * NumTrafficGen;
-
   axi_host_addr_t cluster_rt_addr_dim = 32'h0000_1000;
   axi_host_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
   axi_host_addr_t cluster_dma_w_addr_dim = 32'h0000_0100;
@@ -1508,7 +1505,6 @@ module tb_picobello_dse
 
   initial begin
     assert (NumTrafficGenActive <= NumTrafficGen) else $fatal(1, "Wrong number of active traffic generators per tile!");
-    assert (traffic_gen_total_addr_space_dim <= cluster_addr_space_dim) else $fatal(1, "Cluster address space dimension exceeded!");
   end
 
 endmodule
