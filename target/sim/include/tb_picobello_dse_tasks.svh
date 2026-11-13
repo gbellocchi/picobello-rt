@@ -328,75 +328,19 @@ task automatic dse_realm_set_burst_length(
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  // Each 32-bit len_limit register contains 4 entries of 8-bits to set len_limit values.
-  // Each entry corresponds to a len_limit value for a different manager.
-  // A len_limit value requires 8 bits to be represented, given AXI4 bursts can be up to 256 beats long.
-  //
-  // The following scheme refers to a configuration with 16 managers:
-  //
-  //  AXI_RT_LEN_LIMIT_0 (32-bit)                    
-  //  ┌───────────┬───────────┬───────────┬───────────┐
-  //  │  Mgr 3    │  Mgr 2    │  Mgr 1    │  Mgr 0    │
-  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
-  //  └───────────┴───────────┴───────────┴───────────┘
-                                                    
-  //  AXI_RT_LEN_LIMIT_1 (32-bit)                     
-  //  ┌───────────┬───────────┬───────────┬───────────┐
-  //  │  Mgr 7    │  Mgr 6    │  Mgr 5    │  Mgr 4    │
-  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
-  //  └───────────┴───────────┴───────────┴───────────┘
-                                                    
-  //  AXI_RT_LEN_LIMIT_2 (32-bit)                      
-  //  ┌───────────┬───────────┬───────────┬───────────┐
-  //  │  Mgr 11   │  Mgr 10   │  Mgr 9    │  Mgr 8    │
-  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
-  //  └───────────┴───────────┴───────────┴───────────┘
-                                                    
-  //  AXI_RT_LEN_LIMIT_3 (32-bit)                      
-  //  ┌───────────┬───────────┬───────────┬───────────┐
-  //  │  Mgr 15   │  Mgr 14   │  Mgr 13   │  Mgr 12   │
-  //  │  [31:24]  │  [23:16]  │  [15:8]   │  [7:0]    │
-  //  └───────────┴───────────┴───────────┴───────────┘
-
-  // A 32-bit register stores 4 len_limit entries each.
-  int num_bytes_len_limit_reg = 4;
-
-  // Byte stride between consecutive 32-bit len_limit registers.
-  int len_limit_reg_byte_stride = 4;
-
-  // Calculate manager entry in the len_limit register.
-  int len_limit_reg_entry_bytes = tb_realm_cfg.mgr_id % num_bytes_len_limit_reg;
-  int len_limit_reg_entry_bits = 8 * len_limit_reg_entry_bytes;
-
-  // Calculate the len_limit register offset based on the manager ID.
-  int len_limit_reg_offset = tb_realm_cfg.mgr_id/num_bytes_len_limit_reg;
-
   // Check that the AXI-REALM configuration is valid
   dse_realm_check_cfg(tb_realm_cfg);
 
-  // Define AXI_RT_SINGLE_MANAGER when the generated AXI-REALM has a single manager, or undefine it when a multi-manager tile instance is used.
-  `define AXI_RT_SINGLE_MANAGER
-  
-  // Address the target len_limit register starting from the base register address. len_limit values 
-  // are stored in groups of 4 AXI4 managers within consecutive 32-bit registers. Each manager len_limit 
-  // is allocated 8-bit since the max len_limit value is 256 Beats. 
-`ifdef AXI_RT_SINGLE_MANAGER
-  // Single manager: one len_limit register, un-suffixed; mgr_id is always 0.
+  // Each AXI-REALM unit has a single manager (one traffic generator per NoC plane): its
+  // len_limit value is the 8-bit field [7:0] of the un-suffixed AXI_RT_LEN_LIMIT register
+  // (8 bits, since AXI4 bursts are up to 256 beats long).
   int_addr = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_OFFSET;
-`else
-  // Multi-manager: index off LEN_LIMIT_0 by 4 bytes per 32-bit register.
-  int_addr = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_0_OFFSET +
-             len_limit_reg_offset * len_limit_reg_byte_stride;
-`endif
 
-  // Read old len_limit register value to preserve other manager entries
+  // Read-modify-write the len_limit field, preserving the rest of the register
   dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
-
-  // Preserve past entries and clear the 8-bit field to overwrite using a mask.
-  // Then, overwrite the len_limit subfield with a new value and write back.
-  int_write_data = (int_read_data & ~(32'hFF << len_limit_reg_entry_bits)) | 
-                   ((tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id] & 32'hFF) << len_limit_reg_entry_bits);
+  int_write_data = (int_read_data & ~32'hFF) |
+                   (tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id] & 32'hFF);
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
