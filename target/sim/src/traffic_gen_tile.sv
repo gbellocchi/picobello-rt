@@ -406,9 +406,9 @@ module traffic_gen_tile
   // AXI4 wide traffic generators //
   //////////////////////////////////
 
-  //   +-----+     +-----------+     +-----+
-  //   | DMA |---->| AXI-REALM |---->| MUX |--> NI wide in
-  //   +-----+     +-----------+     +-----+
+  //   +-----+     +-----------+
+  //   | DMA |---->| AXI-REALM |--> NI wide in
+  //   +-----+     +-----------+
 
   // Output data traffic
   axi_wide_traffic_gen_req_t cluster_rt_wide_out_req;
@@ -461,20 +461,6 @@ module traffic_gen_tile
   // AXI-Realm wide output traffic 
   axi_wide_traffic_gen_req_t axi_realm_wide_out_req;
   axi_wide_traffic_gen_rsp_t axi_realm_wide_out_rsp;
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
-    .AXI_USER_WIDTH (picobello_pkg::AxiCfgWTrafficGen.UserWidth)
-  ) axi_realm_wide_out [0:0]();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (floo_picobello_noc_pkg::AxiCfgW.AddrWidth),
-    .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgW.DataWidth),
-    .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // Changed from OutIdWidth to InIdWidth
-    .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgW.UserWidth)
-  ) axi_realm_wide_out_mux ();
 
   // Register bus signals
   axi_rt_cfg_req_t regbus_realm_wide_regfile_req; 
@@ -529,43 +515,17 @@ module traffic_gen_tile
     .reg_id_i          (realm_wide_regfile_id)  
   );
 
-  // Bind AXI-Realm wide outputs
-  `AXI_ASSIGN_FROM_REQ(axi_realm_wide_out[0], axi_realm_wide_out_req)
-  `AXI_ASSIGN_TO_RESP(axi_realm_wide_out_rsp, axi_realm_wide_out[0])
-
-  // Mux AXI4 wide outputs to the FlooNoC NI
-  axi_mux_intf #(
-    .SLV_AXI_ID_WIDTH   (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth), // traffic generator ID width
-    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // matching NI ID width
-    .AXI_ADDR_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
-    .AXI_USER_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.UserWidth),
-    .NO_SLV_PORTS       (1),
-    .MAX_W_TRANS        (32),
-    .FALL_THROUGH       (1'b0),
-    .SPILL_AW           (1'b1),
-    .SPILL_W            (1'b1),
-    .SPILL_B            (1'b1),
-    .SPILL_AR           (1'b1),
-    .SPILL_R            (1'b1)
-  ) i_axi_wide_out_rt2ni_mux (
-    .clk_i,                
-    .rst_ni,
-    .test_i   (1'b0),
-    .slv      (axi_realm_wide_out),
-    .mst      (axi_realm_wide_out_mux)
-  );
-
-  `AXI_ASSIGN_TO_REQ(chimney_wide_in_req, axi_realm_wide_out_mux)
-  `AXI_ASSIGN_FROM_RESP(axi_realm_wide_out_mux, chimney_wide_in_rsp)
+  // Connect AXI-Realm wide outputs directly to the FlooNoC NI (same ID width, no cut)
+  `AXI_ASSIGN_REQ_STRUCT(chimney_wide_in_req, axi_realm_wide_out_req)
+  `AXI_ASSIGN_RESP_STRUCT(axi_realm_wide_out_rsp, chimney_wide_in_rsp)
 
   //////////////////////////////////
   // AXI4 narrow traffic generators //
   //////////////////////////////////
 
-  //   +-----+     +-----------+     +-----+
-  //   | DMA |---->| AXI-REALM |---->| MUX |--> NI narrow in
-  //   +-----+     +-----------+     +-----+
+  //   +-----+     +-----------+
+  //   | DMA |---->| AXI-REALM |--> NI narrow in
+  //   +-----+     +-----------+
 
   // Output data traffic
   axi_narrow_traffic_gen_req_t cluster_rt_narrow_out_req;
@@ -618,20 +578,6 @@ module traffic_gen_tile
   // AXI-Realm narrow output traffic 
   axi_narrow_traffic_gen_req_t axi_realm_narrow_out_req;
   axi_narrow_traffic_gen_rsp_t axi_realm_narrow_out_rsp;
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
-    .AXI_USER_WIDTH (picobello_pkg::AxiCfgNTrafficGen.UserWidth)
-  ) axi_realm_narrow_out [0:0]();
-
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.InIdWidth),
-    .AXI_USER_WIDTH (picobello_pkg::AxiCfgNTrafficGen.UserWidth)
-  ) axi_realm_narrow_out_mux ();
 
   // Register bus signals
   axi_rt_cfg_req_t regbus_realm_narrow_regfile_req; 
@@ -686,35 +632,9 @@ module traffic_gen_tile
     .reg_id_i          (realm_narrow_regfile_id)  
   );
 
-  // Bind AXI-Realm narrow outputs
-  `AXI_ASSIGN_FROM_REQ(axi_realm_narrow_out[0], axi_realm_narrow_out_req)
-  `AXI_ASSIGN_TO_RESP(axi_realm_narrow_out_rsp, axi_realm_narrow_out[0])
-
-  // Mux AXI4 narrow outputs to the FlooNoC NI
-  axi_mux_intf #(
-    .SLV_AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth), // traffic generator ID width
-    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.InIdWidth), // matching NI ID width
-    .AXI_ADDR_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
-    .AXI_DATA_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
-    .AXI_USER_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.UserWidth),
-    .NO_SLV_PORTS       (1),
-    .MAX_W_TRANS        (32),
-    .FALL_THROUGH       (1'b0),
-    .SPILL_AW           (1'b1),
-    .SPILL_W            (1'b1),
-    .SPILL_B            (1'b1),
-    .SPILL_AR           (1'b1),
-    .SPILL_R            (1'b1)
-  ) i_axi_narrow_out_rt2ni_mux (
-    .clk_i,                
-    .rst_ni,
-    .test_i   (1'b0),
-    .slv      (axi_realm_narrow_out),
-    .mst      (axi_realm_narrow_out_mux)
-  );
-
-  `AXI_ASSIGN_TO_REQ(chimney_narrow_in_req, axi_realm_narrow_out_mux)
-  `AXI_ASSIGN_FROM_RESP(axi_realm_narrow_out_mux, chimney_narrow_in_rsp)
+  // Connect AXI-Realm narrow outputs directly to the FlooNoC NI (same ID width, no cut)
+  `AXI_ASSIGN_REQ_STRUCT(chimney_narrow_in_req, axi_realm_narrow_out_req)
+  `AXI_ASSIGN_RESP_STRUCT(axi_realm_narrow_out_rsp, chimney_narrow_in_rsp)
 
   ///////////////////////
   // Local tile memory //
@@ -742,6 +662,7 @@ module traffic_gen_tile
   `ifndef VERILATOR
   initial begin
     assert (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
+    assert (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgN.InIdWidth) else $fatal(1, "Wrong ID width configuration for narrow traffic toward FlooNoC!");
   end
   `endif
   // pragma translate_on
