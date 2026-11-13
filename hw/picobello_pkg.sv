@@ -250,60 +250,6 @@ package picobello_pkg;
                       axi_host_id_t, axi_host_data_t, axi_host_strb_t,
                       axi_host_user_t)
 
-  //////////////////////////////
-  //  Traffic Generator Tile  //
-  //////////////////////////////
-
-  // One traffic generator (DMA test node) per NoC plane, as a Snitch cluster has one DMA on the
-  // wide plane and one narrow interface.
-
-  // Number of NoC planes (narrow, wide)
-  localparam int unsigned NumNoCPlanes = 2;
-
-  // Indices of NoC planes
-  localparam int unsigned IdxNoCPlaneWide = 0;
-  localparam int unsigned IdxNoCPlaneNarrow = 1;
-
-  // AXI4 narrow configuration for RT traffic (Traffic generator => MUX)
-  localparam axi_cfg_t AxiCfgNTrafficGen = '{
-    AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
-    DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
-    UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth,
-    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth
-  };
-
-  typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_traffic_gen_addr_t;
-  typedef logic [AxiCfgNTrafficGen.DataWidth-1:0] axi_narrow_traffic_gen_data_t;
-  typedef logic [AxiCfgNTrafficGen.DataWidth/8-1:0] axi_narrow_traffic_gen_strb_t;
-  typedef logic [AxiCfgNTrafficGen.OutIdWidth-1:0] axi_narrow_traffic_gen_id_t;
-  typedef logic [AxiCfgNTrafficGen.UserWidth-1:0] axi_narrow_traffic_gen_user_t;
-  `AXI_TYPEDEF_ALL_CT(axi_narrow_traffic_gen,
-                      axi_narrow_traffic_gen_req_t, axi_narrow_traffic_gen_rsp_t,
-                      axi_narrow_traffic_gen_addr_t, axi_narrow_traffic_gen_id_t,
-                      axi_narrow_traffic_gen_data_t, axi_narrow_traffic_gen_strb_t,
-                      axi_narrow_traffic_gen_user_t)
-
-  // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
-  localparam axi_cfg_t AxiCfgWTrafficGen = '{
-    AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
-    DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
-    UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth,
-    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth
-  };
-
-  typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_traffic_gen_addr_t;
-  typedef logic [AxiCfgWTrafficGen.DataWidth-1:0] axi_wide_traffic_gen_data_t;
-  typedef logic [AxiCfgWTrafficGen.DataWidth/8-1:0] axi_wide_traffic_gen_strb_t;
-  typedef logic [AxiCfgWTrafficGen.OutIdWidth-1:0] axi_wide_traffic_gen_id_t;
-  typedef logic [AxiCfgWTrafficGen.UserWidth-1:0] axi_wide_traffic_gen_user_t;
-  `AXI_TYPEDEF_ALL_CT(axi_wide_traffic_gen,
-                      axi_wide_traffic_gen_req_t, axi_wide_traffic_gen_rsp_t,
-                      axi_wide_traffic_gen_addr_t, axi_wide_traffic_gen_id_t,
-                      axi_wide_traffic_gen_data_t, axi_wide_traffic_gen_strb_t,
-                      axi_wide_traffic_gen_user_t)
-
   /////////////////
   //  AXI-Realm  //
   /////////////////
