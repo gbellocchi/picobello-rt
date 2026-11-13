@@ -11,8 +11,6 @@ module picobello_dse_top
   import picobello_pkg::*; 
   import floo_pkg::*; 
   import floo_picobello_noc_pkg::*; #(
-  // Number of traffic generators per tile and NoC plane
-  parameter int unsigned NumTrafficGen = 1,
   // AXI4 channel types
   parameter type axi_host_req_t = logic,
   parameter type axi_host_rsp_t = logic,
@@ -50,7 +48,6 @@ module picobello_dse_top
     localparam axi_wide_in_addr_t ClusterBaseAddr = Sam[ClusterSamIdx].start_addr;
 
     traffic_gen_tile #(
-      .NumTrafficGen    (NumTrafficGen),
       .BaseAddr         (ClusterBaseAddr),
       .Id               (ClusterId)  
     ) i_traffic_gen_tile (

@@ -12,9 +12,6 @@ module traffic_gen_tile
   import floo_picobello_noc_pkg::*;
   import picobello_pkg::*;
 #(
-  /// Number of traffic generators per NoC plane.
-  parameter int unsigned NumTrafficGen = 1,
-  parameter int unsigned NumTrafficGenMax = 32,
   parameter logic [floo_picobello_noc_pkg::AxiCfgW.AddrWidth-1:0] BaseAddr = 32'h0,
   parameter id_t Id = '0
 ) (
@@ -162,11 +159,11 @@ module traffic_gen_tile
   axi_narrow_out_addr_t traffic_gen_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
 
   // Address map
-  axi_pkg::xbar_rule_64_t [NumTrafficGenTotal-1:0] ni2tg_addr_map;
+  axi_pkg::xbar_rule_64_t [NumNoCPlanes-1:0] ni2tg_addr_map;
 
   localparam axi_pkg::xbar_cfg_t XbarCfgNi2Tg = '{
     NoSlvPorts:         1, // Thus no ID expansion for outputs
-    NoMstPorts:         NumTrafficGenTotal,
+    NoMstPorts:         NumNoCPlanes,
     MaxMstTrans:        1,
     MaxSlvTrans:        1,
     FallThrough:        1'b0,
@@ -177,7 +174,7 @@ module traffic_gen_tile
     UniqueIds:          0,
     AxiAddrWidth:       floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
     AxiDataWidth:       floo_picobello_noc_pkg::AxiCfgN.DataWidth,
-    NoAddrRules:        NumTrafficGenTotal
+    NoAddrRules:        NumNoCPlanes
   };
 
   // AXI4 traffic generator ports
@@ -186,10 +183,10 @@ module traffic_gen_tile
     .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgN.DataWidth),
     .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.OutIdWidth),
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
-  ) axi_traffic_gen [NumTrafficGenTotal-1:0]();
+  ) axi_traffic_gen [NumNoCPlanes-1:0]();
 
   // Address map
-  for (genvar i = 0; i < NumTrafficGenTotal; i++) begin : gen_rt_tile_ni2tg_addr_map
+  for (genvar i = 0; i < NumNoCPlanes; i++) begin : gen_rt_tile_ni2tg_addr_map
     assign ni2tg_addr_map[i] = '{
       idx:        i,
       start_addr: base_addr_i + i * traffic_gen_addr_space_dim,
@@ -260,10 +257,10 @@ module traffic_gen_tile
     .AXI_DATA_WIDTH (floo_picobello_noc_pkg::AxiCfgN.DataWidth),
     .AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.OutIdWidth),
     .AXI_USER_WIDTH (floo_picobello_noc_pkg::AxiCfgN.UserWidth)
-  ) axi_tg_regfile [NumTrafficGenTotal-1:0][NumTrafficGenRegFiles-1:0]();
+  ) axi_tg_regfile [NumNoCPlanes-1:0][NumTrafficGenRegFiles-1:0]();
 
   // Address map
-  axi_pkg::xbar_rule_64_t [NumTrafficGenTotal-1:0][NumRulesTg2RegFile-1:0] tg2regfile_addr_map;
+  axi_pkg::xbar_rule_64_t [NumNoCPlanes-1:0][NumRulesTg2RegFile-1:0] tg2regfile_addr_map;
 
   localparam axi_pkg::xbar_cfg_t XbarCfgTg2RegFile = '{
     NoSlvPorts:         1, // Thus no ID expansion for outputs
@@ -281,7 +278,7 @@ module traffic_gen_tile
     NoAddrRules:        NumRulesTg2RegFile
   };
 
-  for (genvar i = 0; i < NumTrafficGenTotal; i++) begin : gen_rt_tile_tg2regfile_xbar
+  for (genvar i = 0; i < NumNoCPlanes; i++) begin : gen_rt_tile_tg2regfile_xbar
 
     // AXI-Realm port configuration
     assign tg2regfile_addr_map[i][0] = '{
@@ -337,13 +334,13 @@ module traffic_gen_tile
   //   (AXI4, 64 bit)          |            |    (reg bus, 32 bit)
   //                           +------------+
 
-  floo_picobello_noc_pkg::axi_narrow_out_req_t [NumTrafficGenTotal-1:0][NumTrafficGenRegFiles-1:0] axi_tg_regfile_req;
-  floo_picobello_noc_pkg::axi_narrow_out_rsp_t [NumTrafficGenTotal-1:0][NumTrafficGenRegFiles-1:0] axi_tg_regfile_rsp;
+  floo_picobello_noc_pkg::axi_narrow_out_req_t [NumNoCPlanes-1:0][NumTrafficGenRegFiles-1:0] axi_tg_regfile_req;
+  floo_picobello_noc_pkg::axi_narrow_out_rsp_t [NumNoCPlanes-1:0][NumTrafficGenRegFiles-1:0] axi_tg_regfile_rsp;
 
-  axi_rt_cfg_req_t [NumTrafficGenTotal-1:0][NumTrafficGenRegFiles-1:0] regbus_tg_regfile_req;
-  axi_rt_cfg_rsp_t [NumTrafficGenTotal-1:0][NumTrafficGenRegFiles-1:0] regbus_tg_regfile_rsp;
+  axi_rt_cfg_req_t [NumNoCPlanes-1:0][NumTrafficGenRegFiles-1:0] regbus_tg_regfile_req;
+  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0][NumTrafficGenRegFiles-1:0] regbus_tg_regfile_rsp;
 
-  for (genvar i = 0; i < NumTrafficGenTotal; i++) begin : gen_tg_regfile_axi_to_reg_i
+  for (genvar i = 0; i < NumNoCPlanes; i++) begin : gen_tg_regfile_axi_to_reg_i
     for (genvar j = 0; j < NumTrafficGenRegFiles; j++) begin : gen_tg_regfile_axi_to_reg_j
 
       `AXI_ASSIGN_TO_REQ(axi_tg_regfile_req[i][j], axi_tg_regfile[i][j])
@@ -378,33 +375,31 @@ module traffic_gen_tile
   // Traffic generator register buses => Register buses per NoC plane //
   //////////////////////////////////////////////////////////////////////
 
-  axi_rt_cfg_req_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_read_regfile_req;
-  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_read_regfile_rsp;
+  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_read_regfile_req;
+  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_read_regfile_rsp;
 
-  axi_rt_cfg_req_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_write_regfile_req;
-  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_write_regfile_rsp;
+  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_write_regfile_req;
+  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_write_regfile_rsp;
 
-  axi_rt_cfg_req_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_comp_regfile_req;
-  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_comp_regfile_rsp;
+  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_comp_regfile_req;
+  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_comp_regfile_rsp;
 
-  axi_rt_cfg_req_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_realm_regfile_req;
-  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0][NumTrafficGen-1:0] regbus_realm_regfile_rsp;
+  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_realm_regfile_req;
+  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_realm_regfile_rsp;
 
-  for (genvar i = 0; i < NumNoCPlanes; i++) begin : gen_tg_regfile_noc_plane_i
-    for (genvar j = 0; j < NumTrafficGen; j++) begin : gen_tg_regfile_noc_plane_j
+  for (genvar i = 0; i < NumNoCPlanes; i++) begin : gen_tg_regfile_noc_plane
 
-      assign regbus_realm_regfile_req[i][j] = regbus_tg_regfile_req[i * NumTrafficGen + j][IdxPortAxiRealm];
-      assign regbus_tg_regfile_rsp[i * NumTrafficGen + j][IdxPortAxiRealm] = regbus_realm_regfile_rsp[i][j];
+    assign regbus_realm_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortAxiRealm];
+    assign regbus_tg_regfile_rsp[i][IdxPortAxiRealm] = regbus_realm_regfile_rsp[i];
 
-      assign regbus_read_regfile_req[i][j] = regbus_tg_regfile_req[i * NumTrafficGen + j][IdxPortTrafficGenRead];
-      assign regbus_tg_regfile_rsp[i * NumTrafficGen + j][IdxPortTrafficGenRead] = regbus_read_regfile_rsp[i][j];
+    assign regbus_read_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortTrafficGenRead];
+    assign regbus_tg_regfile_rsp[i][IdxPortTrafficGenRead] = regbus_read_regfile_rsp[i];
 
-      assign regbus_write_regfile_req[i][j] = regbus_tg_regfile_req[i * NumTrafficGen + j][IdxPortTrafficGenWrite];
-      assign regbus_tg_regfile_rsp[i * NumTrafficGen + j][IdxPortTrafficGenWrite] = regbus_write_regfile_rsp[i][j];
+    assign regbus_write_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortTrafficGenWrite];
+    assign regbus_tg_regfile_rsp[i][IdxPortTrafficGenWrite] = regbus_write_regfile_rsp[i];
 
-      assign regbus_comp_regfile_req[i][j] = regbus_tg_regfile_req[i * NumTrafficGen + j][IdxPortTrafficGenCompute];
-      assign regbus_tg_regfile_rsp[i * NumTrafficGen + j][IdxPortTrafficGenCompute] = regbus_comp_regfile_rsp[i][j];
-    end
+    assign regbus_comp_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortTrafficGenCompute];
+    assign regbus_tg_regfile_rsp[i][IdxPortTrafficGenCompute] = regbus_comp_regfile_rsp[i];
   end
 
   //////////////////////////////////
@@ -416,13 +411,12 @@ module traffic_gen_tile
   //   +-----+     +-----------+     +-----+
 
   // Output data traffic
-  axi_wide_traffic_gen_req_t [NumTrafficGen-1:0] cluster_rt_wide_out_req;
-  axi_wide_traffic_gen_rsp_t [NumTrafficGen-1:0] cluster_rt_wide_out_rsp;
+  axi_wide_traffic_gen_req_t cluster_rt_wide_out_req;
+  axi_wide_traffic_gen_rsp_t cluster_rt_wide_out_rsp;
 
   localparam int unsigned FlooDmaWideIndex = int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
 
   floo_dma_test_wrapper #(
-    .NumTrafficGen      ( NumTrafficGen                    ),
     .NumPending         ( 32                               ),
     .Id                 ( Id                               ),
     .FlooDmaIndex       ( FlooDmaWideIndex                 ),
@@ -451,10 +445,8 @@ module traffic_gen_tile
   );
 
   // Bind wide cluster outputs to AXI-Realm wide inputs
-  for (genvar i = 0; i < NumTrafficGen; i++) begin : gen_axi_rt_wide_bindings
-    `AXI_ASSIGN_REQ_STRUCT(axi_realm_wide_in_req[i], cluster_rt_wide_out_req[i])
-    `AXI_ASSIGN_RESP_STRUCT(cluster_rt_wide_out_rsp[i], axi_realm_wide_in_rsp[i])
-  end
+  `AXI_ASSIGN_REQ_STRUCT(axi_realm_wide_in_req, cluster_rt_wide_out_req)
+  `AXI_ASSIGN_RESP_STRUCT(cluster_rt_wide_out_rsp, axi_realm_wide_in_rsp)
 
   ////////////////////////////
   // AXI-Realm wide traffic //
@@ -463,19 +455,19 @@ module traffic_gen_tile
   // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
 
   // AXI-Realm wide input traffic
-  axi_wide_traffic_gen_req_t [NumTrafficGen-1:0] axi_realm_wide_in_req;
-  axi_wide_traffic_gen_rsp_t [NumTrafficGen-1:0] axi_realm_wide_in_rsp;
+  axi_wide_traffic_gen_req_t axi_realm_wide_in_req;
+  axi_wide_traffic_gen_rsp_t axi_realm_wide_in_rsp;
 
   // AXI-Realm wide output traffic 
-  axi_wide_traffic_gen_req_t [NumTrafficGen-1:0] axi_realm_wide_out_req;
-  axi_wide_traffic_gen_rsp_t [NumTrafficGen-1:0] axi_realm_wide_out_rsp;
+  axi_wide_traffic_gen_req_t axi_realm_wide_out_req;
+  axi_wide_traffic_gen_rsp_t axi_realm_wide_out_rsp;
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
     .AXI_DATA_WIDTH (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
     .AXI_ID_WIDTH   (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
     .AXI_USER_WIDTH (picobello_pkg::AxiCfgWTrafficGen.UserWidth)
-  ) axi_realm_wide_out [NumTrafficGen-1:0]();
+  ) axi_realm_wide_out [0:0]();
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (floo_picobello_noc_pkg::AxiCfgW.AddrWidth),
@@ -491,21 +483,16 @@ module traffic_gen_tile
   // AXI RT IDs
   slv_id_t realm_wide_regfile_id;
 
-  // The AXI-Realm register file of a NoC plane is shared by the DMAs of that plane.
-  // With more than one DMA, their register buses need an arbiter here.
-  if (NumTrafficGen == 1) begin : gen_regfile_realm_wide
-    assign regbus_realm_wide_regfile_req = regbus_realm_regfile_req[IdxNoCPlaneWide][0];
-    assign regbus_realm_regfile_rsp[IdxNoCPlaneWide][0] = regbus_realm_wide_regfile_rsp;
-  end else begin : gen_regfile_realm_wide_unsupported
-    $fatal(1, "AXI-Realm register file access is only supported with one DMA per NoC plane.");
-  end
+  // AXI-Realm register file of the wide NoC plane
+  assign regbus_realm_wide_regfile_req = regbus_realm_regfile_req[IdxNoCPlaneWide];
+  assign regbus_realm_regfile_rsp[IdxNoCPlaneWide] = regbus_realm_wide_regfile_rsp;
 
   // Calculate Realm register file ID
   assign realm_wide_regfile_id = id_i.y + MeshDim.y * id_i.x;
 
   // AXI RT unit wide
   axi_rt_unit_top #(
-    .NumManagers       (NumTrafficGen),
+    .NumManagers       (NumManagers),
     .AddrWidth         (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
     .DataWidth         (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
     .IdWidth           (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth),
@@ -543,20 +530,18 @@ module traffic_gen_tile
   );
 
   // Bind AXI-Realm wide outputs
-  for (genvar i = 0; i < NumTrafficGen; i++) begin : gen_rt_tile_axirt2ni_wide_assign
-    `AXI_ASSIGN_FROM_REQ(axi_realm_wide_out[i], axi_realm_wide_out_req[i])
-    `AXI_ASSIGN_TO_RESP(axi_realm_wide_out_rsp[i], axi_realm_wide_out[i])
-  end
+  `AXI_ASSIGN_FROM_REQ(axi_realm_wide_out[0], axi_realm_wide_out_req)
+  `AXI_ASSIGN_TO_RESP(axi_realm_wide_out_rsp, axi_realm_wide_out[0])
 
   // Mux AXI4 wide outputs to the FlooNoC NI
   axi_mux_intf #(
     .SLV_AXI_ID_WIDTH   (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth), // traffic generator ID width
-    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // expanded, based on NumTrafficGen, and matching NI ID width
+    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgW.InIdWidth), // matching NI ID width
     .AXI_ADDR_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.AddrWidth),
     .AXI_DATA_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.DataWidth),
     .AXI_USER_WIDTH     (picobello_pkg::AxiCfgWTrafficGen.UserWidth),
-    .NO_SLV_PORTS       (NumTrafficGen),
-    .MAX_W_TRANS        (NumTrafficGenMax),
+    .NO_SLV_PORTS       (1),
+    .MAX_W_TRANS        (32),
     .FALL_THROUGH       (1'b0),
     .SPILL_AW           (1'b1),
     .SPILL_W            (1'b1),
@@ -583,13 +568,12 @@ module traffic_gen_tile
   //   +-----+     +-----------+     +-----+
 
   // Output data traffic
-  axi_narrow_traffic_gen_req_t [NumTrafficGen-1:0] cluster_rt_narrow_out_req;
-  axi_narrow_traffic_gen_rsp_t [NumTrafficGen-1:0] cluster_rt_narrow_out_rsp;
+  axi_narrow_traffic_gen_req_t cluster_rt_narrow_out_req;
+  axi_narrow_traffic_gen_rsp_t cluster_rt_narrow_out_rsp;
 
   localparam int unsigned FlooDmaNarrowIndex = 100 + int'(Id.x) * picobello_pkg::MeshDim.y + int'(Id.y);
 
   floo_dma_test_wrapper #(
-    .NumTrafficGen      ( NumTrafficGen                    ),
     .NumPending         ( 32                               ),
     .Id                 ( Id                               ),
     .FlooDmaIndex       ( FlooDmaNarrowIndex               ),
@@ -618,10 +602,8 @@ module traffic_gen_tile
   );
 
   // Bind narrow cluster outputs to AXI-Realm narrow inputs
-  for (genvar i = 0; i < NumTrafficGen; i++) begin : gen_axi_rt_narrow_bindings
-    `AXI_ASSIGN_REQ_STRUCT(axi_realm_narrow_in_req[i], cluster_rt_narrow_out_req[i])
-    `AXI_ASSIGN_RESP_STRUCT(cluster_rt_narrow_out_rsp[i], axi_realm_narrow_in_rsp[i])
-  end
+  `AXI_ASSIGN_REQ_STRUCT(axi_realm_narrow_in_req, cluster_rt_narrow_out_req)
+  `AXI_ASSIGN_RESP_STRUCT(cluster_rt_narrow_out_rsp, axi_realm_narrow_in_rsp)
 
   //////////////////////////////
   // AXI-Realm narrow traffic //
@@ -630,19 +612,19 @@ module traffic_gen_tile
   // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
 
   // AXI-Realm narrow input traffic
-  axi_narrow_traffic_gen_req_t [NumTrafficGen-1:0] axi_realm_narrow_in_req;
-  axi_narrow_traffic_gen_rsp_t [NumTrafficGen-1:0] axi_realm_narrow_in_rsp;
+  axi_narrow_traffic_gen_req_t axi_realm_narrow_in_req;
+  axi_narrow_traffic_gen_rsp_t axi_realm_narrow_in_rsp;
 
   // AXI-Realm narrow output traffic 
-  axi_narrow_traffic_gen_req_t [NumTrafficGen-1:0] axi_realm_narrow_out_req;
-  axi_narrow_traffic_gen_rsp_t [NumTrafficGen-1:0] axi_realm_narrow_out_rsp;
+  axi_narrow_traffic_gen_req_t axi_realm_narrow_out_req;
+  axi_narrow_traffic_gen_rsp_t axi_realm_narrow_out_rsp;
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
     .AXI_DATA_WIDTH (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
     .AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
     .AXI_USER_WIDTH (picobello_pkg::AxiCfgNTrafficGen.UserWidth)
-  ) axi_realm_narrow_out [NumTrafficGen-1:0]();
+  ) axi_realm_narrow_out [0:0]();
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
@@ -658,21 +640,16 @@ module traffic_gen_tile
   // AXI RT IDs
   slv_id_t realm_narrow_regfile_id;
 
-  // The AXI-Realm register file of a NoC plane is shared by the DMAs of that plane.
-  // With more than one DMA, their register buses need an arbiter here.
-  if (NumTrafficGen == 1) begin : gen_regfile_realm_narrow
-    assign regbus_realm_narrow_regfile_req = regbus_realm_regfile_req[IdxNoCPlaneNarrow][0];
-    assign regbus_realm_regfile_rsp[IdxNoCPlaneNarrow][0] = regbus_realm_narrow_regfile_rsp;
-  end else begin : gen_regfile_realm_narrow_unsupported
-    $fatal(1, "AXI-Realm register file access is only supported with one DMA per NoC plane.");
-  end
+  // AXI-Realm register file of the narrow NoC plane
+  assign regbus_realm_narrow_regfile_req = regbus_realm_regfile_req[IdxNoCPlaneNarrow];
+  assign regbus_realm_regfile_rsp[IdxNoCPlaneNarrow] = regbus_realm_narrow_regfile_rsp;
 
   // Calculate Realm register file ID
   assign realm_narrow_regfile_id = id_i.y + MeshDim.y * id_i.x;
 
   // AXI RT unit narrow
   axi_rt_unit_top #(
-    .NumManagers       (NumTrafficGen),
+    .NumManagers       (NumManagers),
     .AddrWidth         (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
     .DataWidth         (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
     .IdWidth           (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth),
@@ -710,20 +687,18 @@ module traffic_gen_tile
   );
 
   // Bind AXI-Realm narrow outputs
-  for (genvar i = 0; i < NumTrafficGen; i++) begin : gen_rt_tile_axirt2ni_narrow_assign
-    `AXI_ASSIGN_FROM_REQ(axi_realm_narrow_out[i], axi_realm_narrow_out_req[i])
-    `AXI_ASSIGN_TO_RESP(axi_realm_narrow_out_rsp[i], axi_realm_narrow_out[i])
-  end
+  `AXI_ASSIGN_FROM_REQ(axi_realm_narrow_out[0], axi_realm_narrow_out_req)
+  `AXI_ASSIGN_TO_RESP(axi_realm_narrow_out_rsp, axi_realm_narrow_out[0])
 
   // Mux AXI4 narrow outputs to the FlooNoC NI
   axi_mux_intf #(
     .SLV_AXI_ID_WIDTH   (picobello_pkg::AxiCfgNTrafficGen.OutIdWidth), // traffic generator ID width
-    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.InIdWidth), // expanded, based on NumTrafficGen, and matching NI ID width
+    .MST_AXI_ID_WIDTH   (floo_picobello_noc_pkg::AxiCfgN.InIdWidth), // matching NI ID width
     .AXI_ADDR_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.AddrWidth),
     .AXI_DATA_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.DataWidth),
     .AXI_USER_WIDTH     (picobello_pkg::AxiCfgNTrafficGen.UserWidth),
-    .NO_SLV_PORTS       (NumTrafficGen),
-    .MAX_W_TRANS        (NumTrafficGenMax),
+    .NO_SLV_PORTS       (1),
+    .MAX_W_TRANS        (32),
     .FALL_THROUGH       (1'b0),
     .SPILL_AW           (1'b1),
     .SPILL_W            (1'b1),
@@ -766,8 +741,7 @@ module traffic_gen_tile
   // pragma translate_off
   `ifndef VERILATOR
   initial begin
-    assert (NumTrafficGen < NumTrafficGenMax) else $fatal(1, "Wrong number of traffic generators");
-    assert (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth + $clog2(NumTrafficGen) == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
+    assert (picobello_pkg::AxiCfgWTrafficGen.OutIdWidth == floo_picobello_noc_pkg::AxiCfgW.InIdWidth) else $fatal(1, "Wrong ID width configuration for wide traffic toward FlooNoC!");
   end
   `endif
   // pragma translate_on

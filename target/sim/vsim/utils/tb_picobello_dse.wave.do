@@ -17,8 +17,6 @@ set n_cl_x 3
 set n_cl_y 3
 set n_cl [expr {$n_cl_x * $n_cl_y}]
 
-set n_traffic_gen 1
-set n_traffic_gen_total [expr {$n_traffic_gen * $n_noc_planes}]
 set n_traffic_gen_regfiles 4
 
 set n_mem_x 1
@@ -93,72 +91,66 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
     add wave -noupdate -group "cluster_tile[$cl]" -group {ni} -group {narrow_meta_buffer} ${tile_path}/i_chimney/gen_narrow_mgr_port/i_narrow_meta_buffer/*
 
     # Wide DMA test node
-    for {set tg 0} {$tg < $n_traffic_gen} {incr tg} {
-        set tile_tg_path "${tile_path}/i_wide_axi_traffic_gen_wrapper/gen_traffic_generators\[$tg\]"
+    set tile_tg_path "${tile_path}/i_wide_axi_traffic_gen_wrapper"
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {top} ${tile_tg_path}/i_dma_node/*
-                    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {axi_rw_join} ${tile_tg_path}/i_dma_node/i_axi_rw_join/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {xbar} ${tile_tg_path}/i_dma_node/i_xbar/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {top} ${tile_tg_path}/i_dma_node/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {axi_rw_join} ${tile_tg_path}/i_dma_node/i_axi_rw_join/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {xbar} ${tile_tg_path}/i_dma_node/i_xbar/*
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {idma_backend} ${tile_tg_path}/i_dma_node/i_idma_backend/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {top} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_read} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_read/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_write} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_write/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {idma_dataflow_element} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_dataflow_element/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_backend} ${tile_tg_path}/i_dma_node/i_idma_backend/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_transport_layer} -group {top} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_read} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_read/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_write} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_write/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_transport_layer} -group {idma_dataflow_element} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_dataflow_element/*
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {reg_top_read} ${tile_tg_path}/i_reg_top_read/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {reg_top_write} ${tile_tg_path}/i_reg_top_write/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide[$tg]" -group {reg_top_compute} ${tile_tg_path}/i_reg_top_compute/*
-    }
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {reg_top_read} ${tile_tg_path}/i_reg_top_read/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {reg_top_write} ${tile_tg_path}/i_reg_top_write/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {reg_top_compute} ${tile_tg_path}/i_reg_top_compute/*
 
     # Narrow DMA test node
-    for {set tg 0} {$tg < $n_traffic_gen} {incr tg} {
-        set tile_tg_path "${tile_path}/i_narrow_axi_traffic_gen_wrapper/gen_traffic_generators\[$tg\]"
+    set tile_tg_path "${tile_path}/i_narrow_axi_traffic_gen_wrapper"
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {top} ${tile_tg_path}/i_dma_node/*
-                    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {axi_rw_join} ${tile_tg_path}/i_dma_node/i_axi_rw_join/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {xbar} ${tile_tg_path}/i_dma_node/i_xbar/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {top} ${tile_tg_path}/i_dma_node/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {axi_rw_join} ${tile_tg_path}/i_dma_node/i_axi_rw_join/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {xbar} ${tile_tg_path}/i_dma_node/i_xbar/*
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {idma_backend} ${tile_tg_path}/i_dma_node/i_idma_backend/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {top} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_read} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_read/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_write} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_write/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {floo_dma} -group {idma_transport_layer} -group {idma_dataflow_element} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_dataflow_element/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_backend} ${tile_tg_path}/i_dma_node/i_idma_backend/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_transport_layer} -group {top} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_read} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_read/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_write} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_write/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_transport_layer} -group {idma_dataflow_element} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_dataflow_element/*
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {reg_top_read} ${tile_tg_path}/i_reg_top_read/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {reg_top_write} ${tile_tg_path}/i_reg_top_write/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow[$tg]" -group {reg_top_compute} ${tile_tg_path}/i_reg_top_compute/*
-    }
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {reg_top_read} ${tile_tg_path}/i_reg_top_read/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {reg_top_write} ${tile_tg_path}/i_reg_top_write/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {reg_top_compute} ${tile_tg_path}/i_reg_top_compute/*
 
     # Traffic generator tile - XBAR - NI --> traffic generators
     add wave -noupdate -group "cluster_tile[$cl]" -group {xbar_ni2tg} ${tile_path}/i_rt_tile_ni2tg_xbar/*
 
     # Traffic generator tile - XBAR - traffic generator --> register files
-    for {set tg 0} {$tg < $n_traffic_gen_total} {incr tg} {
-        add wave -noupdate -group "cluster_tile[$cl]" -group "xbar_tg2regfile[$tg]" ${tile_path}/gen_rt_tile_tg2regfile_xbar\[$tg\]/i_rt_tile_tg2regfile_xbar/*
+    for {set plane 0} {$plane < $n_noc_planes} {incr plane} {
+        add wave -noupdate -group "cluster_tile[$cl]" -group "xbar_tg2regfile[$plane]" ${tile_path}/gen_rt_tile_tg2regfile_xbar\[$plane\]/i_rt_tile_tg2regfile_xbar/*
     }
 
     # Traffic generator tile - AXI to register bus, one per register file (realm, read, write, compute)
-    for {set tg 0} {$tg < $n_traffic_gen_total} {incr tg} {
+    for {set plane 0} {$plane < $n_noc_planes} {incr plane} {
         for {set rf 0} {$rf < $n_traffic_gen_regfiles} {incr rf} {
-            add wave -noupdate -group "cluster_tile[$cl]" -group "axi_to_reg_tg_regfile[$tg][$rf]" ${tile_path}/gen_tg_regfile_axi_to_reg_i\[$tg\]/gen_tg_regfile_axi_to_reg_j\[$rf\]/i_axi_to_reg_tg_regfile/*
+            add wave -noupdate -group "cluster_tile[$cl]" -group "axi_to_reg_tg_regfile[$plane][$rf]" ${tile_path}/gen_tg_regfile_axi_to_reg_i\[$plane\]/gen_tg_regfile_axi_to_reg_j\[$rf\]/i_axi_to_reg_tg_regfile/*
         }
     }
 
     # AXI-Realm wide
     add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group {axi_rt_unit_wide_top} ${tile_path}/i_axi_rt_unit_wide/*
 
-    for {set tg 0} {$tg < $n_traffic_gen} {incr tg} {
-        set tile_tg_path "${tile_path}/i_axi_rt_unit_wide/gen_rt_units\[$tg\]/i_axi_rt_unit"
+    set tile_tg_path "${tile_path}/i_axi_rt_unit_wide/gen_rt_units\[0\]/i_axi_rt_unit"
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "axi_rt_unit_wide[$tg]" ${tile_tg_path}/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "axi_rt_unit_wide" ${tile_tg_path}/*
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "addr_decode_dync_aw[$tg]" ${tile_tg_path}/i_addr_decode_dync_aw/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "addr_decode_dync_ar[$tg]" ${tile_tg_path}/i_addr_decode_dync_ar/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "addr_decode_dync_aw" ${tile_tg_path}/i_addr_decode_dync_aw/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "addr_decode_dync_ar" ${tile_tg_path}/i_addr_decode_dync_ar/*
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "axi_rt_unit_counter_read[$tg]" ${tile_tg_path}/gen_regions[0]/i_ax_rt_unit_counter_read/*
-        add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "axi_rt_unit_counter_write[$tg]" ${tile_tg_path}/gen_regions[0]/i_ax_rt_unit_counter_write/*
-    }
+    add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "axi_rt_unit_counter_read" ${tile_tg_path}/gen_regions[0]/i_ax_rt_unit_counter_read/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group "axi_rt_unit_counter_write" ${tile_tg_path}/gen_regions[0]/i_ax_rt_unit_counter_write/*
 
     add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group {axi_rt_regbus_guard} ${tile_path}/i_axi_rt_unit_wide/i_axi_rt_regbus_guard/*
     add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_wide} -group {axi_rt_regbus_guard} -group {reg_demux} ${tile_path}/i_axi_rt_unit_wide/i_axi_rt_regbus_guard/i_reg_demux/*
@@ -167,11 +159,9 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
     # AXI-Realm narrow
     add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_narrow} -group {axi_rt_unit_narrow_top} ${tile_path}/i_axi_rt_unit_narrow/*
 
-    for {set tg 0} {$tg < $n_traffic_gen} {incr tg} {
-        set tile_tg_path "${tile_path}/i_axi_rt_unit_narrow/gen_rt_units\[$tg\]/i_axi_rt_unit"
+    set tile_tg_path "${tile_path}/i_axi_rt_unit_narrow/gen_rt_units\[0\]/i_axi_rt_unit"
 
-        add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_narrow} -group "axi_rt_unit_narrow[$tg]" ${tile_tg_path}/*
-    }
+    add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_narrow} -group "axi_rt_unit_narrow" ${tile_tg_path}/*
 
     add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_narrow} -group {axi_rt_regbus_guard} ${tile_path}/i_axi_rt_unit_narrow/i_axi_rt_regbus_guard/*
     add wave -noupdate -group "cluster_tile[$cl]" -group {axi_rt_narrow} -group {axi_rt_regbus_guard} -group {reg_demux} ${tile_path}/i_axi_rt_unit_narrow/i_axi_rt_regbus_guard/i_reg_demux/*

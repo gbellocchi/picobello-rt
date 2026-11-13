@@ -23,13 +23,13 @@ extern "C" {
     // hello world
     char dpi_dse_hello_world();
     // dma read control
-    void dpi_dse_dma_read_start(int cl_id, int traffic_gen_id, int noc_plane_id, int value);
-    int dpi_dse_dma_read_get_idle(int cl_id, int traffic_gen_id, int noc_plane_id);
+    void dpi_dse_dma_read_start(int cl_id, int noc_plane_id, int value);
+    int dpi_dse_dma_read_get_idle(int cl_id, int noc_plane_id);
     // dma write control
-    void dpi_dse_dma_write_start(int cl_id, int traffic_gen_id, int noc_plane_id, int value);
-    int dpi_dse_dma_write_get_idle(int cl_id, int traffic_gen_id, int noc_plane_id);
+    void dpi_dse_dma_write_start(int cl_id, int noc_plane_id, int value);
+    int dpi_dse_dma_write_get_idle(int cl_id, int noc_plane_id);
     // axi-realm control
-    void dpi_dse_realm_set_fragm_len(int cl_id, int traffic_gen_id, int value);
+    void dpi_dse_realm_set_fragm_len(int cl_id, int value);
 }
 
 #endif // DPI_DSE_H_
