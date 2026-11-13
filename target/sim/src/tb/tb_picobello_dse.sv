@@ -41,8 +41,7 @@ module tb_picobello_dse
   input sim_picobello_pkg::rt_cfg_t tb_rt_cfg
 );
   `include "tb_picobello_sim_macros.svh"
-  `include "tb_picobello_fpga_tasks.svh"
-  `include "tb_picobello_rt_tasks.svh"
+  `include "tb_picobello_dse_tasks.svh"
 
   ////////////////
   // TB signals //
@@ -837,13 +836,13 @@ module tb_picobello_dse
 				                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
 
 				                // Configure AXI-Realm guard registers
-				                picobello_rt_guard_init(tb_rt_cfg);
+				                dse_realm_guard_init(tb_rt_cfg);
 
 				                // Configure AXI-Realm subordinate address regions
-				                picobello_rt_set_addr_reg(tb_rt_cfg);
+				                dse_realm_set_addr_reg(tb_rt_cfg);
 
 				                // Configure AXI-Realm period-budget QoS service
-				                picobello_rt_set_period_budget(tb_rt_cfg);
+				                dse_realm_set_period_budget(tb_rt_cfg);
 
 				                // Set and configure AXI-Realm manager registers
 				                rt_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
@@ -867,15 +866,15 @@ module tb_picobello_dse
 				                  // Activate AXI-Realm
 
 				                  // Set burst length
-				                  picobello_rt_set_burst_length(tb_rt_cfg);
+				                  dse_realm_set_burst_length(tb_rt_cfg);
 
                           // Enable IMTU
                           if(CriticalBudgetPeriodActive) begin
-				                    picobello_rt_enable_imtu(tb_rt_cfg);
+				                    dse_realm_enable_imtu(tb_rt_cfg);
                           end
 
 				                  // Enable real-time mode
-				                  picobello_rt_enable_rt(tb_rt_cfg);
+				                  dse_realm_enable_rt(tb_rt_cfg);
 				                end
 				              end
 
@@ -919,13 +918,13 @@ module tb_picobello_dse
 				                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
 
 				                // Configure AXI-Realm guard registers
-				                picobello_rt_guard_init(tb_rt_cfg);
+				                dse_realm_guard_init(tb_rt_cfg);
 
 				                // Configure AXI-Realm subordinate address regions
-				                picobello_rt_set_addr_reg(tb_rt_cfg);
+				                dse_realm_set_addr_reg(tb_rt_cfg);
 
 				                // Configure AXI-Realm period-budget QoS service
-				                picobello_rt_set_period_budget(tb_rt_cfg);
+				                dse_realm_set_period_budget(tb_rt_cfg);
 
 				                // Set and configure AXI-Realm manager registers
 				                rt_interf_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
@@ -947,15 +946,15 @@ module tb_picobello_dse
 				                  tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
 
 				                  // Set burst length
-				                  picobello_rt_set_burst_length(tb_rt_cfg);
+				                  dse_realm_set_burst_length(tb_rt_cfg);
 
                           // Enable IMTU
                           if(InterfBudgetPeriodActive) begin
-				                    picobello_rt_enable_imtu(tb_rt_cfg);
+				                    dse_realm_enable_imtu(tb_rt_cfg);
                           end
 
 				                  // Enable real-time mode
-				                  picobello_rt_enable_rt(tb_rt_cfg);
+				                  dse_realm_enable_rt(tb_rt_cfg);
 				                end
 				              end
 
@@ -981,20 +980,20 @@ module tb_picobello_dse
 				              `wait_n_clk(1);
 
 				              // Initialize timer
-				              picobello_reset_timer(tb_timer_cfg);
+				              dse_reset_timer(tb_timer_cfg);
 
 				              // Initialize BW monitor for critical tasks
 				              bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
-				                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Initialize BW monitor for interferers
 				              bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
-				                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                picobello_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Reset old timer counter value
@@ -1003,7 +1002,7 @@ module tb_picobello_dse
 				              `wait_n_clk(1);
 
 				              // Start timer
-				              picobello_start_timer(tb_timer_cfg);
+				              dse_start_timer(tb_timer_cfg);
 
 				              `wait_n_clk(1);
 
@@ -1024,12 +1023,12 @@ module tb_picobello_dse
 				                automatic int cl_id = CriticalFirst ? IdTestCl[i] : IdTestClInterf[i];
 
 				                if(DmaReadEnable) begin
-				                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 
 				                dma_in_start_first_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
@@ -1053,12 +1052,12 @@ module tb_picobello_dse
 				                automatic int cl_id = CriticalFirst ? IdTestClInterf[i] : IdTestCl[i];
 
 				                if(DmaReadEnable) begin
-				                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 
 				                dma_in_start_second_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
@@ -1154,12 +1153,12 @@ module tb_picobello_dse
 				              critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 				                if(DmaReadEnable) begin
-				                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 				              end
 
@@ -1190,17 +1189,17 @@ module tb_picobello_dse
 				              interferer_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
 				                if(DmaReadEnable) begin
-				                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  picobello_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
 				                end
 				              end
 
 				              // Stop timer
-				              picobello_stop_timer(tb_timer_cfg);
+				              dse_stop_timer(tb_timer_cfg);
 
 				              `wait_n_clk(10);
 

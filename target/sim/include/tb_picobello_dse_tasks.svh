@@ -8,12 +8,144 @@ import picobello_pkg::*;
 import sim_picobello_pkg::*;
 import axi_rt_reg_pkg::* ;
 
+///////////
+// Timer //
+///////////
+
+// Reset and initialize timer
+task automatic dse_reset_timer(
+  ref timer_cfg_t timer_cfg
+);
+  // Reset the timer first
+  @(posedge `CLK_SIGNAL);
+  timer_cfg.write_counter_i = 1'b0;
+  timer_cfg.counter_value_i = 32'b0;
+  timer_cfg.reset_count_i = 1'b1;
+  timer_cfg.enable_count_i = 1'b0;
+  timer_cfg.compare_value_i = 32'b0;
+  
+  // Release reset and initialize to known state
+  @(posedge `CLK_SIGNAL);
+  timer_cfg.write_counter_i = 1'b0;
+  timer_cfg.counter_value_i = 32'b0;
+  timer_cfg.reset_count_i = 1'b0;
+  timer_cfg.enable_count_i = 1'b0;
+  timer_cfg.compare_value_i = 32'b0;
+endtask
+
+// Start timer
+task automatic dse_start_timer(
+  ref timer_cfg_t timer_cfg
+);
+  @(posedge `CLK_SIGNAL);
+  timer_cfg.write_counter_i = 1'b0;
+  timer_cfg.counter_value_i = 32'b0;
+  timer_cfg.reset_count_i = 1'b0;
+  timer_cfg.enable_count_i = 1'b1;
+  timer_cfg.compare_value_i = 32'b0;
+endtask
+
+// Stop timer
+task automatic dse_stop_timer(
+  ref timer_cfg_t timer_cfg
+);
+  @(posedge `CLK_SIGNAL);
+  timer_cfg.write_counter_i = 1'b0;
+  timer_cfg.counter_value_i = 32'b0;
+  timer_cfg.reset_count_i = 1'b0;
+  timer_cfg.enable_count_i = 1'b0;
+  timer_cfg.compare_value_i = 32'b0;
+endtask
+
+/////////////////////
+// AXI4 Read/Write //
+/////////////////////
+
+// Write to Picobello through the AXI4 host interface
+task automatic dse_write(
+  input axi_host_addr_t write_addr, 
+  input axi_host_data_t write_data, 
+  input axi_host_strb_t write_strb,
+  output axi_host_rsp_t write_rsp
+);
+  // 32-bit access on the 64-bit host port: the address selects the byte lanes
+  int unsigned lane;
+  lane = (write_addr[2]) ? 4 : 0;
+  // AW channel
+  tb_axi_host_req_i.aw.id = '0;
+  tb_axi_host_req_i.aw.addr = write_addr;
+  tb_axi_host_req_i.aw.len = '0;
+  tb_axi_host_req_i.aw.size = 3'd2;
+  tb_axi_host_req_i.aw.burst = axi_pkg::BURST_INCR;
+  tb_axi_host_req_i.aw.lock = 1'b0;
+  tb_axi_host_req_i.aw.cache = '0;
+  tb_axi_host_req_i.aw.prot = '0;
+  tb_axi_host_req_i.aw.qos = '0;
+  tb_axi_host_req_i.aw.region = '0;
+  tb_axi_host_req_i.aw.atop = axi_pkg::ATOP_NONE;
+  tb_axi_host_req_i.aw.user = '0;
+  tb_axi_host_req_i.aw_valid = 1'b1;
+  `wait_for(tb_axi_host_rsp_o.aw_ready)
+  tb_axi_host_req_i.aw_valid = 1'b0;
+  // W channel
+  tb_axi_host_req_i.w.data = write_data << (8 * lane);
+  tb_axi_host_req_i.w.strb = write_strb << lane;
+  tb_axi_host_req_i.w.last = 1'b1;
+  tb_axi_host_req_i.w.user = '0;
+  tb_axi_host_req_i.w_valid = 1'b1;
+  `wait_for(tb_axi_host_rsp_o.w_ready)
+  tb_axi_host_req_i.w_valid = 1'b0;
+  // B channel
+  tb_axi_host_req_i.b_ready = 1'b1;
+  `wait_for(tb_axi_host_rsp_o.b_valid)
+  write_rsp = tb_axi_host_rsp_o.b.resp;
+  tb_axi_host_req_i.b_ready = 1'b0;
+`ifdef VERBOSE
+  $display ("[%0tns] dse_write - Write 0x%h to address location 0x%h", $time, write_data, write_addr);
+`endif
+endtask
+
+// Read from Picobello through the AXI4 host interface
+task automatic dse_read(
+  input axi_host_addr_t read_addr, 
+  output axi_host_data_t read_data, 
+  output axi_host_rsp_t read_rsp
+);
+  // 32-bit access on the 64-bit host port: the address selects the byte lanes
+  int unsigned lane;
+  lane = (read_addr[2]) ? 4 : 0;
+  // AR channel
+  tb_axi_host_req_i.ar.id = '0;
+  tb_axi_host_req_i.ar.addr = read_addr;
+  tb_axi_host_req_i.ar.len = '0;
+  tb_axi_host_req_i.ar.size = 3'd2;
+  tb_axi_host_req_i.ar.burst = axi_pkg::BURST_INCR;
+  tb_axi_host_req_i.ar.lock = 1'b0;
+  tb_axi_host_req_i.ar.cache = '0;
+  tb_axi_host_req_i.ar.prot = '0;
+  tb_axi_host_req_i.ar.qos = '0;
+  tb_axi_host_req_i.ar.region = '0;
+  tb_axi_host_req_i.ar.user = '0;
+  tb_axi_host_req_i.ar_valid = 1'b1;
+  `wait_for(tb_axi_host_rsp_o.ar_ready)
+  tb_axi_host_req_i.ar_valid = 1'b0;
+  // R channel
+  tb_axi_host_req_i.r_ready = 1'b1;
+  `wait_for(tb_axi_host_rsp_o.r_valid)
+  read_data = (tb_axi_host_rsp_o.r.data >> (8 * lane)) & 32'hFFFF_FFFF;
+  read_rsp = tb_axi_host_rsp_o.r.resp;
+  tb_axi_host_req_i.r_ready = 1'b0;
+`ifdef VERBOSE
+  $display ("[%0tns] dse_read - Read 0x%h from address location 0x%h", $time, read_data, read_addr);
+`endif
+endtask
+
 /////////////////////
 // BW monitor (1D) //
 /////////////////////
 
 // Reset and initialize BW monitor
-task automatic picobello_reset_bw_monitor_1d(
+task automatic dse_reset_bw_monitor_1d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -26,7 +158,7 @@ task automatic picobello_reset_bw_monitor_1d(
 endtask
 
 // Start BW monitor on read channels
-task automatic picobello_start_bw_r_monitor_1d(
+task automatic dse_start_bw_r_monitor_1d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -35,7 +167,7 @@ task automatic picobello_start_bw_r_monitor_1d(
 endtask
 
 // Start BW monitor on write channels
-task automatic picobello_start_bw_w_monitor_1d(
+task automatic dse_start_bw_w_monitor_1d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -44,7 +176,7 @@ task automatic picobello_start_bw_w_monitor_1d(
 endtask
 
 // Stop BW monitor on read channels
-task automatic picobello_stop_bw_r_monitor_1d(
+task automatic dse_stop_bw_r_monitor_1d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -53,7 +185,7 @@ task automatic picobello_stop_bw_r_monitor_1d(
 endtask
 
 // Stop BW monitor on write channels
-task automatic picobello_stop_bw_w_monitor_1d(
+task automatic dse_stop_bw_w_monitor_1d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -66,7 +198,7 @@ endtask
 /////////////////////
 
 // Reset and initialize BW monitor
-task automatic picobello_reset_bw_monitor_2d(
+task automatic dse_reset_bw_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
   input int cl_idx,
   input int traffic_gen_idx
@@ -80,7 +212,7 @@ task automatic picobello_reset_bw_monitor_2d(
 endtask
 
 // Start BW monitor on read channels
-task automatic picobello_start_bw_r_monitor_2d(
+task automatic dse_start_bw_r_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
   input int cl_idx,
   input int traffic_gen_idx
@@ -90,7 +222,7 @@ task automatic picobello_start_bw_r_monitor_2d(
 endtask
 
 // Start BW monitor on write channels
-task automatic picobello_start_bw_w_monitor_2d(
+task automatic dse_start_bw_w_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
   input int cl_idx,
   input int traffic_gen_idx
@@ -100,7 +232,7 @@ task automatic picobello_start_bw_w_monitor_2d(
 endtask
 
 // Stop BW monitor on read channels
-task automatic picobello_stop_bw_r_monitor_2d(
+task automatic dse_stop_bw_r_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
   input int cl_idx,
   input int traffic_gen_idx
@@ -110,7 +242,7 @@ task automatic picobello_stop_bw_r_monitor_2d(
 endtask
 
 // Stop BW monitor on write channels
-task automatic picobello_stop_bw_w_monitor_2d(
+task automatic dse_stop_bw_w_monitor_2d(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
   input int cl_idx,
   input int traffic_gen_idx
@@ -119,12 +251,12 @@ task automatic picobello_stop_bw_w_monitor_2d(
   bw_monitor[cl_idx][traffic_gen_idx].rst_w_cnt = 1'b0;
 endtask
 
-///////////////
-// AXI-Realm //
-///////////////
+//////////////////////////////////////
+// Injection regulation (AXI-REALM) //
+//////////////////////////////////////
 
 // Check input RT configuration correctness
-task automatic picobello_rt_check_cfg(
+task automatic dse_realm_check_cfg(
   input rt_cfg_t tb_rt_cfg
 );
   // Check that the address region ID is consistent
@@ -137,7 +269,7 @@ task automatic picobello_rt_check_cfg(
 endtask
 
 // Configure AXI-Realm guard register
-task automatic picobello_rt_guard_init(
+task automatic dse_realm_guard_init(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -149,7 +281,7 @@ task automatic picobello_rt_guard_init(
   int excl_w, excl_r, valid;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // Configure guard register and claim ID
   // Bit 0 = 1: enables write exclusion (excl_w)
@@ -161,21 +293,21 @@ task automatic picobello_rt_guard_init(
   excl_r = 0;
   valid  = 1;
   int_write_data = (excl_w << 0) | (excl_r << 1) | (valid << 2);
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY); 
 
   // Read guard register
   // Note: ID is not readable at present
   int_addr       = tb_rt_cfg.rt_reg_addr_base + rt_guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
-  picobello_read(int_addr, int_read_data, int_rsp);
+  dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY); 
 `ifdef VERBOSE
-  $display ("[%0tns] picobello_rt_guard_init - Guard ID: 0x%h", $time, int_read_data);
+  $display ("[%0tns] dse_realm_guard_init - Guard ID: 0x%h", $time, int_read_data);
 `endif
 endtask
 
 // Configure AXI-Realm address region
-task automatic picobello_rt_set_addr_reg(
+task automatic dse_realm_set_addr_reg(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -183,35 +315,35 @@ task automatic picobello_rt_set_addr_reg(
   axi_host_rsp_t int_rsp;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // Start address sub low (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_LOW_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_LOW_1_OFFSET - AXI_RT_START_ADDR_SUB_LOW_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Start address sub high (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // End address sub low (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_LOW_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_LOW_1_OFFSET - AXI_RT_END_ADDR_SUB_LOW_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // End address sub high (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Configure AXI-Realm period-budget QoS service
-task automatic picobello_rt_set_period_budget(
+task automatic dse_realm_set_period_budget(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -219,35 +351,35 @@ task automatic picobello_rt_set_period_budget(
   axi_host_rsp_t int_rsp;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // Read budget (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_BUDGET_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_READ_BUDGET_1_OFFSET - AXI_RT_READ_BUDGET_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Write budget (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_BUDGET_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_BUDGET_1_OFFSET - AXI_RT_WRITE_BUDGET_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Read period (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_PERIOD_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_READ_PERIOD_1_OFFSET - AXI_RT_READ_PERIOD_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Write period (32b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_PERIOD_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_PERIOD_1_OFFSET - AXI_RT_WRITE_PERIOD_0_OFFSET);
   int_write_data = tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Configure AXI-Realm burst splitter
-task automatic picobello_rt_set_burst_length(
+task automatic dse_realm_set_burst_length(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -298,7 +430,7 @@ task automatic picobello_rt_set_burst_length(
   int len_limit_reg_offset = tb_rt_cfg.mgr_id/num_bytes_len_limit_reg;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // Define AXI_RT_SINGLE_MANAGER when the generated AXI-RT has a single manager, or undefine it when a multi-manager tile instance is used.
   `define AXI_RT_SINGLE_MANAGER
@@ -316,19 +448,19 @@ task automatic picobello_rt_set_burst_length(
 `endif
 
   // Read old len_limit register value to preserve other manager entries
-  picobello_read(int_addr, int_read_data, int_rsp);
+  dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Preserve past entries and clear the 8-bit field to overwrite using a mask.
   // Then, overwrite the len_limit subfield with a new value and write back.
   int_write_data = (int_read_data & ~(32'hFF << len_limit_reg_entry_bits)) | 
                    ((tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id] & 32'hFF) << len_limit_reg_entry_bits);
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Enable IMTU mode
-task automatic picobello_rt_enable_imtu(
+task automatic dse_realm_enable_imtu(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -336,20 +468,20 @@ task automatic picobello_rt_enable_imtu(
   axi_host_rsp_t int_rsp;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // IMTU enable (1b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ENABLE_OFFSET;
-  picobello_read(int_addr, int_read_data, int_rsp);
+  dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
   int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) |
                    ((tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Abort IMTU mode
-task automatic picobello_rt_abort_imtu(
+task automatic dse_realm_abort_imtu(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -357,21 +489,21 @@ task automatic picobello_rt_abort_imtu(
   axi_host_rsp_t int_rsp;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // IMTU abort (1b)
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ABORT_OFFSET;
-  picobello_read(int_addr, int_read_data, int_rsp);
+  dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
   int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) |
                    ((tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
 endtask
 
 // Enable RT mode
-task automatic picobello_rt_enable_rt(
+task automatic dse_realm_enable_rt(
   input rt_cfg_t tb_rt_cfg
 );
   axi_host_addr_t int_addr;
@@ -379,19 +511,19 @@ task automatic picobello_rt_enable_rt(
   axi_host_rsp_t int_rsp;
 
   // Check input RT configuration validity
-  picobello_rt_check_cfg(tb_rt_cfg);
+  dse_realm_check_cfg(tb_rt_cfg);
 
   // RT enable base address
   int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_RT_ENABLE_OFFSET;
 
   // Read old enable register value to preserve other manager entries
-  picobello_read(int_addr, int_read_data, int_rsp);
+  dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Preserve past entries and clear the 8-bit field to overwrite using a mask.
   // Then, overwrite the enable subfield with a new value and write back.
   int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) | 
                    ((tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
-  picobello_write(int_addr, int_write_data, 8'hf, int_rsp);
+  dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask

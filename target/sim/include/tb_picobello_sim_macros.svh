@@ -8,6 +8,9 @@
 `define PICOBELLO_SIM_SVH_
 
 // Delay
-`define wait_n_clk(n) repeat(n) @(posedge clk) // Delay
+`define wait_n_clk(n) repeat(n) @(posedge `CLK_SIGNAL) // Delay
+
+// Wait until a signal is high, sampled on the clock edge
+`define wait_for(signal) do @(posedge `CLK_SIGNAL); while (!signal);
 
 `endif // PICOBELLO_SIM_SVH_
