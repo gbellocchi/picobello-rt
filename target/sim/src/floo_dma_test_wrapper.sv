@@ -12,8 +12,8 @@ module floo_dma_test_wrapper
     import floo_picobello_noc_pkg::*;
     import picobello_pkg::*;
 #(
-    // Traffic generator
-    parameter int unsigned NumDmas = 1,
+    // Number of traffic generators (DMA test nodes)
+    parameter int unsigned NumTrafficGen = 1,
     parameter int unsigned NumPending = 32'd0,
     parameter id_t Id = '0,
     parameter int unsigned FlooDmaIndex = '0,
@@ -33,37 +33,37 @@ module floo_dma_test_wrapper
     input logic clk_i,
     input logic rst_ni,
     // AXI4 wide payload
-    input axi_in_req_t [NumDmas-1:0] axi_in_req_i,
-    output axi_in_rsp_t [NumDmas-1:0] axi_in_rsp_o,
-    output axi_out_req_t [NumDmas-1:0] axi_out_req_o,
-    input axi_out_rsp_t [NumDmas-1:0] axi_out_rsp_i,
+    input axi_in_req_t [NumTrafficGen-1:0] axi_in_req_i,
+    output axi_in_rsp_t [NumTrafficGen-1:0] axi_in_rsp_o,
+    output axi_out_req_t [NumTrafficGen-1:0] axi_out_req_o,
+    input axi_out_rsp_t [NumTrafficGen-1:0] axi_out_rsp_i,
     // Register bus control
-    input reg_req_t [NumDmas-1:0] regbus_read_regfile_req,
-    output reg_rsp_t [NumDmas-1:0] regbus_read_regfile_rsp,
-    input reg_req_t [NumDmas-1:0] regbus_write_regfile_req,
-    output reg_rsp_t [NumDmas-1:0] regbus_write_regfile_rsp,
-    input reg_req_t [NumDmas-1:0] regbus_compute_regfile_req,
-    output reg_rsp_t [NumDmas-1:0] regbus_compute_regfile_rsp
+    input reg_req_t [NumTrafficGen-1:0] regbus_read_regfile_req,
+    output reg_rsp_t [NumTrafficGen-1:0] regbus_read_regfile_rsp,
+    input reg_req_t [NumTrafficGen-1:0] regbus_write_regfile_req,
+    output reg_rsp_t [NumTrafficGen-1:0] regbus_write_regfile_rsp,
+    input reg_req_t [NumTrafficGen-1:0] regbus_compute_regfile_req,
+    output reg_rsp_t [NumTrafficGen-1:0] regbus_compute_regfile_rsp
 );
     // Register interfaces
-    floo_dma_reg_pkg::floo_dma_reg2hw_t [NumDmas-1:0] reg2hw_read;
-    floo_dma_reg_pkg::floo_dma_hw2reg_t [NumDmas-1:0] hw2reg_read;
-    floo_dma_reg_pkg::floo_dma_reg2hw_t [NumDmas-1:0] reg2hw_write;
-    floo_dma_reg_pkg::floo_dma_hw2reg_t [NumDmas-1:0] hw2reg_write;
-    floo_dma_reg_pkg::floo_dma_reg2hw_t [NumDmas-1:0] reg2hw_compute;
-    floo_dma_reg_pkg::floo_dma_hw2reg_t [NumDmas-1:0] hw2reg_compute;
+    floo_dma_reg_pkg::floo_dma_reg2hw_t [NumTrafficGen-1:0] reg2hw_read;
+    floo_dma_reg_pkg::floo_dma_hw2reg_t [NumTrafficGen-1:0] hw2reg_read;
+    floo_dma_reg_pkg::floo_dma_reg2hw_t [NumTrafficGen-1:0] reg2hw_write;
+    floo_dma_reg_pkg::floo_dma_hw2reg_t [NumTrafficGen-1:0] hw2reg_write;
+    floo_dma_reg_pkg::floo_dma_reg2hw_t [NumTrafficGen-1:0] reg2hw_compute;
+    floo_dma_reg_pkg::floo_dma_hw2reg_t [NumTrafficGen-1:0] hw2reg_compute;
 
     // DMA controls
-    logic [NumDmas-1:0] traffic_gen_generic_start;
-    logic [NumDmas-1:0] traffic_gen_generic_done;
-    logic [NumDmas-1:0] read_start;
-    logic [NumDmas-1:0] read_done;
-    logic [NumDmas-1:0] write_start;
-    logic [NumDmas-1:0] write_done;
-    logic [NumDmas-1:0] compute_start;
-    logic [NumDmas-1:0] compute_done;
+    logic [NumTrafficGen-1:0] traffic_gen_generic_start;
+    logic [NumTrafficGen-1:0] traffic_gen_generic_done;
+    logic [NumTrafficGen-1:0] read_start;
+    logic [NumTrafficGen-1:0] read_done;
+    logic [NumTrafficGen-1:0] write_start;
+    logic [NumTrafficGen-1:0] write_done;
+    logic [NumTrafficGen-1:0] compute_start;
+    logic [NumTrafficGen-1:0] compute_done;
 
-    for (genvar i = 0; i < NumDmas; i++) begin : gen_traffic_generators
+    for (genvar i = 0; i < NumTrafficGen; i++) begin : gen_traffic_generators
 
         // Traffic generator
         floo_dma_test_node #(

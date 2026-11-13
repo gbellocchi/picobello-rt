@@ -29,7 +29,7 @@ static vpiHandle vpi_get_handle(char vsim_path[512])
 //////////////////////
 
 // VPI implementation to start DMA read
-extern "C" void dma_read_start(int cl_id, int core_id, int noc_plane_id, int value) 
+extern "C" void dma_read_start(int cl_id, int traffic_gen_id, int noc_plane_id, int value) 
 {
   // Simulator signal path
   char vsim_path_base[512];
@@ -42,7 +42,7 @@ extern "C" void dma_read_start(int cl_id, int core_id, int noc_plane_id, int val
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
     "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
-    cl_id, tg_instance, core_id
+    cl_id, tg_instance, traffic_gen_id
   );
 
   // Construct target signal path to start
@@ -66,7 +66,7 @@ extern "C" void dma_read_start(int cl_id, int core_id, int noc_plane_id, int val
 }
 
 // VPI implementation to read DMA idle status
-extern "C" int dma_read_get_idle(int cl_id, int core_id, int noc_plane_id) 
+extern "C" int dma_read_get_idle(int cl_id, int traffic_gen_id, int noc_plane_id) 
 {
   // Simulator signal path
   char vsim_path_base[512];
@@ -79,7 +79,7 @@ extern "C" int dma_read_get_idle(int cl_id, int core_id, int noc_plane_id)
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
     "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
-    cl_id, tg_instance, core_id
+    cl_id, tg_instance, traffic_gen_id
   );
 
   // Construct signal path to the signal
@@ -106,7 +106,7 @@ extern "C" int dma_read_get_idle(int cl_id, int core_id, int noc_plane_id)
 ///////////////////////
 
 // VPI implementation to start DMA write
-extern "C" void dma_write_start(int cl_id, int core_id, int noc_plane_id, int value) 
+extern "C" void dma_write_start(int cl_id, int traffic_gen_id, int noc_plane_id, int value) 
 {
   // Simulator signal path
   char vsim_path_base[512];
@@ -119,7 +119,7 @@ extern "C" void dma_write_start(int cl_id, int core_id, int noc_plane_id, int va
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
     "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
-    cl_id, tg_instance, core_id
+    cl_id, tg_instance, traffic_gen_id
   );
 
   // Construct target signal path to start
@@ -143,7 +143,7 @@ extern "C" void dma_write_start(int cl_id, int core_id, int noc_plane_id, int va
 }
 
 // VPI implementation to read DMA idle status
-extern "C" int dma_write_get_idle(int cl_id, int core_id, int noc_plane_id) 
+extern "C" int dma_write_get_idle(int cl_id, int traffic_gen_id, int noc_plane_id) 
 {
   // Simulator signal path
   char vsim_path_base[512];
@@ -156,7 +156,7 @@ extern "C" int dma_write_get_idle(int cl_id, int core_id, int noc_plane_id)
   snprintf(
     vsim_path_base, sizeof(vsim_path_base), 
     "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.%s.gen_traffic_generators[%d]", 
-    cl_id, tg_instance, core_id
+    cl_id, tg_instance, traffic_gen_id
   );
 
   // Construct signal path to the signal
@@ -183,7 +183,7 @@ extern "C" int dma_write_get_idle(int cl_id, int core_id, int noc_plane_id)
 ///////////////////////
 
 // VPI implementation to set DMA AXI AWID
-extern "C" void axi_rt_set_fragm_len(int cl_id, int core_id, int value) 
+extern "C" void axi_rt_set_fragm_len(int cl_id, int traffic_gen_id, int value) 
 {
   // Simulator signal path
   char vsim_path[512];
@@ -192,7 +192,7 @@ extern "C" void axi_rt_set_fragm_len(int cl_id, int core_id, int value)
   snprintf(
     vsim_path, sizeof(vsim_path), 
     "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.i_axi_rt_unit_wide.i_axi_rt_reg_top.reg2hw.len_limit[%d].q", 
-    cl_id, core_id
+    cl_id, traffic_gen_id
   );
 
   // "tb_picobello_dse.dut.gen_clusters[%d].i_traffic_gen_tile.i_axi_rt_unit_wide.gen_rt_units[%d].i_axi_rt_unit.fragm_len_new"

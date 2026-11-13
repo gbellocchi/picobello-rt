@@ -254,8 +254,8 @@ package picobello_pkg;
   //  Traffic Generator Tile  //
   //////////////////////////////
 
-  // Number of cores per tile
-  localparam int unsigned NumCores = 1; // cores per cluster tile
+  // Number of traffic generators (DMA test nodes) per tile and NoC plane
+  localparam int unsigned NumTrafficGen = 1;
 
   // Number of NoC planes (narrow, wide)
   localparam int unsigned NumNoCPlanes = 2;
@@ -264,51 +264,55 @@ package picobello_pkg;
   localparam int unsigned IdxNoCPlaneWide = 0;
   localparam int unsigned IdxNoCPlaneNarrow = 1;
 
-  // Total number of DMA cores per tile
-  localparam int unsigned NumCoresTotal = NumCores * NumNoCPlanes;
+  // Total number of traffic generators per tile (all NoC planes)
+  localparam int unsigned NumTrafficGenTotal = NumTrafficGen * NumNoCPlanes;
 
   // AXI4 narrow configuration for RT traffic (Traffic generator => MUX)
   localparam axi_cfg_t AxiCfgNTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgN.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgN.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgN.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores),
-    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumCores)
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumTrafficGen),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgN.InIdWidth - $clog2(NumTrafficGen)
   };
 
-  typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_tg_addr_t;
-  typedef logic [AxiCfgNTrafficGen.DataWidth-1:0] axi_narrow_tg_data_t;
-  typedef logic [AxiCfgNTrafficGen.DataWidth/8-1:0] axi_narrow_tg_strb_t;
-  typedef logic [AxiCfgNTrafficGen.OutIdWidth-1:0] axi_narrow_tg_id_t;
-  typedef logic [AxiCfgNTrafficGen.UserWidth-1:0] axi_narrow_tg_user_t;
-  `AXI_TYPEDEF_ALL_CT(axi_narrow_tg, axi_narrow_tg_req_t, axi_narrow_tg_rsp_t,
-                      axi_narrow_tg_addr_t, axi_narrow_tg_id_t, axi_narrow_tg_data_t,
-                      axi_narrow_tg_strb_t, axi_narrow_tg_user_t)
+  typedef logic [AxiCfgNTrafficGen.AddrWidth-1:0] axi_narrow_traffic_gen_addr_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth-1:0] axi_narrow_traffic_gen_data_t;
+  typedef logic [AxiCfgNTrafficGen.DataWidth/8-1:0] axi_narrow_traffic_gen_strb_t;
+  typedef logic [AxiCfgNTrafficGen.OutIdWidth-1:0] axi_narrow_traffic_gen_id_t;
+  typedef logic [AxiCfgNTrafficGen.UserWidth-1:0] axi_narrow_traffic_gen_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_traffic_gen,
+                      axi_narrow_traffic_gen_req_t, axi_narrow_traffic_gen_rsp_t,
+                      axi_narrow_traffic_gen_addr_t, axi_narrow_traffic_gen_id_t,
+                      axi_narrow_traffic_gen_data_t, axi_narrow_traffic_gen_strb_t,
+                      axi_narrow_traffic_gen_user_t)
 
   // AXI4 wide configuration for RT traffic (Traffic generator => AXI-Realm => MUX)
   localparam axi_cfg_t AxiCfgWTrafficGen = '{
     AddrWidth: floo_picobello_noc_pkg::AxiCfgW.AddrWidth,
     DataWidth: floo_picobello_noc_pkg::AxiCfgW.DataWidth,
     UserWidth: floo_picobello_noc_pkg::AxiCfgW.UserWidth,
-    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores),
-    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumCores)
+    InIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumTrafficGen),
+    OutIdWidth: floo_picobello_noc_pkg::AxiCfgW.InIdWidth - $clog2(NumTrafficGen)
   };
 
-  typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_tg_addr_t;
-  typedef logic [AxiCfgWTrafficGen.DataWidth-1:0] axi_wide_tg_data_t;
-  typedef logic [AxiCfgWTrafficGen.DataWidth/8-1:0] axi_wide_tg_strb_t;
-  typedef logic [AxiCfgWTrafficGen.OutIdWidth-1:0] axi_wide_tg_id_t;
-  typedef logic [AxiCfgWTrafficGen.UserWidth-1:0] axi_wide_tg_user_t;
-  `AXI_TYPEDEF_ALL_CT(axi_wide_tg, axi_wide_tg_req_t, axi_wide_tg_rsp_t,
-                      axi_wide_tg_addr_t, axi_wide_tg_id_t, axi_wide_tg_data_t,
-                      axi_wide_tg_strb_t, axi_wide_tg_user_t)
+  typedef logic [AxiCfgWTrafficGen.AddrWidth-1:0] axi_wide_traffic_gen_addr_t;
+  typedef logic [AxiCfgWTrafficGen.DataWidth-1:0] axi_wide_traffic_gen_data_t;
+  typedef logic [AxiCfgWTrafficGen.DataWidth/8-1:0] axi_wide_traffic_gen_strb_t;
+  typedef logic [AxiCfgWTrafficGen.OutIdWidth-1:0] axi_wide_traffic_gen_id_t;
+  typedef logic [AxiCfgWTrafficGen.UserWidth-1:0] axi_wide_traffic_gen_user_t;
+  `AXI_TYPEDEF_ALL_CT(axi_wide_traffic_gen,
+                      axi_wide_traffic_gen_req_t, axi_wide_traffic_gen_rsp_t,
+                      axi_wide_traffic_gen_addr_t, axi_wide_traffic_gen_id_t,
+                      axi_wide_traffic_gen_data_t, axi_wide_traffic_gen_strb_t,
+                      axi_wide_traffic_gen_user_t)
 
   /////////////////
   //  AXI-Realm  //
   /////////////////
 
   // Number of masters
-  localparam int unsigned NumManagers     = NumCores;
+  localparam int unsigned NumManagers     = NumTrafficGen;
   // Number of slaves
   localparam int unsigned NumSubordinates = 32'd1;
   // Number of regions per master

@@ -17,11 +17,11 @@ extern "C" {
     // hello world
     char hello_world();
     // dma read control
-    void dma_read_start(int cl_id, int core_id, int noc_plane_id, int value);
-    int dma_read_get_idle(int cl_id, int core_id, int noc_plane_id);
+    void dma_read_start(int cl_id, int traffic_gen_id, int noc_plane_id, int value);
+    int dma_read_get_idle(int cl_id, int traffic_gen_id, int noc_plane_id);
     // dma write control
-    void dma_write_start(int cl_id, int core_id, int noc_plane_id, int value);
-    int dma_write_get_idle(int cl_id, int core_id, int noc_plane_id);
+    void dma_write_start(int cl_id, int traffic_gen_id, int noc_plane_id, int value);
+    int dma_write_get_idle(int cl_id, int traffic_gen_id, int noc_plane_id);
     // axi-realm control
-    void axi_rt_set_fragm_len(int cl_id, int core_id, int value);
+    void axi_rt_set_fragm_len(int cl_id, int traffic_gen_id, int value);
 }
