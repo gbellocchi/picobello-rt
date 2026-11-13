@@ -453,8 +453,6 @@ module traffic_gen_tile
   // AXI-Realm wide traffic //
   ////////////////////////////
 
-  // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
-
   // AXI-Realm wide input traffic
   axi_wide_traffic_gen_req_t axi_realm_wide_in_req;
   axi_wide_traffic_gen_rsp_t axi_realm_wide_in_rsp;
@@ -569,8 +567,6 @@ module traffic_gen_tile
   //////////////////////////////
   // AXI-Realm narrow traffic //
   //////////////////////////////
-
-  // `REG_BUS_TYPEDEF_ALL(cfg, addr_t, reg_data_t, reg_strb_t)
 
   // AXI-Realm narrow input traffic
   axi_narrow_traffic_gen_req_t axi_realm_narrow_in_req;
