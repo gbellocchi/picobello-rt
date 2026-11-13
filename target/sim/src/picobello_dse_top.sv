@@ -68,9 +68,9 @@ module picobello_dse_top
     );
   end
 
-  ////////////////////
-  // FPGA host tile //
-  ////////////////////
+  ////////////////////////
+  // External host tile //
+  ////////////////////////
 
   localparam id_t CheshireId = Sam[CheshireInternalSamIdx].idx;
 

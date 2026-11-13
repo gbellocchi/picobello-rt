@@ -57,7 +57,7 @@ add wave -noupdate -group {tb_timer} {/tb_picobello_dse/timer_i/*}
 # DUT top
 add wave -noupdate -group {top} {/tb_picobello_dse/dut/*}
 
-# FPGA host tile
+# External host tile
 add wave -noupdate -group {host_tile} {/tb_picobello_dse/dut/i_ext_narrow_tile/*}
 add wave -noupdate -group {host_tile} -group {router} {/tb_picobello_dse/dut/i_ext_narrow_tile/i_router/*}
 add wave -noupdate -group {host_tile} -group {ni} {/tb_picobello_dse/dut/i_ext_narrow_tile/i_chimney/*}
@@ -213,9 +213,6 @@ for {set mem 0} {$mem < $n_mem} {incr mem} {
 
     add wave -noupdate -group "mem_tile[$cl]" -group {ni} -group {wide_wormhole_arbiter} ${tile_path}/i_chimney/i_wide_wormhole_arbiter/*
     add wave -noupdate -group "mem_tile[$cl]" -group {ni} -group {wide_meta_buffer} ${tile_path}/i_chimney/gen_wide_mgr_port/i_wide_meta_buffer/*
-
-    # # FPGA L2 memory interface
-    # add wave -noupdate -group "mem_tile[$cl]" -group {l2_slv_cut} ${tile_path}/i_l2_slv_cut/*
 
     # Picobello L2 memory interface
     # add wave -noupdate -group "mem_tile[$cl]" -group {floo_nw_join} -group {top} ${tile_path}/i_floo_nw_join/*

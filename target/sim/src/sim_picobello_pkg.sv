@@ -30,7 +30,7 @@ package sim_picobello_pkg;
     int unsigned router_fifo_out_depth; // Router output FIFO depth
     int unsigned ni_max_oustanding_txns; // Network interface max outstanding transactions
     int unsigned ni_max_unique_ids; // Network interface max unique IDs
-    // Realm tile parameters
+    // Traffic-generator tile parameters
     real read_traffic_dim; // Read traffic dimension
     real read_compute_dim; // Read compute dimension
     real write_traffic_dim; // Write traffic dimension
@@ -44,7 +44,7 @@ package sim_picobello_pkg;
   // Timer //
   ///////////
 
-  // Timer counter (used during RTL simulation of the FPGA top)
+  // Timer counter (testbench timer of the DSE simulation)
   typedef struct packed {
     logic        write_counter_i; // [Input] Counter overwrite control
     logic [31:0] counter_value_i; // [Input] Counter value to set
