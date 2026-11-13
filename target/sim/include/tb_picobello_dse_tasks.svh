@@ -255,39 +255,39 @@ endtask
 // Injection regulation (AXI-REALM) //
 //////////////////////////////////////
 
-// Check input RT configuration correctness
+// Check that the AXI-REALM configuration is valid
 task automatic dse_realm_check_cfg(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   // Check that the address region ID is consistent
-  assert (tb_rt_cfg.sbr_addr_reg_id < NumReg) else
-    $fatal(1, "Address region ID %0d is not supported! A maximum of %0d regions are supported.", tb_rt_cfg.sbr_addr_reg_id, axi_rt_reg_pkg::NumReg);
+  assert (tb_realm_cfg.sbr_addr_reg_id < NumReg) else
+    $fatal(1, "Address region ID %0d is not supported! A maximum of %0d regions are supported.", tb_realm_cfg.sbr_addr_reg_id, axi_rt_reg_pkg::NumReg);
 
   // Check that the manager ID is consistent
-  assert (tb_rt_cfg.mgr_id < NumMrg) else
-    $fatal(1, "RT manager ID %0d is not supported! A maximum of %0d RT managers are supported.", tb_rt_cfg.mgr_id, axi_rt_reg_pkg::NumMrg);
+  assert (tb_realm_cfg.mgr_id < NumMrg) else
+    $fatal(1, "RT manager ID %0d is not supported! A maximum of %0d RT managers are supported.", tb_realm_cfg.mgr_id, axi_rt_reg_pkg::NumMrg);
 endtask
 
 // Configure AXI-Realm guard register
 task automatic dse_realm_guard_init(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
   // Special guard register
-  localparam axi_host_addr_t rt_guard_addr_auth = ('1 << 2);
+  localparam axi_host_addr_t guard_addr_auth = ('1 << 2);
   int excl_w, excl_r, valid;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
   // Configure guard register and claim ID
   // Bit 0 = 1: enables write exclusion (excl_w)
   // Bit 1 = 1: enables read exclusion (excl_r)
   // Bit 2 = 1: sets the valid bit (valid)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + rt_guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
+  int_addr       = tb_realm_cfg.regfile_addr_base + guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
 
   excl_w = 0;
   excl_r = 0;
@@ -298,7 +298,7 @@ task automatic dse_realm_guard_init(
 
   // Read guard register
   // Note: ID is not readable at present
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + rt_guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
+  int_addr       = tb_realm_cfg.regfile_addr_base + guard_addr_auth[(axi_rt_reg_pkg::BlockAw+1)-1:0];
   dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY); 
 `ifdef VERBOSE
@@ -308,79 +308,79 @@ endtask
 
 // Configure AXI-Realm address region
 task automatic dse_realm_set_addr_reg(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
   // Start address sub low (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_LOW_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_LOW_1_OFFSET - AXI_RT_START_ADDR_SUB_LOW_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_LOW_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_LOW_1_OFFSET - AXI_RT_START_ADDR_SUB_LOW_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.start_addr_sub_low[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Start address sub high (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_START_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_START_ADDR_SUB_HIGH_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.start_addr_sub_high[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // End address sub low (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_LOW_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_LOW_1_OFFSET - AXI_RT_END_ADDR_SUB_LOW_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_LOW_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_LOW_1_OFFSET - AXI_RT_END_ADDR_SUB_LOW_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.end_addr_sub_low[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // End address sub high (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_END_ADDR_SUB_HIGH_1_OFFSET - AXI_RT_END_ADDR_SUB_HIGH_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.end_addr_sub_high[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Configure AXI-Realm period-budget QoS service
 task automatic dse_realm_set_period_budget(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
   // Read budget (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_BUDGET_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_READ_BUDGET_1_OFFSET - AXI_RT_READ_BUDGET_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_READ_BUDGET_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_READ_BUDGET_1_OFFSET - AXI_RT_READ_BUDGET_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.read_budget[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Write budget (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_BUDGET_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_BUDGET_1_OFFSET - AXI_RT_WRITE_BUDGET_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_BUDGET_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_BUDGET_1_OFFSET - AXI_RT_WRITE_BUDGET_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.write_budget[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Read period (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_READ_PERIOD_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_READ_PERIOD_1_OFFSET - AXI_RT_READ_PERIOD_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_READ_PERIOD_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_READ_PERIOD_1_OFFSET - AXI_RT_READ_PERIOD_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.read_period[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
   // Write period (32b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_PERIOD_0_OFFSET + (tb_rt_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_rt_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_PERIOD_1_OFFSET - AXI_RT_WRITE_PERIOD_0_OFFSET);
-  int_write_data = tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_WRITE_PERIOD_0_OFFSET + (tb_realm_cfg.mgr_id * axi_rt_reg_pkg::NumSub + tb_realm_cfg.sbr_addr_reg_id) * (AXI_RT_WRITE_PERIOD_1_OFFSET - AXI_RT_WRITE_PERIOD_0_OFFSET);
+  int_write_data = tb_realm_cfg.regfile_cfg.write_period[tb_realm_cfg.sbr_addr_reg_id] & 32'hFFFF_FFFF;
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Configure AXI-Realm burst splitter
 task automatic dse_realm_set_burst_length(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
@@ -423,16 +423,16 @@ task automatic dse_realm_set_burst_length(
   int len_limit_reg_byte_stride = 4;
 
   // Calculate manager entry in the len_limit register.
-  int len_limit_reg_entry_bytes = tb_rt_cfg.mgr_id % num_bytes_len_limit_reg;
+  int len_limit_reg_entry_bytes = tb_realm_cfg.mgr_id % num_bytes_len_limit_reg;
   int len_limit_reg_entry_bits = 8 * len_limit_reg_entry_bytes;
 
   // Calculate the len_limit register offset based on the manager ID.
-  int len_limit_reg_offset = tb_rt_cfg.mgr_id/num_bytes_len_limit_reg;
+  int len_limit_reg_offset = tb_realm_cfg.mgr_id/num_bytes_len_limit_reg;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
-  // Define AXI_RT_SINGLE_MANAGER when the generated AXI-RT has a single manager, or undefine it when a multi-manager tile instance is used.
+  // Define AXI_RT_SINGLE_MANAGER when the generated AXI-REALM has a single manager, or undefine it when a multi-manager tile instance is used.
   `define AXI_RT_SINGLE_MANAGER
   
   // Address the target len_limit register starting from the base register address. len_limit values 
@@ -440,10 +440,10 @@ task automatic dse_realm_set_burst_length(
   // is allocated 8-bit since the max len_limit value is 256 Beats. 
 `ifdef AXI_RT_SINGLE_MANAGER
   // Single manager: one len_limit register, un-suffixed; mgr_id is always 0.
-  int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_OFFSET;
+  int_addr = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_OFFSET;
 `else
   // Multi-manager: index off LEN_LIMIT_0 by 4 bytes per 32-bit register.
-  int_addr = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_0_OFFSET +
+  int_addr = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_LEN_LIMIT_0_OFFSET +
              len_limit_reg_offset * len_limit_reg_byte_stride;
 `endif
 
@@ -454,67 +454,67 @@ task automatic dse_realm_set_burst_length(
   // Preserve past entries and clear the 8-bit field to overwrite using a mask.
   // Then, overwrite the len_limit subfield with a new value and write back.
   int_write_data = (int_read_data & ~(32'hFF << len_limit_reg_entry_bits)) | 
-                   ((tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id] & 32'hFF) << len_limit_reg_entry_bits);
+                   ((tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id] & 32'hFF) << len_limit_reg_entry_bits);
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Enable IMTU mode
 task automatic dse_realm_enable_imtu(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
   // IMTU enable (1b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ENABLE_OFFSET;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ENABLE_OFFSET;
   dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
-  int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) |
-                   ((tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
+  int_write_data = (int_read_data & ~(1'b1 << tb_realm_cfg.mgr_id)) |
+                   ((tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id] & 1'b1) << tb_realm_cfg.mgr_id);
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask
 
 // Abort IMTU mode
 task automatic dse_realm_abort_imtu(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
   // IMTU abort (1b)
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ABORT_OFFSET;
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_IMTU_ABORT_OFFSET;
   dse_read(int_addr, int_read_data, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
-  int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) |
-                   ((tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
+  int_write_data = (int_read_data & ~(1'b1 << tb_realm_cfg.mgr_id)) |
+                   ((tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id] & 1'b1) << tb_realm_cfg.mgr_id);
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 
 endtask
 
-// Enable RT mode
+// Enable AXI-REALM regulation (rt_enable)
 task automatic dse_realm_enable_rt(
-  input rt_cfg_t tb_rt_cfg
+  input realm_cfg_t tb_realm_cfg
 );
   axi_host_addr_t int_addr;
   axi_host_data_t int_read_data, int_write_data;
   axi_host_rsp_t int_rsp;
 
-  // Check input RT configuration validity
-  dse_realm_check_cfg(tb_rt_cfg);
+  // Check that the AXI-REALM configuration is valid
+  dse_realm_check_cfg(tb_realm_cfg);
 
-  // RT enable base address
-  int_addr       = tb_rt_cfg.rt_reg_addr_base + axi_rt_reg_pkg::AXI_RT_RT_ENABLE_OFFSET;
+  // rt_enable register address
+  int_addr       = tb_realm_cfg.regfile_addr_base + axi_rt_reg_pkg::AXI_RT_RT_ENABLE_OFFSET;
 
   // Read old enable register value to preserve other manager entries
   dse_read(int_addr, int_read_data, int_rsp);
@@ -522,8 +522,8 @@ task automatic dse_realm_enable_rt(
 
   // Preserve past entries and clear the 8-bit field to overwrite using a mask.
   // Then, overwrite the enable subfield with a new value and write back.
-  int_write_data = (int_read_data & ~(1'b1 << tb_rt_cfg.mgr_id)) | 
-                   ((tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id] & 1'b1) << tb_rt_cfg.mgr_id);
+  int_write_data = (int_read_data & ~(1'b1 << tb_realm_cfg.mgr_id)) | 
+                   ((tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id] & 1'b1) << tb_realm_cfg.mgr_id);
   dse_write(int_addr, int_write_data, 8'hf, int_rsp);
   assert(int_rsp == axi_pkg::RESP_OKAY);
 endtask

@@ -38,7 +38,7 @@ module tb_picobello_dse
   input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
   input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
   // AXI-Realm configuration
-  input sim_picobello_pkg::rt_cfg_t tb_rt_cfg
+  input sim_picobello_pkg::realm_cfg_t tb_realm_cfg
 );
   `include "tb_picobello_sim_macros.svh"
   `include "tb_picobello_dse_tasks.svh"
@@ -58,20 +58,20 @@ module tb_picobello_dse
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
 
   // BW monitoring
-  picobello_pkg::axi_wide_traffic_gen_req_t bw_rt_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-  picobello_pkg::axi_wide_traffic_gen_rsp_t bw_rt_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  picobello_pkg::axi_wide_traffic_gen_req_t bw_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  picobello_pkg::axi_wide_traffic_gen_rsp_t bw_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
 
-  floo_picobello_noc_pkg::axi_wide_in_req_t bw_rt_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
-  floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_rt_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_noc_ni_wide_cfg [picobello_pkg::NumClusters-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_ni_wide_stats [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_wide_in_req_t bw_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_noc_ni_wide_cfg [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_noc_ni_wide_stats [picobello_pkg::NumClusters-1:0];
 
-  floo_picobello_noc_pkg::axi_narrow_in_req_t bw_rt_noc_ni_narrow_req [picobello_pkg::NumClusters-1:0];
-  floo_picobello_noc_pkg::axi_narrow_in_rsp_t bw_rt_noc_ni_narrow_rsp [picobello_pkg::NumClusters-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_rt_noc_ni_narrow_cfg [picobello_pkg::NumClusters-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_rt_noc_ni_narrow_stats [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_narrow_in_req_t bw_noc_ni_narrow_req [picobello_pkg::NumClusters-1:0];
+  floo_picobello_noc_pkg::axi_narrow_in_rsp_t bw_noc_ni_narrow_rsp [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_cfg_t bw_noc_ni_narrow_cfg [picobello_pkg::NumClusters-1:0];
+  sim_picobello_pkg::bw_monitor_stats_t bw_noc_ni_narrow_stats [picobello_pkg::NumClusters-1:0];
 
   // Experimental statistics
   sim_picobello_pkg::experimental_stats_t experimental_stats;
@@ -89,8 +89,8 @@ module tb_picobello_dse
   logic [picobello_pkg::NumClusters-1:0][31:0] comp_timer_0, comp_timer_1, comp_timer_val; // timers
 
   // AXI-Realm
-  logic [picobello_pkg::NumClusters-1:0] rt_configured; // configuration flag
-  picobello_pkg::slv_id_t rt_reg_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
+  logic [picobello_pkg::NumClusters-1:0] realm_configured; // configuration flag
+  picobello_pkg::slv_id_t realm_regfile_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
   
   // Clusters
   localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
@@ -599,7 +599,7 @@ module tb_picobello_dse
   // DPI toolkit //
   /////////////////
 
-  dpi_picobello_rt_toolkit dpi_rt (
+  dpi_dse i_dpi_dse (
     .*
   );
 
@@ -630,8 +630,8 @@ module tb_picobello_dse
 
       localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_traffic_gen_%0d", cl_id, traffic_gen_id);
 
-      assign bw_rt_cl_req[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[traffic_gen_id];
-      assign bw_rt_cl_rsp[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[traffic_gen_id];
+      assign bw_cl_req[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[traffic_gen_id];
+      assign bw_cl_rsp[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[traffic_gen_id];
 
       axi_bw_monitor #(
         .req_t        ( picobello_pkg::axi_wide_traffic_gen_req_t  ),
@@ -644,12 +644,12 @@ module tb_picobello_dse
       ) i_axi_bw_monitor (
         .clk_i          ( clk                                   ),
         .rst_ni         ( rst_n                                 ),
-        .req_i          ( bw_rt_cl_req[cl_id][traffic_gen_id]   ),
-        .rsp_i          ( bw_rt_cl_rsp[cl_id][traffic_gen_id]   ),
+        .req_i          ( bw_cl_req[cl_id][traffic_gen_id]   ),
+        .rsp_i          ( bw_cl_rsp[cl_id][traffic_gen_id]   ),
         .ar_in_flight_o (                                       ),
         .aw_in_flight_o (                                       ),
-        .cfg_i          ( bw_rt_cl_cfg[cl_id][traffic_gen_id]   ),
-        .stats_o        ( bw_rt_cl_stats[cl_id][traffic_gen_id] )
+        .cfg_i          ( bw_cl_cfg[cl_id][traffic_gen_id]   ),
+        .stats_o        ( bw_cl_stats[cl_id][traffic_gen_id] )
       );
     end
   end
@@ -658,8 +658,8 @@ module tb_picobello_dse
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_wide_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_req;
-    assign bw_rt_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_rsp;
+    assign bw_noc_ni_wide_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_req;
+    assign bw_noc_ni_wide_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_wide_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_wide_in_req_t       ),
@@ -672,12 +672,12 @@ module tb_picobello_dse
     ) i_axi_bw_monitor (
       .clk_i          ( clk                             ),
       .rst_ni         ( rst_n                           ),
-      .req_i          ( bw_rt_noc_ni_wide_req[cl_id]    ),
-      .rsp_i          ( bw_rt_noc_ni_wide_rsp[cl_id]    ),
+      .req_i          ( bw_noc_ni_wide_req[cl_id]    ),
+      .rsp_i          ( bw_noc_ni_wide_rsp[cl_id]    ),
       .ar_in_flight_o (                                 ),
       .aw_in_flight_o (                                 ),
-      .cfg_i          ( bw_rt_noc_ni_wide_cfg[cl_id]    ),
-      .stats_o        ( bw_rt_noc_ni_wide_stats[cl_id]  )
+      .cfg_i          ( bw_noc_ni_wide_cfg[cl_id]    ),
+      .stats_o        ( bw_noc_ni_wide_stats[cl_id]  )
     );
   end
 
@@ -685,8 +685,8 @@ module tb_picobello_dse
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_narrow_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_narrow_cl_%0d", cl_id);
 
-    assign bw_rt_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_req;
-    assign bw_rt_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_rsp;
+    assign bw_noc_ni_narrow_req[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_req;
+    assign bw_noc_ni_narrow_rsp[cl_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.chimney_narrow_in_rsp;
 
     axi_bw_monitor #(
       .req_t        ( floo_picobello_noc_pkg::axi_narrow_in_req_t     ),
@@ -699,12 +699,12 @@ module tb_picobello_dse
     ) i_axi_bw_monitor (
       .clk_i          ( clk                                    ),
       .rst_ni         ( rst_n                                  ),
-      .req_i          ( bw_rt_noc_ni_narrow_req[cl_id]         ),
-      .rsp_i          ( bw_rt_noc_ni_narrow_rsp[cl_id]         ),
+      .req_i          ( bw_noc_ni_narrow_req[cl_id]         ),
+      .rsp_i          ( bw_noc_ni_narrow_rsp[cl_id]         ),
       .ar_in_flight_o (                                        ),
       .aw_in_flight_o (                                        ),
-      .cfg_i          ( bw_rt_noc_ni_narrow_cfg[cl_id]         ),
-      .stats_o        ( bw_rt_noc_ni_narrow_stats[cl_id]       )
+      .cfg_i          ( bw_noc_ni_narrow_cfg[cl_id]         ),
+      .stats_o        ( bw_noc_ni_narrow_stats[cl_id]       )
     );
   end
 
@@ -720,15 +720,15 @@ module tb_picobello_dse
     tb_tg_cfg_write = '{default: '0};
     tb_timer_cfg = '{default: '0};
     // Initialization - axi-realm
-    tb_rt_cfg = '{default: '0};
-    rt_configured = '{default: '0};
+    tb_realm_cfg = '{default: '0};
+    realm_configured = '{default: '0};
     // Initialization - bw monitors
     for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
       for (int j = 0; j < picobello_pkg::NumTrafficGen; j++) begin
-        bw_rt_cl_cfg[i][j] = '{default: '0};
+        bw_cl_cfg[i][j] = '{default: '0};
       end
-      bw_rt_noc_ni_wide_cfg[i] = '{default: '0};
-      bw_rt_noc_ni_narrow_cfg[i] = '{default: '0};
+      bw_noc_ni_wide_cfg[i] = '{default: '0};
+      bw_noc_ni_narrow_cfg[i] = '{default: '0};
     end
 
     // Wait for reset
@@ -740,19 +740,19 @@ module tb_picobello_dse
     //////////////////////////
 
     // Initialize AXI-Realm IDs for critical tasks
-    rt_init_id_loop: for (int i = 0; i < NumClustersActive; i++) begin
+    realm_init_id_loop: for (int i = 0; i < NumClustersActive; i++) begin
       automatic int cl_id = IdTestCl[i];
       cluster_sam = floo_picobello_noc_pkg::Sam[cl_id + cluster_sam_offset];
       cluster_idx = cluster_sam.idx;
-      rt_reg_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
+      realm_regfile_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
     end
 
     // Initialize AXI-Realm IDs for interferers
-    rt_interf_init_id_loop: for (int i = 0; i < NumClustersInterfActive; i++) begin
+    realm_interf_init_id_loop: for (int i = 0; i < NumClustersInterfActive; i++) begin
       automatic int cl_id = IdTestClInterf[i];
       cluster_sam = floo_picobello_noc_pkg::Sam[cl_id + cluster_sam_offset];
       cluster_idx = cluster_sam.idx;
-      rt_reg_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
+      realm_regfile_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
     end
 
     //////////////////////////////
@@ -798,163 +798,163 @@ module tb_picobello_dse
             				interferer_task_period_loop: for (int InterfPeriod = InterfPeriodMin; InterfPeriod <= InterfPeriodMax; InterfPeriod = (InterfPeriod == 0) ? 1 : InterfPeriod * 2) begin
 
 				              // Configure AXI-Realm for critical tasks
-				              rt_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
+				              realm_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 
 				                // Set register file address offset
-				                tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
+				                tb_realm_cfg.regfile_addr_offset                                            = cluster_rt_addr_offset;
 
 				                // Set register file base address
-				                tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
+				                tb_realm_cfg.regfile_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_realm_cfg.regfile_addr_offset; 
 
 				                // Initialize manager ID
-				                tb_rt_cfg.mgr_id                                                        = 0;
+				                tb_realm_cfg.mgr_id                                                        = 0;
 
 				                // Set manager address space dimension
-				                tb_rt_cfg.mgr_addr_space_dim                                            = traffic_gen_addr_space_dim;
+				                tb_realm_cfg.mgr_addr_space_dim                                            = traffic_gen_addr_space_dim;
 
 				                // Set address region - Memory tile
-				                tb_rt_cfg.sbr_addr_reg_id                                               = 0;
+				                tb_realm_cfg.sbr_addr_reg_id                                               = 0;
 
 				                // Set the read budget (32b)
-				                tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = CriticalBudget;
+				                tb_realm_cfg.regfile_cfg.read_budget[tb_realm_cfg.sbr_addr_reg_id]         = CriticalBudget;
 				                // Set the write budget (32b)
-				                tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = CriticalBudget;
+				                tb_realm_cfg.regfile_cfg.write_budget[tb_realm_cfg.sbr_addr_reg_id]        = CriticalBudget;
 
 				                // Set the read period (32b)
-				                tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = CriticalPeriod;
+				                tb_realm_cfg.regfile_cfg.read_period[tb_realm_cfg.sbr_addr_reg_id]         = CriticalPeriod;
 				                // Set the write period (32b)
-				                tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = CriticalPeriod;
+				                tb_realm_cfg.regfile_cfg.write_period[tb_realm_cfg.sbr_addr_reg_id]        = CriticalPeriod;
 
 				                // Set the start address (32b, low)
-				                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMem].start_addr;
+				                tb_realm_cfg.regfile_cfg.start_addr_sub_low[tb_realm_cfg.sbr_addr_reg_id]  = Sam[IdTestMem].start_addr;
 				                // Set the start address (32b, high)
-				                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
+				                tb_realm_cfg.regfile_cfg.start_addr_sub_high[tb_realm_cfg.sbr_addr_reg_id] = '0;
 				                // Set the end address (32b, low)
-				                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMem].start_addr + 32'h0010_0000;
+				                tb_realm_cfg.regfile_cfg.end_addr_sub_low[tb_realm_cfg.sbr_addr_reg_id]    = Sam[IdTestMem].start_addr + 32'h0010_0000;
 				                // Set the end address (32b, high)
-				                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
+				                tb_realm_cfg.regfile_cfg.end_addr_sub_high[tb_realm_cfg.sbr_addr_reg_id]   = '0;
 
 				                // Configure AXI-Realm guard registers
-				                dse_realm_guard_init(tb_rt_cfg);
+				                dse_realm_guard_init(tb_realm_cfg);
 
 				                // Configure AXI-Realm subordinate address regions
-				                dse_realm_set_addr_reg(tb_rt_cfg);
+				                dse_realm_set_addr_reg(tb_realm_cfg);
 
 				                // Configure AXI-Realm period-budget QoS service
-				                dse_realm_set_period_budget(tb_rt_cfg);
+				                dse_realm_set_period_budget(tb_realm_cfg);
 
 				                // Set and configure AXI-Realm manager registers
-				                rt_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                realm_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
 				                  automatic int traffic_gen_id = j;
 
 				                  // Set manager ID
-				                  tb_rt_cfg.mgr_id                                                    = traffic_gen_id;
+				                  tb_realm_cfg.mgr_id                                                    = traffic_gen_id;
 
 				                  // Set the burst length limit (8b)
-				                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
+				                  tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
 
 				                  // Set IMTU abort (1b)
-				                  tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
+				                  tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id]               = '0;
 
 				                  // Set IMTU enable (1b)
-				                  tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = CriticalBudgetPeriodActive;
+				                  tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id]              = CriticalBudgetPeriodActive;
 
 				                  // Enable real-time mode (1b)
-				                  tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+				                  tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id]                = '1;
 
 				                  // Activate AXI-Realm
 
 				                  // Set burst length
-				                  dse_realm_set_burst_length(tb_rt_cfg);
+				                  dse_realm_set_burst_length(tb_realm_cfg);
 
                           // Enable IMTU
                           if(CriticalBudgetPeriodActive) begin
-				                    dse_realm_enable_imtu(tb_rt_cfg);
+				                    dse_realm_enable_imtu(tb_realm_cfg);
                           end
 
 				                  // Enable real-time mode
-				                  dse_realm_enable_rt(tb_rt_cfg);
+				                  dse_realm_enable_rt(tb_realm_cfg);
 				                end
 				              end
 
 				              // Configure AXI-Realm for interferers
-				              rt_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+				              realm_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
 
 				                // Set register file address offset
-				                tb_rt_cfg.rt_reg_addr_offset                                            = cluster_rt_addr_offset;
+				                tb_realm_cfg.regfile_addr_offset                                            = cluster_rt_addr_offset;
 
 				                // Set register file base address
-				                tb_rt_cfg.rt_reg_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_rt_cfg.rt_reg_addr_offset; 
+				                tb_realm_cfg.regfile_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_realm_cfg.regfile_addr_offset; 
 
 				                // Initialize manager ID
-				                tb_rt_cfg.mgr_id                                                        = 0;
+				                tb_realm_cfg.mgr_id                                                        = 0;
 
 				                // Set manager address space dimension
-				                tb_rt_cfg.mgr_addr_space_dim                                            = traffic_gen_addr_space_dim;
+				                tb_realm_cfg.mgr_addr_space_dim                                            = traffic_gen_addr_space_dim;
 
 				                // Set address region - Memory tile
 
-				                tb_rt_cfg.sbr_addr_reg_id                                               = 0;
+				                tb_realm_cfg.sbr_addr_reg_id                                               = 0;
 
 				                // Set the read budget (32b)
-				                tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = InterfBudget;
+				                tb_realm_cfg.regfile_cfg.read_budget[tb_realm_cfg.sbr_addr_reg_id]         = InterfBudget;
 				                // Set the write budget (32b)
-				                tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = InterfBudget;
+				                tb_realm_cfg.regfile_cfg.write_budget[tb_realm_cfg.sbr_addr_reg_id]        = InterfBudget;
 
 				                // Set the read period (32b)
-				                tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = InterfPeriod;
+				                tb_realm_cfg.regfile_cfg.read_period[tb_realm_cfg.sbr_addr_reg_id]         = InterfPeriod;
 				                // Set the write period (32b)
-				                tb_rt_cfg.rt_regfile_cfg.write_period[tb_rt_cfg.sbr_addr_reg_id]        = InterfPeriod;
+				                tb_realm_cfg.regfile_cfg.write_period[tb_realm_cfg.sbr_addr_reg_id]        = InterfPeriod;
 
 				                // Set the start address (32b, low)
-				                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]  = Sam[IdTestMemInterf[i]].start_addr;
+				                tb_realm_cfg.regfile_cfg.start_addr_sub_low[tb_realm_cfg.sbr_addr_reg_id]  = Sam[IdTestMemInterf[i]].start_addr;
 				                // Set the start address (32b, high)
-				                tb_rt_cfg.rt_regfile_cfg.start_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id] = '0;
+				                tb_realm_cfg.regfile_cfg.start_addr_sub_high[tb_realm_cfg.sbr_addr_reg_id] = '0;
 				                // Set the end address (32b, low)
-				                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_low[tb_rt_cfg.sbr_addr_reg_id]    = Sam[IdTestMemInterf[i]].start_addr + 32'h0010_0000;
+				                tb_realm_cfg.regfile_cfg.end_addr_sub_low[tb_realm_cfg.sbr_addr_reg_id]    = Sam[IdTestMemInterf[i]].start_addr + 32'h0010_0000;
 				                // Set the end address (32b, high)
-				                tb_rt_cfg.rt_regfile_cfg.end_addr_sub_high[tb_rt_cfg.sbr_addr_reg_id]   = '0;
+				                tb_realm_cfg.regfile_cfg.end_addr_sub_high[tb_realm_cfg.sbr_addr_reg_id]   = '0;
 
 				                // Configure AXI-Realm guard registers
-				                dse_realm_guard_init(tb_rt_cfg);
+				                dse_realm_guard_init(tb_realm_cfg);
 
 				                // Configure AXI-Realm subordinate address regions
-				                dse_realm_set_addr_reg(tb_rt_cfg);
+				                dse_realm_set_addr_reg(tb_realm_cfg);
 
 				                // Configure AXI-Realm period-budget QoS service
-				                dse_realm_set_period_budget(tb_rt_cfg);
+				                dse_realm_set_period_budget(tb_realm_cfg);
 
 				                // Set and configure AXI-Realm manager registers
-				                rt_interf_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                realm_interf_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
 				                  automatic int traffic_gen_id = j;
 
 				                  // Set manager ID
-				                  tb_rt_cfg.mgr_id                                                    = traffic_gen_id;
+				                  tb_realm_cfg.mgr_id                                                    = traffic_gen_id;
 
 				                  // Set the burst length limit (8b)
-				                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (InterfBurstLength - 1) & 8'hFF;
+				                  tb_realm_cfg.regfile_cfg.len_limit[tb_realm_cfg.mgr_id]                = (InterfBurstLength - 1) & 8'hFF;
 
 				                  // Set IMTU abort (1b)
-				                  tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
+				                  tb_realm_cfg.regfile_cfg.imtu_abort[tb_realm_cfg.mgr_id]               = '0;
 
 				                  // Set IMTU enable (1b)
-				                  tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id]              = InterfBudgetPeriodActive;
+				                  tb_realm_cfg.regfile_cfg.imtu_enable[tb_realm_cfg.mgr_id]              = InterfBudgetPeriodActive;
 
 				                  // Enable real-time mode (1b)
-				                  tb_rt_cfg.rt_regfile_cfg.rt_enable[tb_rt_cfg.mgr_id]                = '1;
+				                  tb_realm_cfg.regfile_cfg.rt_enable[tb_realm_cfg.mgr_id]                = '1;
 
 				                  // Set burst length
-				                  dse_realm_set_burst_length(tb_rt_cfg);
+				                  dse_realm_set_burst_length(tb_realm_cfg);
 
                           // Enable IMTU
                           if(InterfBudgetPeriodActive) begin
-				                    dse_realm_enable_imtu(tb_rt_cfg);
+				                    dse_realm_enable_imtu(tb_realm_cfg);
                           end
 
 				                  // Enable real-time mode
-				                  dse_realm_enable_rt(tb_rt_cfg);
+				                  dse_realm_enable_rt(tb_realm_cfg);
 				                end
 				              end
 
@@ -985,15 +985,15 @@ module tb_picobello_dse
 				              // Initialize BW monitor for critical tasks
 				              bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
-				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Initialize BW monitor for interferers
 				              bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
-				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                dse_reset_bw_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                dse_reset_bw_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Reset old timer counter value
@@ -1023,19 +1023,19 @@ module tb_picobello_dse
 				                automatic int cl_id = CriticalFirst ? IdTestCl[i] : IdTestClInterf[i];
 
 				                if(DmaReadEnable) begin
-				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 
 				                dma_in_start_first_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
 				                  automatic int traffic_gen_id = j;
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) dpi_rt.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
-				                    if(DmaWriteEnable) dpi_rt.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
+				                    if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
+				                    if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
 				                  end
 				                end
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
@@ -1052,19 +1052,19 @@ module tb_picobello_dse
 				                automatic int cl_id = CriticalFirst ? IdTestClInterf[i] : IdTestCl[i];
 
 				                if(DmaReadEnable) begin
-				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 
 				                dma_in_start_second_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
 				                  automatic int traffic_gen_id = j;
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                    if(DmaReadEnable) dpi_rt.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
-				                    if(DmaWriteEnable) dpi_rt.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
+				                    if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, traffic_gen_id, noc_plane_id);
+				                    if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, traffic_gen_id, noc_plane_id);
 				                  end
 				                end
 				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
@@ -1087,10 +1087,10 @@ module tb_picobello_dse
 
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                    if(DmaReadEnable) begin
-				                      dpi_rt.dma_read_start_low(cl_id, traffic_gen_id, noc_plane_id);
+				                      i_dpi_dse.dma_read_start_low(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                    if(DmaWriteEnable) begin
-				                      dpi_rt.dma_write_start_low(cl_id, traffic_gen_id, noc_plane_id);
+				                      i_dpi_dse.dma_write_start_low(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                  end
 				                end
@@ -1108,10 +1108,10 @@ module tb_picobello_dse
 				                  // Wait for DMA idles
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                    if(DmaReadEnable) begin
-				                      dpi_rt.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
+				                      i_dpi_dse.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                    if(DmaWriteEnable) begin
-				                      dpi_rt.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
+				                      i_dpi_dse.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                  end
 				                end
@@ -1131,20 +1131,20 @@ module tb_picobello_dse
 				              if(RuntimeInterfReconfig) begin
 
 				                // Update and dispatch AXI-Realm configuration
-				                rt_interf_max_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
+				                realm_interf_max_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                  // automatic int cl_id = IdTestClInterf[i];
 				                  automatic int ai = i;
 				                  automatic int cl_id = IdTestClInterf[ai];
-				                  automatic sim_picobello_pkg::rt_cfg_t local_rt_cfg = '0;
+				                  automatic sim_picobello_pkg::realm_cfg_t local_realm_cfg = '0;
 
 				                  // programming and propagation time from host to RT unit
 				                  `wait_n_clk(10);
 
-				                  rt_interf_max_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
+				                  realm_interf_max_cfg_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
 				                    automatic int traffic_gen_id = j;
 
 				                    // Set fragment length
-				                    dpi_rt.axi_rt_fragm_len(cl_id, traffic_gen_id, (InterfBurstLengthReconfig - 1));
+				                    i_dpi_dse.realm_set_fragm_len(cl_id, traffic_gen_id, (InterfBurstLengthReconfig - 1));
 				                  end              
 				                end
 				              end
@@ -1153,12 +1153,12 @@ module tb_picobello_dse
 				              critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 				                if(DmaReadEnable) begin
-				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				              end
 
@@ -1170,10 +1170,10 @@ module tb_picobello_dse
 				                  // Wait for DMA idles
 				                  for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                    if(DmaReadEnable) begin
-				                      dpi_rt.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
+				                      i_dpi_dse.dma_read_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                    if(DmaWriteEnable) begin
-				                      dpi_rt.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
+				                      i_dpi_dse.dma_write_wait_idle(cl_id, traffic_gen_id, noc_plane_id);
 				                    end
 				                  end
 				                end                
@@ -1189,12 +1189,12 @@ module tb_picobello_dse
 				              interferer_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
 				                if(DmaReadEnable) begin
-				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_r_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_w_monitor_1d(bw_rt_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				              end
 
@@ -1297,18 +1297,18 @@ module tb_picobello_dse
 
 				                  // BW stats (wide) - Write values
 				                  $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
-				                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_wide_stats[cl_id].r_latency_mean);
-				                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_wide_stats[cl_id].r_latency_stddev);
-				                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_noc_ni_wide_stats[cl_id].r_bw_mean);
-				                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].r_bw_stddev);
-				                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].r_util_mean);
-				                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_noc_ni_wide_stats[cl_id].r_util_stddev);
-				                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_noc_ni_wide_stats[cl_id].w_latency_mean);
-				                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_noc_ni_wide_stats[cl_id].w_latency_stddev);
-				                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_noc_ni_wide_stats[cl_id].w_bw_mean);
-				                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].w_bw_stddev);
-				                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_wide_stats[cl_id].w_util_mean);
-				                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_wide_stats[cl_id].w_util_stddev);
+				                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_noc_ni_wide_stats[cl_id].r_latency_mean);
+				                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_noc_ni_wide_stats[cl_id].r_latency_stddev);
+				                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_noc_ni_wide_stats[cl_id].r_bw_mean);
+				                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_noc_ni_wide_stats[cl_id].r_bw_stddev);
+				                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_noc_ni_wide_stats[cl_id].r_util_mean);
+				                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_noc_ni_wide_stats[cl_id].r_util_stddev);
+				                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_noc_ni_wide_stats[cl_id].w_latency_mean);
+				                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_noc_ni_wide_stats[cl_id].w_latency_stddev);
+				                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_noc_ni_wide_stats[cl_id].w_bw_mean);
+				                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_noc_ni_wide_stats[cl_id].w_bw_stddev);
+				                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_noc_ni_wide_stats[cl_id].w_util_mean);
+				                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_noc_ni_wide_stats[cl_id].w_util_stddev);
 
 				                  // BW stats (wide) - Close file
 				                  $fclose(fileDescriptor);
@@ -1319,18 +1319,18 @@ module tb_picobello_dse
 
 				                  // BW stats (narrow) - Write values
 				                  $fwrite(fileDescriptor, "id_test: %0d\n",               experimental_stats.id_test);
-				                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_rt_noc_ni_narrow_stats[cl_id].r_latency_mean);
-				                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_rt_noc_ni_narrow_stats[cl_id].r_latency_stddev);
-				                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_rt_noc_ni_narrow_stats[cl_id].r_bw_mean);
-				                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].r_bw_stddev);
-				                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].r_util_mean);
-				                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_rt_noc_ni_narrow_stats[cl_id].r_util_stddev);
-				                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_rt_noc_ni_narrow_stats[cl_id].w_latency_mean);
-				                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_rt_noc_ni_narrow_stats[cl_id].w_latency_stddev);
-				                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_rt_noc_ni_narrow_stats[cl_id].w_bw_mean);
-				                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].w_bw_stddev);
-				                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_rt_noc_ni_narrow_stats[cl_id].w_util_mean);
-				                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_rt_noc_ni_narrow_stats[cl_id].w_util_stddev);
+				                  $fwrite(fileDescriptor, "r_latency_mean: %0.2f\n",      bw_noc_ni_narrow_stats[cl_id].r_latency_mean);
+				                  $fwrite(fileDescriptor, "r_latency_stddev: %0.2f\n",    bw_noc_ni_narrow_stats[cl_id].r_latency_stddev);
+				                  $fwrite(fileDescriptor, "r_bw_mean: %0.2f\n",           bw_noc_ni_narrow_stats[cl_id].r_bw_mean);
+				                  $fwrite(fileDescriptor, "r_bw_stddev: %0.2f\n",         bw_noc_ni_narrow_stats[cl_id].r_bw_stddev);
+				                  $fwrite(fileDescriptor, "r_util_mean: %0.2f\n",         bw_noc_ni_narrow_stats[cl_id].r_util_mean);
+				                  $fwrite(fileDescriptor, "r_util_stddev: %0.2f\n",       bw_noc_ni_narrow_stats[cl_id].r_util_stddev);
+				                  $fwrite(fileDescriptor, "w_latency_mean: %0.2f\n",      bw_noc_ni_narrow_stats[cl_id].w_latency_mean);
+				                  $fwrite(fileDescriptor, "w_latency_stddev: %0.2f\n",    bw_noc_ni_narrow_stats[cl_id].w_latency_stddev);
+				                  $fwrite(fileDescriptor, "w_bw_mean: %0.2f\n",           bw_noc_ni_narrow_stats[cl_id].w_bw_mean);
+				                  $fwrite(fileDescriptor, "w_bw_stddev: %0.2f\n",         bw_noc_ni_narrow_stats[cl_id].w_bw_stddev);
+				                  $fwrite(fileDescriptor, "w_util_mean: %0.2f\n",         bw_noc_ni_narrow_stats[cl_id].w_util_mean);
+				                  $fwrite(fileDescriptor, "w_util_stddev: %0.2f\n",       bw_noc_ni_narrow_stats[cl_id].w_util_stddev);
 
 				                  // BW stats (narrow) - Close file
 				                  $fclose(fileDescriptor);
@@ -1357,28 +1357,28 @@ module tb_picobello_dse
 
 				                  // Latency (wide) - Write values
 				                  if(DmaReadEnable) begin
-				                    foreach (bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[bi]) begin
+				                    foreach (bw_noc_ni_wide_stats[cl_id].r_burst_t0[bi]) begin
 				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
 				                        bi,
-				                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t0[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_t1[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].r_latency_val[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].r_bw_val[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_n_beats[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].r_burst_dw[bi]
+				                        bw_noc_ni_wide_stats[cl_id].r_burst_t0[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].r_burst_t1[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].r_latency_val[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].r_bw_val[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].r_burst_n_beats[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].r_burst_dw[bi]
 				                      );
 				                    end
 				                  end
 				                  if(DmaWriteEnable) begin
-				                    foreach (bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[bi]) begin
+				                    foreach (bw_noc_ni_wide_stats[cl_id].w_burst_t0[bi]) begin
 				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
 				                        bi,
-				                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t0[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_t1[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].w_latency_val[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].w_bw_val[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_n_beats[bi], 
-				                        bw_rt_noc_ni_wide_stats[cl_id].w_burst_dw[bi]
+				                        bw_noc_ni_wide_stats[cl_id].w_burst_t0[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].w_burst_t1[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].w_latency_val[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].w_bw_val[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].w_burst_n_beats[bi], 
+				                        bw_noc_ni_wide_stats[cl_id].w_burst_dw[bi]
 				                      );
 				                    end
 				                  end
@@ -1395,28 +1395,28 @@ module tb_picobello_dse
 
 				                  // Latency (narrow) - Write values
 				                  if(DmaReadEnable) begin
-				                    foreach (bw_rt_noc_ni_narrow_stats[cl_id].r_burst_t0[bi]) begin
+				                    foreach (bw_noc_ni_narrow_stats[cl_id].r_burst_t0[bi]) begin
 				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
 				                        bi,
-				                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_t0[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_t1[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].r_latency_val[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].r_bw_val[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_n_beats[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].r_burst_dw[bi]
+				                        bw_noc_ni_narrow_stats[cl_id].r_burst_t0[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].r_burst_t1[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].r_latency_val[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].r_bw_val[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].r_burst_n_beats[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].r_burst_dw[bi]
 				                      );
 				                    end
 				                  end
 				                  if(DmaWriteEnable) begin
-				                    foreach (bw_rt_noc_ni_narrow_stats[cl_id].w_burst_t0[bi]) begin
+				                    foreach (bw_noc_ni_narrow_stats[cl_id].w_burst_t0[bi]) begin
 				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
 				                        bi,
-				                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_t0[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_t1[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].w_latency_val[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].w_bw_val[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_n_beats[bi], 
-				                        bw_rt_noc_ni_narrow_stats[cl_id].w_burst_dw[bi]
+				                        bw_noc_ni_narrow_stats[cl_id].w_burst_t0[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].w_burst_t1[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].w_latency_val[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].w_bw_val[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].w_burst_n_beats[bi], 
+				                        bw_noc_ni_narrow_stats[cl_id].w_burst_dw[bi]
 				                      );
 				                    end
 				                  end

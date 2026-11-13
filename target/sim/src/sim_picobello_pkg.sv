@@ -115,9 +115,9 @@ package sim_picobello_pkg;
   // AXI-Realm configuration struct
   typedef struct packed {
     // Register file base address
-    picobello_pkg::axi_host_addr_t rt_reg_addr_base;
+    picobello_pkg::axi_host_addr_t regfile_addr_base;
     // Register file base address offset
-    picobello_pkg::axi_host_addr_t rt_reg_addr_offset;
+    picobello_pkg::axi_host_addr_t regfile_addr_offset;
     // Manager ID
     int mgr_id;
     // Manager address space dimension
@@ -125,8 +125,8 @@ package sim_picobello_pkg;
     // Subordinate address region ID
     int sbr_addr_reg_id;
     // Configuration registers
-    axi_rt_reg_pkg::axi_rt_reg2hw_t rt_regfile_cfg;
-  } rt_cfg_t;
+    axi_rt_reg_pkg::axi_rt_reg2hw_t regfile_cfg;
+  } realm_cfg_t;
 
   ///////////////////////
   // Traffic Generator //

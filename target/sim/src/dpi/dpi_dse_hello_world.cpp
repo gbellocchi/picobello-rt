@@ -4,13 +4,13 @@
 //
 // Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-#include "dpi_picobello_rt.h"
+#include "dpi_dse.h"
 
 /////////////////
 // Hello world //
 /////////////////
 
-extern "C" char hello_world()
+extern "C" char dpi_dse_hello_world()
 {
   printf("Hello, World!\n");
   return 0;
