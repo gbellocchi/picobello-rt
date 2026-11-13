@@ -5,11 +5,8 @@
 // Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 `define CLK_SIGNAL clk
-// `define VERBOSE
 
 `define t_tb_wait 5 // not tide to hw functionalities
-`define t_periph_bus 1 // core - peripheral bus - peripheral (10)
-`define t_multi_cl_displacement 0 // assuming protocol conversion (10) + sequential transmission (x16) x worst-case assumption (6)
 
 // Experimental results
 `define PRINT_RESULTS
