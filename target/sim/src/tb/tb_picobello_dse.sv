@@ -58,11 +58,6 @@ module tb_picobello_dse
   logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
 
   // BW monitoring
-  picobello_pkg::axi_wide_traffic_gen_req_t bw_cl_req [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-  picobello_pkg::axi_wide_traffic_gen_rsp_t bw_cl_rsp [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-  sim_picobello_pkg::bw_monitor_cfg_t bw_cl_cfg [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-  sim_picobello_pkg::bw_monitor_stats_t bw_cl_stats [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0];
-
   floo_picobello_noc_pkg::axi_wide_in_req_t bw_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
   floo_picobello_noc_pkg::axi_wide_in_rsp_t bw_noc_ni_wide_rsp [picobello_pkg::NumClusters-1:0];
   sim_picobello_pkg::bw_monitor_cfg_t bw_noc_ni_wide_cfg [picobello_pkg::NumClusters-1:0];
@@ -615,36 +610,6 @@ module tb_picobello_dse
   // BW monitor //
   ////////////////
 
-  // Cluster wide input
-  for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_cl_bw_monitor_loop_0
-    for (genvar traffic_gen_id = 0; traffic_gen_id < picobello_pkg::NumTrafficGen; traffic_gen_id++) begin : gen_cl_bw_monitor_loop_1
-
-      localparam string BwMonitorName = $sformatf("bw_monitor_cl_%0d_traffic_gen_%0d", cl_id, traffic_gen_id);
-
-      assign bw_cl_req[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_req[traffic_gen_id];
-      assign bw_cl_rsp[cl_id][traffic_gen_id] = dut.gen_clusters[cl_id].i_traffic_gen_tile.axi_realm_wide_in_rsp[traffic_gen_id];
-
-      axi_bw_monitor #(
-        .req_t        ( picobello_pkg::axi_wide_traffic_gen_req_t  ),
-        .rsp_t        ( picobello_pkg::axi_wide_traffic_gen_rsp_t  ),
-        .cfg_t        ( sim_picobello_pkg::bw_monitor_cfg_t        ),
-        .stat_t       ( sim_picobello_pkg::bw_monitor_stats_t      ),
-        .AxiDataWidth ( picobello_pkg::AxiCfgWTrafficGen.DataWidth ),
-        .AxiIdWidth   ( picobello_pkg::AxiCfgWTrafficGen.InIdWidth ),
-        .Name         ( BwMonitorName                              )
-      ) i_axi_bw_monitor (
-        .clk_i          ( clk                                   ),
-        .rst_ni         ( rst_n                                 ),
-        .req_i          ( bw_cl_req[cl_id][traffic_gen_id]   ),
-        .rsp_i          ( bw_cl_rsp[cl_id][traffic_gen_id]   ),
-        .ar_in_flight_o (                                       ),
-        .aw_in_flight_o (                                       ),
-        .cfg_i          ( bw_cl_cfg[cl_id][traffic_gen_id]   ),
-        .stats_o        ( bw_cl_stats[cl_id][traffic_gen_id] )
-      );
-    end
-  end
-
   // FlooNoC NI AXI4 wide input
   for (genvar cl_id = 0; cl_id < picobello_pkg::NumClusters; cl_id++) begin : gen_noc_ni_bw_monitor_loop_0
     localparam string BwMonitorName = $sformatf("bw_monitor_noc_ni_wide_cl_%0d", cl_id);
@@ -714,9 +679,6 @@ module tb_picobello_dse
     tb_realm_cfg = '{default: '0};
     // Initialization - bw monitors
     for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
-      for (int j = 0; j < picobello_pkg::NumTrafficGen; j++) begin
-        bw_cl_cfg[i][j] = '{default: '0};
-      end
       bw_noc_ni_wide_cfg[i] = '{default: '0};
       bw_noc_ni_narrow_cfg[i] = '{default: '0};
     end
@@ -955,15 +917,15 @@ module tb_picobello_dse
 				              // Initialize BW monitor for critical tasks
 				              bw_monitor_init_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
-				                dse_reset_bw_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                dse_reset_bw_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                dse_reset_bw_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_reset_bw_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Initialize BW monitor for interferers
 				              bw_interf_monitor_init_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
-				                dse_reset_bw_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                dse_reset_bw_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                dse_reset_bw_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_reset_bw_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Reset old timer counter value
@@ -993,12 +955,12 @@ module tb_picobello_dse
 				                automatic int cl_id = CriticalFirst ? IdTestCl[i] : IdTestClInterf[i];
 
 				                if(DmaReadEnable) begin
-				                  dse_start_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_start_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 
 				                dma_in_start_first_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
@@ -1022,12 +984,12 @@ module tb_picobello_dse
 				                automatic int cl_id = CriticalFirst ? IdTestClInterf[i] : IdTestCl[i];
 
 				                if(DmaReadEnable) begin
-				                  dse_start_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_start_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_start_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 
 				                dma_in_start_second_loop_1: for (int j = 0; j < NumTrafficGenActive; j++) begin
@@ -1123,12 +1085,12 @@ module tb_picobello_dse
 				              critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 				                if(DmaReadEnable) begin
-				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				              end
 
@@ -1159,12 +1121,12 @@ module tb_picobello_dse
 				              interferer_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
 				                if(DmaReadEnable) begin
-				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_r_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				                if(DmaWriteEnable) begin
-				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_w_monitor_1d(bw_noc_ni_narrow_cfg, cl_id);
+				                  dse_stop_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                  dse_stop_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				                end
 				              end
 
