@@ -140,12 +140,12 @@ task automatic dse_read(
 `endif
 endtask
 
-/////////////////////
-// BW monitor (1D) //
-/////////////////////
+////////////////
+// BW monitor //
+////////////////
 
 // Reset and initialize BW monitor
-task automatic dse_reset_bw_monitor_1d(
+task automatic dse_reset_bw_monitor(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -158,7 +158,7 @@ task automatic dse_reset_bw_monitor_1d(
 endtask
 
 // Start BW monitor on read channels
-task automatic dse_start_bw_r_monitor_1d(
+task automatic dse_start_bw_r_monitor(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -167,7 +167,7 @@ task automatic dse_start_bw_r_monitor_1d(
 endtask
 
 // Start BW monitor on write channels
-task automatic dse_start_bw_w_monitor_1d(
+task automatic dse_start_bw_w_monitor(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -176,7 +176,7 @@ task automatic dse_start_bw_w_monitor_1d(
 endtask
 
 // Stop BW monitor on read channels
-task automatic dse_stop_bw_r_monitor_1d(
+task automatic dse_stop_bw_r_monitor(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
@@ -185,70 +185,12 @@ task automatic dse_stop_bw_r_monitor_1d(
 endtask
 
 // Stop BW monitor on write channels
-task automatic dse_stop_bw_w_monitor_1d(
+task automatic dse_stop_bw_w_monitor(
   ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0],
   input int cl_idx
 );
   bw_monitor[cl_idx].en_w_cnt = 1'b0;
   bw_monitor[cl_idx].rst_w_cnt = 1'b0;
-endtask
-
-/////////////////////
-// BW monitor (2D) //
-/////////////////////
-
-// Reset and initialize BW monitor
-task automatic dse_reset_bw_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
-  input int cl_idx,
-  input int traffic_gen_idx
-);
-  bw_monitor[cl_idx][traffic_gen_idx].rst_r_cnt = 1'b1;
-  bw_monitor[cl_idx][traffic_gen_idx].rst_w_cnt = 1'b1;
-  @(posedge `CLK_SIGNAL);
-  bw_monitor[cl_idx][traffic_gen_idx].rst_r_cnt = 1'b0;
-  bw_monitor[cl_idx][traffic_gen_idx].rst_w_cnt = 1'b0;
-  @(posedge `CLK_SIGNAL);
-endtask
-
-// Start BW monitor on read channels
-task automatic dse_start_bw_r_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
-  input int cl_idx,
-  input int traffic_gen_idx
-);
-  bw_monitor[cl_idx][traffic_gen_idx].en_r_cnt = 1'b1;
-  bw_monitor[cl_idx][traffic_gen_idx].rst_r_cnt = 1'b0;
-endtask
-
-// Start BW monitor on write channels
-task automatic dse_start_bw_w_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
-  input int cl_idx,
-  input int traffic_gen_idx
-);
-  bw_monitor[cl_idx][traffic_gen_idx].en_w_cnt = 1'b1;
-  bw_monitor[cl_idx][traffic_gen_idx].rst_w_cnt = 1'b0;
-endtask
-
-// Stop BW monitor on read channels
-task automatic dse_stop_bw_r_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
-  input int cl_idx,
-  input int traffic_gen_idx
-);
-  bw_monitor[cl_idx][traffic_gen_idx].en_r_cnt = 1'b0;
-  bw_monitor[cl_idx][traffic_gen_idx].rst_r_cnt = 1'b0;
-endtask
-
-// Stop BW monitor on write channels
-task automatic dse_stop_bw_w_monitor_2d(
-  ref sim_picobello_pkg::bw_monitor_cfg_t bw_monitor [picobello_pkg::NumClusters-1:0][picobello_pkg::NumTrafficGen-1:0],
-  input int cl_idx,
-  input int traffic_gen_idx
-);
-  bw_monitor[cl_idx][traffic_gen_idx].en_w_cnt = 1'b0;
-  bw_monitor[cl_idx][traffic_gen_idx].rst_w_cnt = 1'b0;
 endtask
 
 //////////////////////////////////////

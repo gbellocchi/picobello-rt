@@ -28,15 +28,6 @@ set n_mem [expr {$n_mem_x * $n_mem_y}]
 # TB top
 add wave -noupdate -group {tb} {/tb_picobello_dse/*}
 
-# TB BW monitors - Clusters
-for {set cl 0} {$cl < $n_cl} {incr cl} {
-    set x [expr {$cl / $n_cl_y}]
-    set y [expr {$cl % $n_cl_y}]
-    for {set tg 0} {$tg < $n_traffic_gen} {incr tg} {
-        add wave -noupdate -group {cl_bw_monitor} -group "gen_cl_bw_monitor[$cl][$tg]" /tb_picobello_dse/gen_cl_bw_monitor_loop_0\[$cl\]/gen_cl_bw_monitor_loop_1\[$tg\]/i_axi_bw_monitor/*
-    }
-}
-
 # TB BW monitors - NoC NI wide
 for {set cl 0} {$cl < $n_cl} {incr cl} {
     set x [expr {$cl / $n_cl_y}]
