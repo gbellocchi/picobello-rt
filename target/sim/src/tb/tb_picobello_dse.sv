@@ -88,15 +88,6 @@ module tb_picobello_dse
   logic [picobello_pkg::NumClusters-1:0][31:0] n_compute; // number of compute operations
   logic [picobello_pkg::NumClusters-1:0][31:0] comp_timer_0, comp_timer_1, comp_timer_val; // timers
 
-  // AXI-Realm
-  logic [picobello_pkg::NumClusters-1:0] realm_configured; // configuration flag
-  picobello_pkg::slv_id_t realm_regfile_id [picobello_pkg::NumClusters-1:0]; // corresponding to the cluster tile id
-  
-  // Clusters
-  localparam logic [5:0] cluster_sam_offset = floo_picobello_noc_pkg::ClusterX0Y0SamIdx;
-  floo_picobello_noc_pkg::sam_rule_t cluster_sam;
-  floo_picobello_noc_pkg::id_t cluster_idx;
-
   // Cluster peripheral address map
   axi_host_addr_t traffic_gen_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
 
@@ -721,7 +712,6 @@ module tb_picobello_dse
     tb_timer_cfg = '{default: '0};
     // Initialization - axi-realm
     tb_realm_cfg = '{default: '0};
-    realm_configured = '{default: '0};
     // Initialization - bw monitors
     for (int i = 0; i < picobello_pkg::NumClusters; i++) begin
       for (int j = 0; j < picobello_pkg::NumTrafficGen; j++) begin
@@ -734,26 +724,6 @@ module tb_picobello_dse
     // Wait for reset
     wait(rst_n);
     `wait_n_clk(`t_tb_wait);
-
-    //////////////////////////
-    // Initialize AXI-Realm //
-    //////////////////////////
-
-    // Initialize AXI-Realm IDs for critical tasks
-    realm_init_id_loop: for (int i = 0; i < NumClustersActive; i++) begin
-      automatic int cl_id = IdTestCl[i];
-      cluster_sam = floo_picobello_noc_pkg::Sam[cl_id + cluster_sam_offset];
-      cluster_idx = cluster_sam.idx;
-      realm_regfile_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
-    end
-
-    // Initialize AXI-Realm IDs for interferers
-    realm_interf_init_id_loop: for (int i = 0; i < NumClustersInterfActive; i++) begin
-      automatic int cl_id = IdTestClInterf[i];
-      cluster_sam = floo_picobello_noc_pkg::Sam[cl_id + cluster_sam_offset];
-      cluster_idx = cluster_sam.idx;
-      realm_regfile_id[cl_id] = cluster_idx.y + picobello_pkg::MeshDim.y * cluster_idx.x;
-    end
 
     //////////////////////////////
     // Design space exploration //
