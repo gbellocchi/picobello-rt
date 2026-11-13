@@ -172,8 +172,6 @@ package sim_picobello_pkg;
   typedef struct packed {
     // Register file base address
     picobello_pkg::axi_host_addr_t regfile_addr_base;
-    // Register file base address offset
-    picobello_pkg::axi_host_addr_t regfile_addr_offset;
     // Manager ID
     int mgr_id;
     // Manager address space dimension

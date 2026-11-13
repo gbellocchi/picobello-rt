@@ -55,7 +55,7 @@ module tb_picobello_dse
   sim_picobello_pkg::timer_val_t t_critical; // Critical task execution time [clock cycles]
   sim_picobello_pkg::timer_val_t t_interferer; // Interferer execution time [clock cycles]
   logic target_reached_o; // Comparator value flag
-  logic [31:0] tb_timer_cnt_value, tb_timer_cnt_value_old; // Timer output counter value - Experiment latency
+  logic [31:0] tb_timer_cnt_value; // Timer output counter value - Experiment latency
 
   // BW monitoring
   floo_picobello_noc_pkg::axi_wide_in_req_t bw_noc_ni_wide_req [picobello_pkg::NumClusters-1:0];
@@ -71,30 +71,10 @@ module tb_picobello_dse
   // Experimental statistics
   sim_picobello_pkg::experimental_stats_t experimental_stats;
 
-  // DMA in
-  logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_first_burst; // first burst flag
-  logic [picobello_pkg::NumClusters-1:0][31:0] dma_r_timer_0, dma_r_timer_1, dma_r_timer_val; // timers
-
-  // DMA write
-  logic [picobello_pkg::NumClusters-1:0][31:0] dma_w_timer_0, dma_w_timer_1, dma_w_timer_val; // timers
-
-  // Compute
-  logic [picobello_pkg::NumClusters-1:0] compute_first_burst, compute_done; // done flag
-  logic [picobello_pkg::NumClusters-1:0][31:0] n_compute; // number of compute operations
-  logic [picobello_pkg::NumClusters-1:0][31:0] comp_timer_0, comp_timer_1, comp_timer_val; // timers
-
   // Cluster peripheral address map
   axi_host_addr_t traffic_gen_addr_space_dim = 32'h0000_2000; // Max number of addressable masters = 32
 
-  axi_host_addr_t cluster_rt_addr_dim = 32'h0000_1000;
-  axi_host_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
-  axi_host_addr_t cluster_dma_w_addr_dim = 32'h0000_0100;
-  axi_host_addr_t cluster_compute_addr_dim = 32'h0000_0100; // not used
-
-  axi_host_addr_t cluster_rt_addr_offset = 32'h0000_0000;
-  axi_host_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
-  axi_host_addr_t cluster_dma_w_addr_offset = cluster_dma_r_addr_offset + cluster_dma_r_addr_dim;
-  axi_host_addr_t cluster_compute_addr_offset = cluster_dma_w_addr_offset + cluster_dma_w_addr_dim;
+  axi_host_addr_t cluster_rt_addr_offset = 32'h0000_0000; // AXI-REALM register file offset
 
   // File IO
   int fileDescriptor;
@@ -523,14 +503,7 @@ module tb_picobello_dse
   // Number of accelerators per cluster
   int NAccxClMin = 1; // accelerator per cluster tile (most performant case)
   int NAccxClMax = 1; // <= NAccxClMax <= NumClustersActive
-  
-  ///////////////////
-  // Critical task //
-  ///////////////////
-
-  // Number of hops from memory tile
-  localparam int unsigned NumHopsClMem = 1;
-  
+    
   /////////
   // DUT //
   /////////
@@ -713,11 +686,8 @@ module tb_picobello_dse
 				              realm_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
 
-				                // Set register file address offset
-				                tb_realm_cfg.regfile_addr_offset                                            = cluster_rt_addr_offset;
-
 				                // Set register file base address
-				                tb_realm_cfg.regfile_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_realm_cfg.regfile_addr_offset; 
+				                tb_realm_cfg.regfile_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + cluster_rt_addr_offset;
 
 				                // Initialize manager ID
 				                tb_realm_cfg.mgr_id                                                        = 0;
@@ -790,11 +760,8 @@ module tb_picobello_dse
 				              realm_interf_cfg_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
 
-				                // Set register file address offset
-				                tb_realm_cfg.regfile_addr_offset                                            = cluster_rt_addr_offset;
-
 				                // Set register file base address
-				                tb_realm_cfg.regfile_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + tb_realm_cfg.regfile_addr_offset; 
+				                tb_realm_cfg.regfile_addr_base                                              = Sam[cl_id + ClusterX0Y0SamIdx].start_addr + cluster_rt_addr_offset;
 
 				                // Initialize manager ID
 				                tb_realm_cfg.mgr_id                                                        = 0;
@@ -896,21 +863,12 @@ module tb_picobello_dse
 				                dse_reset_bw_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
-				              // Reset old timer counter value
-				              tb_timer_cnt_value_old = '0; // Reset old counter value
-
 				              `wait_n_clk(1);
 
 				              // Start timer
 				              dse_start_timer(tb_timer_cfg);
 
 				              `wait_n_clk(1);
-
-				              // --- DMA in
-				              dma_r_first_burst = '{default: '0};
-				              dma_r_timer_0 = '{default: '0}; 
-				              dma_r_timer_1 = '{default: '0}; 
-				              dma_r_timer_val = '{default: '0};
 
 				              // Store total start time
 				              t_total.t0 = tb_timer_cnt_value;
@@ -935,7 +893,6 @@ module tb_picobello_dse
 				                  if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, noc_plane_id);
 				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, noc_plane_id);
 				                end
-				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
 				              end
 
 				              // Inter-group displacement
@@ -961,7 +918,6 @@ module tb_picobello_dse
 				                  if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, noc_plane_id);
 				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, noc_plane_id);
 				                end
-				                dma_r_timer_0[cl_id] = tb_timer_cnt_value;
 				              end
 
 				              // DMA: lower start signal
@@ -1001,9 +957,6 @@ module tb_picobello_dse
 				                    i_dpi_dse.dma_write_wait_idle(cl_id, noc_plane_id);
 				                  end
 				                end
-				                // Store timer value as dma read terminates
-				                dma_r_timer_1[cl_id] = tb_timer_cnt_value;
-				                dma_r_timer_val[cl_id] = dma_r_timer_1[cl_id] - dma_r_timer_0[cl_id];
 				              end
 
 				              `wait_n_clk(1);
@@ -1307,7 +1260,6 @@ module tb_picobello_dse
 				  `endif
 
 				              NTest = NTest + 1;
-				              tb_timer_cnt_value_old = tb_timer_cnt_value; // Store old counter value
 
 				              `wait_n_clk(1);
             				end // interferer_task_period_loop
