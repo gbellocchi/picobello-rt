@@ -110,8 +110,14 @@ sources:
       - target/fpga/src/fpga_picobello_top_wrapper.sv
       # Level 5
       # - target/sim/src/tb_picobello_fpga.sv
-      - target/sim/src/tb_picobello_fpga_fair.sv
-      # - target/sim/src/tb_picobello_fpga_fair_wc.sv # worst-case copy, same module name
+      # The golden testbench copy (same module name) is selected by the `golden` target
+      # (floomodel: rtl/picobello-rt/tools/run_manifest.py passes -t golden).
+      - target: not(golden)
+        files:
+          - target/sim/src/tb_picobello_fpga_fair.sv
+      - target: golden
+        files:
+          - target/sim/src/tb_picobello_fpga_fair_wc.sv
 
   - target: all(any(fpga), not(any(asic, simulation, test)))
     files:
