@@ -370,6 +370,32 @@ task automatic picobello_rt_abort_imtu(
 
 endtask
 
+// Stop the IMTU and flush its period and budget counters.
+// The budget counter is reloaded only when the period counter expires (IMTU abort restarts the
+// period alone), so a zero period is forced while abort is asserted. Budget and period written
+// afterwards are loaded immediately; abort must then be released before enabling the IMTU again.
+task automatic picobello_rt_flush_imtu(
+  input rt_cfg_t tb_rt_cfg
+);
+  rt_cfg_t int_rt_cfg = tb_rt_cfg;
+
+  // Check input RT configuration validity
+  picobello_rt_check_cfg(tb_rt_cfg);
+
+  // Disable IMTU
+  int_rt_cfg.rt_regfile_cfg.imtu_enable[int_rt_cfg.mgr_id] = '0;
+  picobello_rt_enable_imtu(int_rt_cfg);
+
+  // Assert IMTU abort
+  int_rt_cfg.rt_regfile_cfg.imtu_abort[int_rt_cfg.mgr_id] = '1;
+  picobello_rt_abort_imtu(int_rt_cfg);
+
+  // Force a zero period
+  int_rt_cfg.rt_regfile_cfg.read_period[int_rt_cfg.sbr_addr_reg_id]  = '0;
+  int_rt_cfg.rt_regfile_cfg.write_period[int_rt_cfg.sbr_addr_reg_id] = '0;
+  picobello_rt_set_period_budget(int_rt_cfg);
+endtask
+
 // Enable RT mode
 task automatic picobello_rt_enable_rt(
   input rt_cfg_t tb_rt_cfg

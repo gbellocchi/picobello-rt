@@ -185,6 +185,10 @@ package picobello_pkg;
   // L2 memory size of every memory tile
   localparam int unsigned MemTileSize = ep_addr_size(L2Spm0SamIdx);
 
+  // Merge the narrow and wide AXI ports with `floo_nw_join`. Without it, narrow requests to the
+  // memory tile get an error response.
+  localparam bit MemNwJoin = 1'b0;
+
   // Atop support
   localparam bit MemAtopSupport = 1'b0;
   localparam int unsigned MemMaxAtomicTxns = 0;

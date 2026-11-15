@@ -162,7 +162,7 @@ traffic_flows:
       number: 32
       length: 256
 
-  - name: "interferer"
+  - name: "critical"
     initiator: [0, 5]
     endpoint: [1, 5]
     rw: write
@@ -172,7 +172,7 @@ traffic_flows:
     wide_burst:
       number: 32
       length: 256
-  - name: "interferer"
+  - name: "critical"
     initiator: [1, 6]
     endpoint: [1, 5]
     rw: write
@@ -182,7 +182,7 @@ traffic_flows:
     wide_burst:
       number: 32
       length: 256
-  - name: "interferer"
+  - name: "critical"
     initiator: [2, 5]
     endpoint: [1, 5]
     rw: write

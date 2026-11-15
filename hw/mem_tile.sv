@@ -106,7 +106,9 @@ module mem_tile
   floo_picobello_noc_pkg::axi_wide_out_req_t   axi_wide_req;
   floo_picobello_noc_pkg::axi_wide_out_rsp_t   axi_wide_rsp;
 
-  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b1, 1'b0);
+  // The narrow subordinate port needs the join to reach the memory
+  localparam chimney_cfg_t ChimneyCfgN = set_ports(picobello_pkg::ChimneyL2Cfg,
+                                                   picobello_pkg::MemNwJoin, 1'b0);
   localparam chimney_cfg_t ChimneyCfgW = set_ports(picobello_pkg::ChimneyL2Cfg, 1'b1, 1'b0);
 
   floo_nw_chimney #(
@@ -160,8 +162,10 @@ module mem_tile
   // NW Join //
   /////////////
 
-  localparam axi_cfg_t AxiCfgJoin = floo_pkg::axi_join_cfg(AxiCfgN, picobello_pkg::AxiCfgWL2);
-//   localparam axi_cfg_t AxiCfgJoin = picobello_pkg::AxiCfgWL2;
+  // Without the join, only the wide AXI port reaches the memory
+  localparam axi_cfg_t AxiCfgJoin = picobello_pkg::MemNwJoin ?
+                                    floo_pkg::axi_join_cfg(AxiCfgN, picobello_pkg::AxiCfgWL2) :
+                                    picobello_pkg::AxiCfgWL2;
 
   typedef logic [AxiCfgJoin.OutIdWidth-1:0] nw_join_id_t;
   typedef logic [AxiCfgJoin.UserWidth-1:0] nw_join_user_t;
@@ -172,32 +176,37 @@ module mem_tile
   axi_nw_join_req_t axi_req_join;
   axi_nw_join_rsp_t axi_rsp_join;
 
-  floo_nw_join #(
-      .AxiCfgN         (axi_cfg_swap_iw(AxiCfgN)),
-      .AxiCfgW         (axi_cfg_swap_iw(picobello_pkg::AxiCfgWL2)),
-      .AxiCfgJoin      (axi_cfg_swap_iw(AxiCfgJoin)),
-      .EnAtopAdapter   (1'b0),
-      .AtopUserAsId    (1'b1),
-      .axi_narrow_req_t(axi_narrow_out_req_t),
-      .axi_narrow_rsp_t(axi_narrow_out_rsp_t),
-      .axi_wide_req_t  (axi_wide_out_req_t),
-      .axi_wide_rsp_t  (axi_wide_out_rsp_t),
-      .axi_req_t       (axi_nw_join_req_t),
-      .axi_rsp_t       (axi_nw_join_rsp_t)
-  ) i_floo_nw_join (
-      .clk_i           (clk_i),
-      .rst_ni          (rst_ni),
-      .test_enable_i   (test_enable_i),
-      .axi_narrow_req_i(axi_narrow_req),
-      .axi_narrow_rsp_o(axi_narrow_rsp),
-      .axi_wide_req_i  (axi_wide_req),
-      .axi_wide_rsp_o  (axi_wide_rsp),
-      .axi_req_o       (axi_req_join),
-      .axi_rsp_i       (axi_rsp_join)
-  );
-
-//   assign axi_req_join = axi_wide_req;
-//   assign axi_wide_rsp = axi_rsp_join;
+  if (picobello_pkg::MemNwJoin) begin : gen_nw_join
+    floo_nw_join #(
+        .AxiCfgN         (axi_cfg_swap_iw(AxiCfgN)),
+        .AxiCfgW         (axi_cfg_swap_iw(picobello_pkg::AxiCfgWL2)),
+        .AxiCfgJoin      (axi_cfg_swap_iw(AxiCfgJoin)),
+        .EnAtopAdapter   (1'b0),
+        .AtopUserAsId    (1'b1),
+        .axi_narrow_req_t(axi_narrow_out_req_t),
+        .axi_narrow_rsp_t(axi_narrow_out_rsp_t),
+        .axi_wide_req_t  (axi_wide_out_req_t),
+        .axi_wide_rsp_t  (axi_wide_out_rsp_t),
+        .axi_req_t       (axi_nw_join_req_t),
+        .axi_rsp_t       (axi_nw_join_rsp_t)
+    ) i_floo_nw_join (
+        .clk_i           (clk_i),
+        .rst_ni          (rst_ni),
+        .test_enable_i   (test_enable_i),
+        .axi_narrow_req_i(axi_narrow_req),
+        .axi_narrow_rsp_o(axi_narrow_rsp),
+        .axi_wide_req_i  (axi_wide_req),
+        .axi_wide_rsp_o  (axi_wide_rsp),
+        .axi_req_o       (axi_req_join),
+        .axi_rsp_i       (axi_rsp_join)
+    );
+  end else begin : gen_no_nw_join
+    // The narrow subordinate port of the chimney is disabled (see `ChimneyCfgN`), so the chimney
+    // answers narrow requests with errors and never uses this response.
+    assign axi_narrow_rsp = '0;
+    assign axi_req_join   = axi_wide_req;
+    assign axi_wide_rsp   = axi_rsp_join;
+  end
 
   ///////////////
   // axi delay //

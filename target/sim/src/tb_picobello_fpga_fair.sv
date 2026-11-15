@@ -18,9 +18,9 @@
 `define SAVE_BURST_TIMESTAMPS
 
 // Traffic flow setup
-`define INTRA_FLOW_1H_ENDPOINT    
+// `define INTRA_FLOW_1H_ENDPOINT
 // `define INTER_FLOW_1H_ENDPOINT  
-// `define INTER_FLOW_1H
+`define INTER_FLOW_1H
 // `define INTER_FLOW_2H
 // `define INTER_FLOW_4H
 // `define INTER_FLOW_8H
@@ -148,8 +148,21 @@ module tb_picobello_fpga_fair
   localparam int unsigned InterGroupDelay     = 0;
 
   // AXI-Realm features
-  localparam bit CriticalBudgetPeriodActive   = 1'b0;
+  localparam bit CriticalBudgetPeriodActive   = 1'b1;
   localparam bit InterfBudgetPeriodActive     = 1'b1;
+
+  // Critical fragment length coupled to the budget: each test uses the largest fragment that fits
+  // in the budget, min(CriticalBurstLength, CriticalBudget / bytes per beat).
+  localparam bit CriticalFragmFitBudget       = 1'b0;
+  localparam int unsigned CriticalBytesPerBeat = fpga_picobello_pkg::AxiCfgW.DataWidth / 8;
+
+  // Linear mapping: CriticalBudget is the target number of bytes per period. The IMTU admits one
+  // uncharged fragment per period when the next request is already pending as the budget runs out,
+  // so the programmed budget is reduced by that fragment and the fragment length is chosen to keep
+  // the result exact. CriticalOvershootUnfragm: 1 if this also happens with unsplit
+  // CriticalBurstLength bursts (reads), 0 otherwise (writes).
+  localparam bit CriticalFragmLinear          = 1'b0;
+  localparam bit CriticalOvershootUnfragm     = 1'b0;
 
   // ------------------------------------------------------------- //
   // Intra-flow setup
@@ -160,16 +173,16 @@ module tb_picobello_fpga_fair
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd1; // burstless (single-beat)
-    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+    int CriticalBurstLengthMin = 32'd1; // no fragmentation (max allowed by axi4)
+    int CriticalBurstLengthMax = 32'd1; // max allowed by axi4
 
     // Budget for critical tasks
-    int CriticalBudgetMin = 32'd16384;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
-    int CriticalBudgetMax = 32'd16384; // 16 kB = 64 bursts @FL-BE=16Beats
+    int CriticalBudgetMin = 32'd16;   // 4 kB = 1 burst per period @FL-BE=256Beats
+    int CriticalBudgetMax = 32'd131072; // 128 kB = whole payload (32 bursts) in one period
 
     // Period for critical tasks
-    int CriticalPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    int CriticalPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
+    int CriticalPeriodMin = 32'd2048; // 2048 Ck
+    int CriticalPeriodMax = 32'd2048; // 2048 Ck
 
     // Interferer flow
     localparam int unsigned NumClustersInterf = 1;
@@ -243,176 +256,171 @@ module tb_picobello_fpga_fair
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 1 hop
+  // Four critical tasks, one per input port of the memory router [1, 2]. The critical task on [1, 1]
+  // shares the [1, 1] -> [1, 2] link with three upstream interferers (topological unfairness).
   `ifdef INTER_FLOW_1H
     // Critical flow
-    localparam int unsigned NumClustersActive = 1;
-    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned NumClustersActive = 4;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{
+      ClusterX1Y1SamIdx, // router [1, 1], shares its link with the interferers
+      ClusterX0Y2SamIdx, // router [0, 2]
+      ClusterX1Y2SamIdx, // router [1, 3]
+      ClusterX2Y2SamIdx  // router [2, 2]
+    };
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
-    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+    int CriticalBurstLengthMin = 32'd32; // 256-beat bursts split into 32-beat fragments
+    int CriticalBurstLengthMax = 32'd32; // 256-beat bursts split into 32-beat fragments
 
     // Budget for critical tasks
-    int CriticalBudgetMin = 32'd16384; // 16 kB
-    int CriticalBudgetMax = 32'd16384; // 16 kB
+    // Same period as the interferers, max credit for that period (period x 16 B)
+    int CriticalBudgetMin = 32'd32768; // max credit for the period (65536 Ck x 16 B)
+    int CriticalBudgetMax = 32'd32768; // max credit for the period (65536 Ck x 16 B)
 
     // Period for critical tasks
-    int CriticalPeriodMin = 32'd0; // 0 Ck
-    int CriticalPeriodMax = 32'd0; // 0 Ck
+    int CriticalPeriodMin = 32'd2048; // 65536 Ck, same as the interferers
+    int CriticalPeriodMax = 32'd2048; // 65536 Ck, same as the interferers
 
     // Interferer flow
-    localparam int unsigned NumClustersInterf = 8;
-    localparam int unsigned NumClustersInterfActive = 8;
+    localparam int unsigned NumClustersInterf = 3;
+    localparam int unsigned NumClustersInterfActive = 3;
     localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
-      ClusterX0Y0SamIdx,
-      ClusterX0Y1SamIdx,
-      ClusterX0Y2SamIdx,
-      ClusterX1Y0SamIdx,
-      ClusterX1Y2SamIdx,
-      ClusterX2Y0SamIdx,
-      ClusterX2Y1SamIdx,
-      ClusterX2Y2SamIdx
+      ClusterX1Y0SamIdx, // router [1, 0]
+      ClusterX0Y1SamIdx, // router [0, 1]
+      ClusterX2Y1SamIdx  // router [2, 1]
     };
     localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx,
-      L2Spm0SamIdx, 
       L2Spm0SamIdx,
       L2Spm0SamIdx,
       L2Spm0SamIdx
     }; // currently not used with floo dma
 
     // Burst length for interferer tasks
-    int InterfBurstLengthMin = 32'd16; // burstless (single-beat)
-    int InterfBurstLengthMax = 32'd16; // max allowed by axi4
+    int InterfBurstLengthMin = 32'd32; // 256-beat bursts split into 32-beat fragments
+    int InterfBurstLengthMax = 32'd32; // 256-beat bursts split into 32-beat fragments
 
     // Budget for interferer tasks
-    int InterfBudgetMin = 32'd256;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
-    int InterfBudgetMax = 32'd256; // 32'd16384; // 16 kB = 64 bursts @FL-BE=16Beats
+    int InterfBudgetMin = 32'd512; // 512 B = 1 fragment per period @FL-BE=32Beats
+    int InterfBudgetMax = 32'd512; // 512 B = 1 fragment per period @FL-BE=32Beats
 
     // Period for interferer tasks
-    int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
+    // Longer periods lower the period utilization at a fixed fragment length
+    int InterfPeriodMin = 32'd2048; // 65536 Ck = 0.05% utilization @512 B
+    int InterfPeriodMax = 32'd2048; // 65536 Ck = 0.05% utilization @512 B
 
     // Number of DMAs
     localparam int unsigned NumCoresActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 2 hops
+  // Four critical tasks write to the memory tile at router [1, 3]. Three of them sit one hop
+  // from it, one per input port. The critical task on [1, 1] is 2 hops away and shares every
+  // link of its path with three local interferers (topological unfairness).
   `ifdef INTER_FLOW_2H
     // Critical flow
-    localparam int unsigned NumClustersActive = 1;
-    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned NumClustersActive = 4;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{
+      ClusterX1Y1SamIdx, // router [1, 1], shares its path with the interferers
+      ClusterX0Y3SamIdx, // router [0, 3]
+      ClusterX1Y3SamIdx, // router [1, 4]
+      ClusterX2Y3SamIdx  // router [2, 3]
+    };
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
-    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+    int CriticalBurstLengthMin = 32'd32; // fragment length, same as the interferers
+    int CriticalBurstLengthMax = 32'd32; // fragment length, same as the interferers
 
     // Budget for critical tasks
-    int CriticalBudgetMin = 32'd16384; // 16 kB
-    int CriticalBudgetMax = 32'd16384; // 16 kB
+    int CriticalBudgetMin = 32'd32768; // max credit for the period (period x 16 B)
+    int CriticalBudgetMax = 32'd32768; // max credit for the period (period x 16 B)
 
     // Period for critical tasks
-    int CriticalPeriodMin = 32'd0; // 0 Ck
-    int CriticalPeriodMax = 32'd0; // 0 Ck
+    int CriticalPeriodMin = 32'd2048; // same as the interferers
+    int CriticalPeriodMax = 32'd2048; // same as the interferers
 
     // Interferer flow
-    localparam int unsigned NumClustersInterf = 11;
-    localparam int unsigned NumClustersInterfActive = 11;
+    localparam int unsigned NumClustersInterf = 6;
+    localparam int unsigned NumClustersInterfActive = 6;
     localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
-      ClusterX0Y0SamIdx,
+      ClusterX1Y0SamIdx, // hop 1, ejects at [1, 2]
       ClusterX0Y1SamIdx,
-      ClusterX0Y2SamIdx,
-      ClusterX0Y3SamIdx,
-      ClusterX1Y0SamIdx,
-      ClusterX1Y2SamIdx,
-      ClusterX1Y3SamIdx,
-      ClusterX2Y0SamIdx,
       ClusterX2Y1SamIdx,
-      ClusterX2Y2SamIdx,
-      ClusterX2Y3SamIdx
+      ClusterX0Y2SamIdx, // hop 2, ejects at the memory tile
+      ClusterX1Y2SamIdx,
+      ClusterX2Y2SamIdx
     };
     localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
       L2Spm0SamIdx,
       L2Spm0SamIdx,
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
-      L2Spm0SamIdx, 
+      L2Spm0SamIdx,
+      L2Spm0SamIdx,
       L2Spm0SamIdx,
       L2Spm0SamIdx
     }; // currently not used with floo dma
 
     // Burst length for interferer tasks
-    int InterfBurstLengthMin = 32'd16; // burstless (single-beat)
-    int InterfBurstLengthMax = 32'd16; // max allowed by axi4
+    int InterfBurstLengthMin = 32'd32; // fragment length
+    int InterfBurstLengthMax = 32'd32; // fragment length
 
     // Budget for interferer tasks
-    int InterfBudgetMin = 32'd256;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
-    int InterfBudgetMax = 32'd256; // 32'd16384; // 16 kB = 64 bursts @FL-BE=16Beats
+    int InterfBudgetMin = 32'd512; // credit floor = 1 fragment per period (fragment length x 16 B)
+    int InterfBudgetMax = 32'd512; // credit floor = 1 fragment per period (fragment length x 16 B)
 
     // Period for interferer tasks
-    int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
+    int InterfPeriodMin = 32'd2048; // same as the critical tasks
+    int InterfPeriodMax = 32'd2048; // same as the critical tasks
 
     // Number of DMAs
     localparam int unsigned NumCoresActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 4 hops
+  // Four critical tasks write to the memory tile at router [1, 5]. Three of them sit one hop
+  // from it, one per input port. The critical task on [1, 1] is 4 hops away and shares every
+  // link of its path with three local interferers (topological unfairness).
   `ifdef INTER_FLOW_4H
     // Critical flow
-    localparam int unsigned NumClustersActive = 1;
-    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned NumClustersActive = 4;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{
+      ClusterX1Y1SamIdx, // router [1, 1], shares its path with the interferers
+      ClusterX0Y5SamIdx, // router [0, 5]
+      ClusterX1Y5SamIdx, // router [1, 6]
+      ClusterX2Y5SamIdx  // router [2, 5]
+    };
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
-    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+    int CriticalBurstLengthMin = 32'd32; // fragment length, same as the interferers
+    int CriticalBurstLengthMax = 32'd32; // fragment length, same as the interferers
 
     // Budget for critical tasks
-    int CriticalBudgetMin = 32'd16384; // 16 kB
-    int CriticalBudgetMax = 32'd16384; // 16 kB
+    int CriticalBudgetMin = 32'd32768; // max credit for the period (period x 16 B)
+    int CriticalBudgetMax = 32'd32768; // max credit for the period (period x 16 B)
 
     // Period for critical tasks
-    int CriticalPeriodMin = 32'd0; // 0 Ck
-    int CriticalPeriodMax = 32'd0; // 0 Ck
+    int CriticalPeriodMin = 32'd2048; // same as the interferers
+    int CriticalPeriodMax = 32'd2048; // same as the interferers
 
     // Interferer flow
-    localparam int unsigned NumClustersInterf = 17;
-    localparam int unsigned NumClustersInterfActive = 17;
+    localparam int unsigned NumClustersInterf = 12;
+    localparam int unsigned NumClustersInterfActive = 12;
     localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
-      ClusterX0Y0SamIdx,
+      ClusterX1Y0SamIdx, // hop 1, ejects at [1, 2]
       ClusterX0Y1SamIdx,
-      ClusterX0Y2SamIdx,
-      ClusterX0Y3SamIdx,
-      ClusterX0Y4SamIdx,
-      ClusterX0Y5SamIdx,
-      ClusterX1Y0SamIdx,
-      ClusterX1Y2SamIdx,
-      ClusterX1Y3SamIdx,
-      ClusterX1Y4SamIdx,
-      ClusterX1Y5SamIdx,
-      ClusterX2Y0SamIdx,
       ClusterX2Y1SamIdx,
+      ClusterX0Y2SamIdx, // hop 2, ejects at [1, 3]
+      ClusterX1Y2SamIdx,
       ClusterX2Y2SamIdx,
+      ClusterX0Y3SamIdx, // hop 3, ejects at [1, 4]
+      ClusterX1Y3SamIdx,
       ClusterX2Y3SamIdx,
-      ClusterX2Y4SamIdx,
-      ClusterX2Y5SamIdx
+      ClusterX0Y4SamIdx, // hop 4, ejects at the memory tile
+      ClusterX1Y4SamIdx,
+      ClusterX2Y4SamIdx
     };
     localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
       L2Spm0SamIdx,
       L2Spm0SamIdx,
       L2Spm0SamIdx,
@@ -428,80 +436,78 @@ module tb_picobello_fpga_fair
     }; // currently not used with floo dma
 
     // Burst length for interferer tasks
-    int InterfBurstLengthMin = 32'd16; // burstless (single-beat)
-    int InterfBurstLengthMax = 32'd16; // max allowed by axi4
+    int InterfBurstLengthMin = 32'd32; // fragment length
+    int InterfBurstLengthMax = 32'd32; // fragment length
 
     // Budget for interferer tasks
-    int InterfBudgetMin = 32'd256;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
-    int InterfBudgetMax = 32'd256; // 32'd16384; // 16 kB = 64 bursts @FL-BE=16Beats
+    int InterfBudgetMin = 32'd512; // credit floor = 1 fragment per period (fragment length x 16 B)
+    int InterfBudgetMax = 32'd512; // credit floor = 1 fragment per period (fragment length x 16 B)
 
     // Period for interferer tasks
-    int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    
+    int InterfPeriodMin = 32'd2048; // same as the critical tasks
+    int InterfPeriodMax = 32'd2048; // same as the critical tasks
+
     // Number of DMAs
     localparam int unsigned NumCoresActive = 1;
   `endif
   // ------------------------------------------------------------- //
   // Inter-flow setup - 8 hops
+  // Four critical tasks write to the memory tile at router [1, 9]. Three of them sit one hop
+  // from it, one per input port. The critical task on [1, 1] is 8 hops away and shares every
+  // link of its path with three local interferers (topological unfairness).
   `ifdef INTER_FLOW_8H
     // Critical flow
-    localparam int unsigned NumClustersActive = 1;
-    localparam int unsigned IdTestCl[NumClustersActive] = '{ClusterX1Y1SamIdx};
+    localparam int unsigned NumClustersActive = 4;
+    localparam int unsigned IdTestCl[NumClustersActive] = '{
+      ClusterX1Y1SamIdx, // router [1, 1], shares its path with the interferers
+      ClusterX0Y9SamIdx, // router [0, 9]
+      ClusterX1Y9SamIdx, // router [1, 10]
+      ClusterX2Y9SamIdx  // router [2, 9]
+    };
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd256; // burstless (single-beat)
-    int CriticalBurstLengthMax = 32'd256; // max allowed by axi4
+    int CriticalBurstLengthMin = 32'd16; // fragment length, same as the interferers
+    int CriticalBurstLengthMax = 32'd16; // fragment length, same as the interferers
 
     // Budget for critical tasks
-    int CriticalBudgetMin = 32'd16384; // 16 kB
-    int CriticalBudgetMax = 32'd16384; // 16 kB
+    int CriticalBudgetMin = 32'd32768; // max credit for the period (period x 16 B)
+    int CriticalBudgetMax = 32'd32768; // max credit for the period (period x 16 B)
 
     // Period for critical tasks
-    int CriticalPeriodMin = 32'd0; // 0 Ck
-    int CriticalPeriodMax = 32'd0; // 0 Ck
+    int CriticalPeriodMin = 32'd2048; // same as the interferers
+    int CriticalPeriodMax = 32'd2048; // same as the interferers
 
     // Interferer flow
-    localparam int unsigned NumClustersInterf = 29;
-    localparam int unsigned NumClustersInterfActive = 29;
+    localparam int unsigned NumClustersInterf = 24;
+    localparam int unsigned NumClustersInterfActive = 24;
     localparam int unsigned IdTestClInterf[NumClustersInterf] = '{
-      ClusterX0Y0SamIdx,
+      ClusterX1Y0SamIdx, // hop 1, ejects at [1, 2]
       ClusterX0Y1SamIdx,
-      ClusterX0Y2SamIdx,
-      ClusterX0Y3SamIdx,
-      ClusterX0Y4SamIdx,
-      ClusterX0Y5SamIdx,
-      ClusterX0Y6SamIdx,
-      ClusterX0Y7SamIdx,
-      ClusterX0Y8SamIdx,
-      ClusterX0Y9SamIdx,
-      ClusterX1Y0SamIdx,
-      ClusterX1Y2SamIdx,
-      ClusterX1Y3SamIdx,
-      ClusterX1Y4SamIdx,
-      ClusterX1Y5SamIdx,
-      ClusterX1Y6SamIdx,
-      ClusterX1Y7SamIdx,
-      ClusterX1Y8SamIdx,
-      ClusterX1Y9SamIdx,
-      ClusterX2Y0SamIdx,
       ClusterX2Y1SamIdx,
+      ClusterX0Y2SamIdx, // hop 2, ejects at [1, 3]
+      ClusterX1Y2SamIdx,
       ClusterX2Y2SamIdx,
+      ClusterX0Y3SamIdx, // hop 3, ejects at [1, 4]
+      ClusterX1Y3SamIdx,
       ClusterX2Y3SamIdx,
+      ClusterX0Y4SamIdx, // hop 4, ejects at [1, 5]
+      ClusterX1Y4SamIdx,
       ClusterX2Y4SamIdx,
+      ClusterX0Y5SamIdx, // hop 5, ejects at [1, 6]
+      ClusterX1Y5SamIdx,
       ClusterX2Y5SamIdx,
+      ClusterX0Y6SamIdx, // hop 6, ejects at [1, 7]
+      ClusterX1Y6SamIdx,
       ClusterX2Y6SamIdx,
+      ClusterX0Y7SamIdx, // hop 7, ejects at [1, 8]
+      ClusterX1Y7SamIdx,
       ClusterX2Y7SamIdx,
-      ClusterX2Y8SamIdx,
-      ClusterX2Y9SamIdx
+      ClusterX0Y8SamIdx, // hop 8, ejects at the memory tile
+      ClusterX1Y8SamIdx,
+      ClusterX2Y8SamIdx
     };
     localparam int unsigned IdTestMemInterf[NumClustersInterf] = '{
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
-      L2Spm0SamIdx,
       L2Spm0SamIdx,
       L2Spm0SamIdx,
       L2Spm0SamIdx,
@@ -529,16 +535,16 @@ module tb_picobello_fpga_fair
     }; // currently not used with floo dma
 
     // Burst length for interferer tasks
-    int InterfBurstLengthMin = 32'd16; // burstless (single-beat)
-    int InterfBurstLengthMax = 32'd16; // max allowed by axi4
+    int InterfBurstLengthMin = 32'd16; // fragment length
+    int InterfBurstLengthMax = 32'd16; // fragment length
 
     // Budget for interferer tasks
-    int InterfBudgetMin = 32'd256;  // 16 kB / 64 = 16 Beats = 1 Burst @FL-BE=16Beats
-    int InterfBudgetMax = 32'd256; // 32'd16384; // 16 kB = 64 bursts @FL-BE=16Beats
+    int InterfBudgetMin = 32'd256; // credit floor = 1 fragment per period (fragment length x 16 B)
+    int InterfBudgetMax = 32'd256; // credit floor = 1 fragment per period (fragment length x 16 B)
 
     // Period for interferer tasks
-    int InterfPeriodMin = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
-    int InterfPeriodMax = 32'd2048; // 2048 Ck = 128 burst periods @FL-BE=16Beats
+    int InterfPeriodMin = 32'd2048; // same as the critical tasks
+    int InterfPeriodMax = 32'd2048; // same as the critical tasks
 
     // Number of DMAs
     localparam int unsigned NumCoresActive = 1;
@@ -951,6 +957,27 @@ module tb_picobello_fpga_fair
             	// Loop over budget values of critical tasks (geometric progression)
             	critical_task_budget_loop: for (int CriticalBudget = CriticalBudgetMin; CriticalBudget <= CriticalBudgetMax; CriticalBudget = (CriticalBudget == 0) ? 1 : CriticalBudget * 2) begin
 
+            	  // Fragment length applied to critical tasks
+            	  automatic int CriticalFragmLength = CriticalBurstLength;
+            	  // Budget programmed in AXI-Realm
+            	  automatic int CriticalBudgetProg = CriticalBudget;
+            	  automatic int CriticalBurstBytes = CriticalBurstLength * CriticalBytesPerBeat;
+            	  if (CriticalFragmFitBudget && (CriticalBudget / CriticalBytesPerBeat < CriticalBurstLength)) begin
+            	    CriticalFragmLength = (CriticalBudget < CriticalBytesPerBeat) ? 1 : CriticalBudget / CriticalBytesPerBeat;
+            	  end
+            	  if (CriticalFragmLinear) begin
+            	    if ((CriticalBudget >= 2 * CriticalBurstBytes) ||
+            	        (!CriticalOvershootUnfragm && (CriticalBudget % CriticalBurstBytes == 0))) begin
+            	      // Unsplit bursts, budget reduced by the uncharged burst (if any)
+            	      CriticalFragmLength = CriticalBurstLength;
+            	      CriticalBudgetProg  = CriticalBudget - (CriticalOvershootUnfragm ? CriticalBurstBytes : 0);
+            	    end else begin
+            	      // Two fragments per period: one charged, one uncharged
+            	      CriticalFragmLength = CriticalBudget / (2 * CriticalBytesPerBeat);
+            	      CriticalBudgetProg  = CriticalBudget / 2;
+            	    end
+            	  end
+
             		// Loop over period values of critical tasks (geometric progression)
             		critical_task_period_loop: for (int CriticalPeriod = CriticalPeriodMin; CriticalPeriod <= CriticalPeriodMax; CriticalPeriod = (CriticalPeriod == 0) ? 1 : CriticalPeriod * 2) begin
 
@@ -980,9 +1007,9 @@ module tb_picobello_fpga_fair
 				                tb_rt_cfg.sbr_addr_reg_id                                               = 0;
 
 				                // Set the read budget (32b)
-				                tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = CriticalBudget;
+				                tb_rt_cfg.rt_regfile_cfg.read_budget[tb_rt_cfg.sbr_addr_reg_id]         = CriticalBudgetProg;
 				                // Set the write budget (32b)
-				                tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = CriticalBudget;
+				                tb_rt_cfg.rt_regfile_cfg.write_budget[tb_rt_cfg.sbr_addr_reg_id]        = CriticalBudgetProg;
 
 				                // Set the read period (32b)
 				                tb_rt_cfg.rt_regfile_cfg.read_period[tb_rt_cfg.sbr_addr_reg_id]         = CriticalPeriod;
@@ -1004,6 +1031,11 @@ module tb_picobello_fpga_fair
 				                // Configure AXI-Realm subordinate address regions
 				                picobello_rt_set_addr_reg(tb_rt_cfg);
 
+				                // Flush AXI-Realm period-budget counters, so that each test starts with a new period and a full budget
+				                if(CriticalBudgetPeriodActive) begin
+				                  picobello_rt_flush_imtu(tb_rt_cfg);
+				                end
+
 				                // Configure AXI-Realm period-budget QoS service
 				                picobello_rt_set_period_budget(tb_rt_cfg);
 
@@ -1015,7 +1047,7 @@ module tb_picobello_fpga_fair
 				                  tb_rt_cfg.mgr_id                                                    = core_id;
 
 				                  // Set the burst length limit (8b)
-				                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (CriticalBurstLength - 1) & 8'hFF;
+				                  tb_rt_cfg.rt_regfile_cfg.len_limit[tb_rt_cfg.mgr_id]                = (CriticalFragmLength - 1) & 8'hFF;
 
 				                  // Set IMTU abort (1b)
 				                  tb_rt_cfg.rt_regfile_cfg.imtu_abort[tb_rt_cfg.mgr_id]               = '0;
@@ -1033,6 +1065,7 @@ module tb_picobello_fpga_fair
 
                           // Enable IMTU
                           if(CriticalBudgetPeriodActive) begin
+				                    picobello_rt_abort_imtu(tb_rt_cfg);
 				                    picobello_rt_enable_imtu(tb_rt_cfg);
                           end
 
@@ -1086,6 +1119,11 @@ module tb_picobello_fpga_fair
 				                // Configure AXI-Realm subordinate address regions
 				                picobello_rt_set_addr_reg(tb_rt_cfg);
 
+				                // Flush AXI-Realm period-budget counters, so that each test starts with a new period and a full budget
+				                if(InterfBudgetPeriodActive) begin
+				                  picobello_rt_flush_imtu(tb_rt_cfg);
+				                end
+
 				                // Configure AXI-Realm period-budget QoS service
 				                picobello_rt_set_period_budget(tb_rt_cfg);
 
@@ -1113,6 +1151,7 @@ module tb_picobello_fpga_fair
 
                           // Enable IMTU
                           if(InterfBudgetPeriodActive) begin
+				                    picobello_rt_abort_imtu(tb_rt_cfg);
 				                    picobello_rt_enable_imtu(tb_rt_cfg);
                           end
 
@@ -1401,9 +1440,10 @@ module tb_picobello_fpga_fair
 				              $display (" - NoC -- RouterOutFifoDepth:      %8d", experimental_stats.router_fifo_out_depth);
 				              $display (" - NoC -- NIMaxTxns:               %8d", experimental_stats.ni_max_oustanding_txns);
 				              $display (" - NoC -- NIMaxUniqueIds:          %8d", experimental_stats.ni_max_unique_ids);
-				              $display (" - Realm -- CriticalBurstLength:   %8d", CriticalBurstLength);
+				              $display (" - Realm -- CriticalBurstLength:   %8d", CriticalFragmLength);
 				              $display (" - Realm -- InterfBurstLength:     %8d", InterfBurstLength);
 				              $display (" - Realm -- CriticalBudget:        %8d", CriticalBudget);
+				              $display (" - Realm -- CriticalBudgetProg:    %8d", CriticalBudgetProg);
 				              $display (" - Realm -- CriticalPeriod:        %8d", CriticalPeriod);
 				              $display (" - Realm -- InterfBudget:          %8d", InterfBudget);
 				              $display (" - Realm -- InterfPeriod:          %8d", InterfPeriod);
@@ -1433,9 +1473,10 @@ module tb_picobello_fpga_fair
 				                $fwrite(fileDescriptor, "noc_router_fifo_out_depth: %0d\n",   experimental_stats.router_fifo_out_depth);
 				                $fwrite(fileDescriptor, "noc_ni_max_oustanding_txns: %0d\n",  experimental_stats.ni_max_oustanding_txns);
 				                $fwrite(fileDescriptor, "noc_ni_max_unique_ids: %0d\n",       experimental_stats.ni_max_unique_ids);
-				                $fwrite(fileDescriptor, "burst_length: %0d\n",                CriticalBurstLength);
+				                $fwrite(fileDescriptor, "burst_length: %0d\n",                CriticalFragmLength);
 				                $fwrite(fileDescriptor, "burst_length_interf: %0d\n",         InterfBurstLength);
 				                $fwrite(fileDescriptor, "budget: %0d\n",                      CriticalBudget);
+				                $fwrite(fileDescriptor, "budget_prog: %0d\n",                 CriticalBudgetProg);
 				                $fwrite(fileDescriptor, "period: %0d\n",                      CriticalPeriod);
 				                $fwrite(fileDescriptor, "budget_interf: %0d\n",               InterfBudget);
 				                $fwrite(fileDescriptor, "period_interf: %0d\n",               InterfPeriod);
