@@ -24,8 +24,8 @@
 `ifndef FLOOMODEL_GOLDEN
 // `define INTRA_FLOW_1H_ENDPOINT
 // `define INTER_FLOW_1H_ENDPOINT  
-`define INTER_FLOW_1H
-// `define INTER_FLOW_2H
+// `define INTER_FLOW_1H
+`define INTER_FLOW_2H
 // `define INTER_FLOW_4H
 // `define INTER_FLOW_8H
 // `define INTER_HOST_CTRL_PLANE_DIRECT_INTERF
@@ -163,7 +163,7 @@ module tb_picobello_fpga_fair
   // -- CriticalExecTime is the execution time of IdTestCl[0]. With WorstCaseTimeout != 0 the test
   //    stops waiting for it after that many clock cycles (InterfRelaunches/Timeout report it).
   // -- Afterwards the interferer IMTU is disabled, so their last job drains without regulation.
-  bit          WorstCaseScenario    = 1'b1; // +WC=0|1
+  bit          WorstCaseScenario    = 1'b0; // +WC=0|1
   localparam int unsigned WorstCaseWarmup      = 4096;
   localparam bit          WorstCaseFairBacklog = 1'b1;
   int unsigned WorstCaseTimeout     = 0;    // +WC_TIMEOUT=<cycles>
@@ -177,8 +177,9 @@ module tb_picobello_fpga_fair
   int unsigned wc_relaunch_cnt;     // jobs relaunched while IdTestCl[0] was active
 
   // AXI-Realm features
-  bit CriticalBudgetPeriodActive   = 1'b0; // +REG_C=0|1
-  bit InterfBudgetPeriodActive     = 1'b0; // +REG_I=0|1
+  bit CriticalBudgetPeriodActive   = 1'b1; // +REG_C=0|1
+  int unsigned realm_cfg_gap = 0; // +REALM_CFG_GAP=<cycles> after each IMTU enable (period phase studies)
+  bit InterfBudgetPeriodActive     = 1'b1; // +REG_I=0|1
 
   // Critical fragment length coupled to the budget: each test uses the largest fragment that fits
   // in the budget, min(CriticalBurstLength, CriticalBudget / bytes per beat).
@@ -299,17 +300,17 @@ module tb_picobello_fpga_fair
     localparam int unsigned IdTestMem = '{L2Spm0SamIdx}; // currently not used with floo dma
 
     // Burst length for critical tasks
-    int CriticalBurstLengthMin = 32'd256; // 256-beat bursts split into 32-beat fragments
-    int CriticalBurstLengthMax = 32'd256; // 256-beat bursts split into 32-beat fragments
+    int CriticalBurstLengthMin = 32'd16; // 256-beat bursts split into 32-beat fragments
+    int CriticalBurstLengthMax = 32'd16; // 256-beat bursts split into 32-beat fragments
 
     // Budget for critical tasks
     // Same period as the interferers, max credit for that period (period x 16 B)
-    int CriticalBudgetMin = 32'd32768; // max credit for the period (65536 Ck x 16 B)
-    int CriticalBudgetMax = 32'd32768; // max credit for the period (65536 Ck x 16 B)
+    int CriticalBudgetMin = 32'd131072; // max credit for the period (65536 Ck x 16 B)
+    int CriticalBudgetMax = 32'd131072; // max credit for the period (65536 Ck x 16 B)
 
     // Period for critical tasks
-    int CriticalPeriodMin = 32'd2048; // 65536 Ck, same as the interferers
-    int CriticalPeriodMax = 32'd2048; // 65536 Ck, same as the interferers
+    int CriticalPeriodMin = 32'd8192; // 65536 Ck, same as the interferers
+    int CriticalPeriodMax = 32'd8192; // 65536 Ck, same as the interferers
 
     // Interferer flow
     localparam int unsigned NumClustersInterf = 3;
@@ -326,17 +327,17 @@ module tb_picobello_fpga_fair
     }; // currently not used with floo dma
 
     // Burst length for interferer tasks
-    int InterfBurstLengthMin = 32'd256; // 256-beat bursts split into 32-beat fragments
-    int InterfBurstLengthMax = 32'd256; // 256-beat bursts split into 32-beat fragments
+    int InterfBurstLengthMin = 32'd16; // 256-beat bursts split into 32-beat fragments
+    int InterfBurstLengthMax = 32'd16; // 256-beat bursts split into 32-beat fragments
 
     // Budget for interferer tasks
-    int InterfBudgetMin = 32'd4096; // 512 B = 1 fragment per period @FL-BE=32Beats
-    int InterfBudgetMax = 32'd4096; // 512 B = 1 fragment per period @FL-BE=32Beats
+    int InterfBudgetMin = 32'd256; // 512 B = 1 fragment per period @FL-BE=32Beats
+    int InterfBudgetMax = 32'd256; // 512 B = 1 fragment per period @FL-BE=32Beats
 
     // Period for interferer tasks
     // Longer periods lower the period utilization at a fixed fragment length
-    int InterfPeriodMin = 32'd2048; // 65536 Ck = 0.05% utilization @512 B
-    int InterfPeriodMax = 32'd2048; // 65536 Ck = 0.05% utilization @512 B
+    int InterfPeriodMin = 32'd8192; // 65536 Ck = 0.05% utilization @512 B
+    int InterfPeriodMax = 32'd8192; // 65536 Ck = 0.05% utilization @512 B
 
     // Number of DMAs
     localparam int unsigned NumCoresActive = 1;
@@ -853,6 +854,7 @@ module tb_picobello_fpga_fair
     if ($value$plusargs("WC_TIMEOUT=%d", v)) WorstCaseTimeout = v;
     if ($value$plusargs("REG_C=%d", v))      CriticalBudgetPeriodActive = v[0];
     if ($value$plusargs("REG_I=%d", v))      InterfBudgetPeriodActive = v[0];
+    if ($value$plusargs("REALM_CFG_GAP=%d", v)) realm_cfg_gap = v;
     LaunchCriticalFirst = WorstCaseScenario ? 1'b0 : CriticalFirst;
     LaunchGroupDelay    = WorstCaseScenario ? WorstCaseWarmup : InterGroupDelay;
   endtask
@@ -1134,6 +1136,7 @@ module tb_picobello_fpga_fair
                           if(CriticalBudgetPeriodActive) begin
 				                    picobello_rt_abort_imtu(tb_rt_cfg);
 				                    picobello_rt_enable_imtu(tb_rt_cfg);
+                    if (realm_cfg_gap != 0) `wait_n_clk(realm_cfg_gap); // +REALM_CFG_GAP: shifts the period phases
                           end
 
 				                  // Enable real-time mode
@@ -1220,6 +1223,7 @@ module tb_picobello_fpga_fair
                           if(InterfBudgetPeriodActive) begin
 				                    picobello_rt_abort_imtu(tb_rt_cfg);
 				                    picobello_rt_enable_imtu(tb_rt_cfg);
+                    if (realm_cfg_gap != 0) `wait_n_clk(realm_cfg_gap); // +REALM_CFG_GAP: shifts the period phases
                           end
 
 				                  // Enable real-time mode
@@ -1480,6 +1484,7 @@ module tb_picobello_fpga_fair
 				                      tb_rt_cfg.mgr_id                                       = j;
 				                      tb_rt_cfg.rt_regfile_cfg.imtu_enable[tb_rt_cfg.mgr_id] = 1'b0;
 				                      picobello_rt_enable_imtu(tb_rt_cfg);
+                    if (realm_cfg_gap != 0) `wait_n_clk(realm_cfg_gap); // +REALM_CFG_GAP: shifts the period phases
 				                    end
 				                  end
 				                end
