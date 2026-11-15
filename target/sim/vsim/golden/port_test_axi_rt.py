@@ -55,6 +55,8 @@ def port_tb(root):
   `include "tb_axi_realm_probe.svh"
 `endif
 
+  int unsigned realm_cfg_gap = 0; // +REALM_CFG_GAP=<cycles> after each IMTU enable (period phase studies)
+
   // floomodel golden runs: sweep bounds from plusargs (each sets Min and Max of its sweep)
   task automatic floomodel_plusargs();
     int v;
@@ -66,6 +68,7 @@ def port_tb(root):
     if ($value$plusargs("PERIOD_I=%d", v)) begin InterfPeriodMin = v;        InterfPeriodMax = v;        end
     if ($value$plusargs("REG_C=%d", v))    CriticalBudgetPeriodActive = v[0];
     if ($value$plusargs("REG_I=%d", v))    InterfBudgetPeriodActive = v[0];
+    if ($value$plusargs("REALM_CFG_GAP=%d", v)) realm_cfg_gap = v;
     if ($value$plusargs("WC=%d", v) && v != 0) $fatal(1, "worst-case mode not ported to tb_picobello_dse");
   endtask
 
@@ -80,6 +83,8 @@ def port_tb(root):
     s = sub1(s, "t_total.t1 = tb_timer_cnt_value;\n",
              "t_total.t1 = tb_timer_cnt_value;\n`ifdef TRACE_NOC_LINKS\n              noc_trace_en = 1'b0;\n`endif\n"
              "`ifdef PROBE_AXI_REALM\n              realm_probe_en = 1'b0;\n`endif\n")
+    s = s.replace("dse_realm_enable_imtu(tb_realm_cfg);\n",
+                  "dse_realm_enable_imtu(tb_realm_cfg);\n                  if (realm_cfg_gap != 0) `wait_n_clk(realm_cfg_gap);\n")
     open(os.path.join(root, "target/sim/src/tb/tb_picobello_dse_golden.sv"), "w").write(s)
 
 
