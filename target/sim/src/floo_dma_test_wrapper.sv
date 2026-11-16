@@ -12,13 +12,10 @@ module floo_dma_test_wrapper
     import floo_picobello_noc_pkg::*;
     import picobello_pkg::*;
 #(
-    parameter int unsigned NumPending = 32'd0,
-    parameter id_t Id = '0,
     parameter int unsigned FlooDmaIndex = '0,
     parameter logic [floo_picobello_noc_pkg::AxiCfgW.AddrWidth-1:0] FlooDmaMemBaseAddr = 32'h0,
     // AXI4 parameters
     parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
-    parameter int unsigned AxiLock = 1,
     // AXI4 types
     parameter type axi_in_req_t = logic,
     parameter type axi_in_rsp_t = logic,
@@ -30,26 +27,20 @@ module floo_dma_test_wrapper
 ) (
     input logic clk_i,
     input logic rst_ni,
-    // AXI4 wide payload
-    input axi_in_req_t axi_in_req_i,
-    output axi_in_rsp_t axi_in_rsp_o,
+    // AXI4 traffic
     output axi_out_req_t axi_out_req_o,
     input axi_out_rsp_t axi_out_rsp_i,
     // Register bus control
     input reg_req_t regbus_read_regfile_req,
     output reg_rsp_t regbus_read_regfile_rsp,
     input reg_req_t regbus_write_regfile_req,
-    output reg_rsp_t regbus_write_regfile_rsp,
-    input reg_req_t regbus_compute_regfile_req,
-    output reg_rsp_t regbus_compute_regfile_rsp
+    output reg_rsp_t regbus_write_regfile_rsp
 );
     // Register interfaces
     floo_dma_reg_pkg::floo_dma_reg2hw_t reg2hw_read;
     floo_dma_reg_pkg::floo_dma_hw2reg_t hw2reg_read;
     floo_dma_reg_pkg::floo_dma_reg2hw_t reg2hw_write;
     floo_dma_reg_pkg::floo_dma_hw2reg_t hw2reg_write;
-    floo_dma_reg_pkg::floo_dma_reg2hw_t reg2hw_compute;
-    floo_dma_reg_pkg::floo_dma_hw2reg_t hw2reg_compute;
 
     // DMA controls
     logic traffic_gen_generic_start;
@@ -58,8 +49,6 @@ module floo_dma_test_wrapper
     logic read_done;
     logic write_start;
     logic write_done;
-    logic compute_start;
-    logic compute_done;
 
     // Traffic generator
     floo_dma_test_node #(
@@ -124,21 +113,4 @@ module floo_dma_test_wrapper
 
     assign write_start = reg2hw_write.start;
     assign hw2reg_write.done = write_done;
-
-    // Register file for compute operations
-    floo_dma_reg_top #(
-        .reg_req_t ( reg_req_t ),
-        .reg_rsp_t ( reg_rsp_t )
-    ) i_reg_top_compute (
-        .clk_i,
-        .rst_ni,
-        .reg_req_i  ( regbus_compute_regfile_req ),
-        .reg_rsp_o  ( regbus_compute_regfile_rsp ),
-        .reg2hw     ( reg2hw_compute             ),
-        .hw2reg     ( hw2reg_compute             ),
-        .devmode_i  ( 1'b1                       )
-    );
-
-    assign compute_start = reg2hw_compute.start;
-    assign hw2reg_compute.done = compute_done;
 endmodule
