@@ -41,12 +41,13 @@ module dpi_dse (
   // DPI C++ handles signal monitoring
   // SystemVerilog side handles time advancement
 
-  // Start DMA read
-  task dma_read_start_high(input int cl_id, input int noc_plane_id);
+  // Start DMA read (force the start bit high)
+  task dma_read_start(input int cl_id, input int noc_plane_id);
     dpi_dse_dma_read_start(cl_id, noc_plane_id, 1);
   endtask
 
-  task dma_read_start_low(input int cl_id, input int noc_plane_id);
+  // Release the DMA read start (lower the forced start bit)
+  task dma_read_release(input int cl_id, input int noc_plane_id);
     dpi_dse_dma_read_start(cl_id, noc_plane_id, 0);
   endtask
 
@@ -57,12 +58,13 @@ module dpi_dse (
     end
   endtask
 
-  // Start DMA write
-  task dma_write_start_high(input int cl_id, input int noc_plane_id);
+  // Start DMA write (force the start bit high)
+  task dma_write_start(input int cl_id, input int noc_plane_id);
     dpi_dse_dma_write_start(cl_id, noc_plane_id, 1);
   endtask
 
-  task dma_write_start_low(input int cl_id, input int noc_plane_id);
+  // Release the DMA write start (lower the forced start bit)
+  task dma_write_release(input int cl_id, input int noc_plane_id);
     dpi_dse_dma_write_start(cl_id, noc_plane_id, 0);
   endtask
 

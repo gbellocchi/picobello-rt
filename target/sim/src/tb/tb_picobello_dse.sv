@@ -890,8 +890,8 @@ module tb_picobello_dse
 				                end
 
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, noc_plane_id);
-				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, noc_plane_id);
+				                  if(DmaReadEnable) i_dpi_dse.dma_read_start(cl_id, noc_plane_id);
+				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start(cl_id, noc_plane_id);
 				                end
 				              end
 
@@ -915,8 +915,8 @@ module tb_picobello_dse
 				                end
 
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) i_dpi_dse.dma_read_start_high(cl_id, noc_plane_id);
-				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start_high(cl_id, noc_plane_id);
+				                  if(DmaReadEnable) i_dpi_dse.dma_read_start(cl_id, noc_plane_id);
+				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start(cl_id, noc_plane_id);
 				                end
 				              end
 
@@ -924,7 +924,7 @@ module tb_picobello_dse
 				              // Wait one cycle before lowering start signal to ensure DMAs have been triggered
 				              `wait_n_clk(1);
 
-				              dma_in_start_low_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
+				              dma_in_release_loop_0: for (int i = 0; i < NumClustersActive + NumClustersInterfActive; i++) begin
 				                automatic int cl_id;
 				                if(i < NumClustersActive) begin
 				                  cl_id = IdTestCl[i];
@@ -934,10 +934,10 @@ module tb_picobello_dse
 
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
 				                  if(DmaReadEnable) begin
-				                    i_dpi_dse.dma_read_start_low(cl_id, noc_plane_id);
+				                    i_dpi_dse.dma_read_release(cl_id, noc_plane_id);
 				                  end
 				                  if(DmaWriteEnable) begin
-				                    i_dpi_dse.dma_write_start_low(cl_id, noc_plane_id);
+				                    i_dpi_dse.dma_write_release(cl_id, noc_plane_id);
 				                  end
 				                end
 				              end
