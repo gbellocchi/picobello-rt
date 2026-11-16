@@ -17,7 +17,7 @@ set n_cl_x 3
 set n_cl_y 3
 set n_cl [expr {$n_cl_x * $n_cl_y}]
 
-set n_traffic_gen_regfiles 3
+set n_traffic_gen_regfiles 2
 
 set n_mem_x 1
 set n_mem_y 1
@@ -103,8 +103,7 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
     add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_write} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_write/*
     add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {floo_dma} -group {idma_transport_layer} -group {idma_dataflow_element} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_dataflow_element/*
 
-    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {reg_top_read} ${tile_tg_path}/i_reg_top_read/*
-    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {reg_top_write} ${tile_tg_path}/i_reg_top_write/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_wide" -group {reg_top_ctrl} ${tile_tg_path}/i_reg_top_ctrl/*
 
     # Narrow DMA test node
     set tile_tg_path "${tile_path}/i_narrow_axi_traffic_gen_wrapper"
@@ -119,8 +118,7 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
     add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_transport_layer} -group {idma_axi_write} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_idma_axi_write/*
     add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {floo_dma} -group {idma_transport_layer} -group {idma_dataflow_element} ${tile_tg_path}/i_dma_node/i_idma_backend/i_idma_transport_layer/i_dataflow_element/*
 
-    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {reg_top_read} ${tile_tg_path}/i_reg_top_read/*
-    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {reg_top_write} ${tile_tg_path}/i_reg_top_write/*
+    add wave -noupdate -group "cluster_tile[$cl]" -group "floo_dma_narrow" -group {reg_top_ctrl} ${tile_tg_path}/i_reg_top_ctrl/*
 
     # Traffic generator tile - XBAR - NI --> traffic generators
     add wave -noupdate -group "cluster_tile[$cl]" -group {xbar_ni2tg} ${tile_path}/i_rt_tile_ni2tg_xbar/*
@@ -130,7 +128,7 @@ for {set cl 0} {$cl < $n_cl} {incr cl} {
         add wave -noupdate -group "cluster_tile[$cl]" -group "xbar_tg2regfile[$plane]" ${tile_path}/gen_rt_tile_tg2regfile_xbar\[$plane\]/i_rt_tile_tg2regfile_xbar/*
     }
 
-    # Traffic generator tile - AXI to register bus, one per register file (realm, read, write)
+    # Traffic generator tile - AXI to register bus, one per register file (realm, DMA control)
     for {set plane 0} {$plane < $n_noc_planes} {incr plane} {
         for {set rf 0} {$rf < $n_traffic_gen_regfiles} {incr rf} {
             add wave -noupdate -group "cluster_tile[$cl]" -group "axi_to_reg_tg_regfile[$plane][$rf]" ${tile_path}/gen_tg_regfile_axi_to_reg_i\[$plane\]/gen_tg_regfile_axi_to_reg_j\[$rf\]/i_axi_to_reg_tg_regfile/*

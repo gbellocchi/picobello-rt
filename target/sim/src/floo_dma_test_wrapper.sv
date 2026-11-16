@@ -31,24 +31,16 @@ module floo_dma_test_wrapper
     output axi_out_req_t axi_out_req_o,
     input axi_out_rsp_t axi_out_rsp_i,
     // Register bus control
-    input reg_req_t regbus_read_regfile_req,
-    output reg_rsp_t regbus_read_regfile_rsp,
-    input reg_req_t regbus_write_regfile_req,
-    output reg_rsp_t regbus_write_regfile_rsp
+    input reg_req_t regbus_ctrl_regfile_req,
+    output reg_rsp_t regbus_ctrl_regfile_rsp
 );
-    // Register interfaces
-    floo_dma_reg_pkg::floo_dma_reg2hw_t reg2hw_read;
-    floo_dma_reg_pkg::floo_dma_hw2reg_t hw2reg_read;
-    floo_dma_reg_pkg::floo_dma_reg2hw_t reg2hw_write;
-    floo_dma_reg_pkg::floo_dma_hw2reg_t hw2reg_write;
+    // Register interface
+    floo_dma_reg_pkg::floo_dma_reg2hw_t reg2hw_ctrl;
+    floo_dma_reg_pkg::floo_dma_hw2reg_t hw2reg_ctrl;
 
     // DMA controls
-    logic traffic_gen_generic_start;
-    logic traffic_gen_generic_done;
-    logic read_start;
-    logic read_done;
-    logic write_start;
-    logic write_done;
+    logic dma_start;
+    logic dma_done;
 
     // Traffic generator
     floo_dma_test_node #(
@@ -72,45 +64,25 @@ module floo_dma_test_wrapper
         .axi_in_rsp_o   (                              ),
         .axi_out_req_o  ( axi_out_req_o             ),
         .axi_out_rsp_i  ( axi_out_rsp_i             ),
-        .start_of_sim_i ( traffic_gen_generic_start ),
-        .end_of_sim_o   ( traffic_gen_generic_done  )
+        .start_of_sim_i ( dma_start                 ),
+        .end_of_sim_o   ( dma_done                  )
     );
 
-    assign traffic_gen_generic_start = read_start | write_start;
-    assign read_done = traffic_gen_generic_done;
-    assign write_done = traffic_gen_generic_done;
-
-    // Register file for read transactions
+    // Control register file: start the job list, report its completion. Whether a
+    // transfer reads or writes is set per job by the traffic file.
     floo_dma_reg_top #(
         .reg_req_t ( reg_req_t ),
         .reg_rsp_t ( reg_rsp_t )
-    ) i_reg_top_read (
+    ) i_reg_top_ctrl (
         .clk_i,
         .rst_ni,
-        .reg_req_i  ( regbus_read_regfile_req ),
-        .reg_rsp_o  ( regbus_read_regfile_rsp ),
-        .reg2hw     ( reg2hw_read             ),
-        .hw2reg     ( hw2reg_read             ),
-        .devmode_i  ( 1'b1                       )
+        .reg_req_i  ( regbus_ctrl_regfile_req ),
+        .reg_rsp_o  ( regbus_ctrl_regfile_rsp ),
+        .reg2hw     ( reg2hw_ctrl             ),
+        .hw2reg     ( hw2reg_ctrl             ),
+        .devmode_i  ( 1'b1                    )
     );
 
-    assign read_start = reg2hw_read.start;
-    assign hw2reg_read.done = read_done;
-
-    // Register file for write transactions
-    floo_dma_reg_top #(
-        .reg_req_t ( reg_req_t ),
-        .reg_rsp_t ( reg_rsp_t )
-    ) i_reg_top_write (
-        .clk_i,
-        .rst_ni,
-        .reg_req_i  ( regbus_write_regfile_req ),
-        .reg_rsp_o  ( regbus_write_regfile_rsp ),
-        .reg2hw     ( reg2hw_write             ),
-        .hw2reg     ( hw2reg_write             ),
-        .devmode_i  ( 1'b1                       )
-    );
-
-    assign write_start = reg2hw_write.start;
-    assign hw2reg_write.done = write_done;
+    assign dma_start = reg2hw_ctrl.start;
+    assign hw2reg_ctrl.done = dma_done;
 endmodule

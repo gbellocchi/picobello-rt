@@ -34,9 +34,6 @@ module tb_picobello_dse
   // Host signals
   input picobello_pkg::axi_host_req_t tb_axi_host_req_i,
   output picobello_pkg::axi_host_rsp_t tb_axi_host_rsp_o,
-  // Traffic generator configuration
-  input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_read,
-  input sim_picobello_pkg::tg_cfg_t tb_tg_cfg_write,
   // AXI-Realm configuration
   input sim_picobello_pkg::realm_cfg_t tb_realm_cfg
 );
@@ -85,19 +82,12 @@ module tb_picobello_dse
   // Traffic Streams //
   /////////////////////
 
-  // DMA enable flags (use one per time)
-  int DmaReadEnable = 1;
-  int DmaWriteEnable = 1;
-
   // NoC plane control
   localparam int unsigned NumNoCPlanes = sim_picobello_pkg::NumNoCPlanes;
 
   // Interferer reconfiguration after critical task termination
   localparam bit RuntimeInterfReconfig = 1'b0;
   int InterfBurstLengthReconfig = 32'd256; // max allowed by axi4
-
-  // Traffic dimension (hardwired in traffic generator design)
-  int TrafficDim = 256 * 128;
 
   // Set order and time displacement between critical and interferer groups.
   // -- CriticalFirst=1: critical clusters start first; 0: interferers start first.
@@ -492,10 +482,6 @@ module tb_picobello_dse
   // Number of performed tests
   int NTest = 0;
 
-  // Number of operations per cluster
-  int NOpsMin = 32'h0000_0000; // Divide in two runs: Min (mem-bound): 32'h0000_0000 - Min (comp-bound): 32'h0000_8000
-  int NOpsMax = 32'h0000_0000; // Divide in two runs: Max (mem-bound): 32'h0000_4000 - Max (comp-bound): 32'h0200_0000
-
   // Number of cluster tiles per memory tile
   int NClXMemMin = NumClustersActive; // 1 cluster per memory tile (most performant case)
   int NClXMemMax = NumClustersActive; // 1 <= NClXMemMax <= NumClustersActive
@@ -624,9 +610,6 @@ module tb_picobello_dse
   initial begin
     // Initialization - axi req
     tb_axi_host_req_i = '{default: '0};
-    // Initialization - tg cfg
-    tb_tg_cfg_read = '{default: '0};
-    tb_tg_cfg_write = '{default: '0};
     tb_timer_cfg = '{default: '0};
     // Initialization - axi-realm
     tb_realm_cfg = '{default: '0};
@@ -652,35 +635,25 @@ module tb_picobello_dse
       // Loop over the number of clusters per memory tile
       n_cl_x_mem_loop: for (int NClXMem = NClXMemMin; NClXMem <= NClXMemMax; NClXMem = NClXMem * 2) begin
 
-        // Loop over the number of operations per cluster (geometric progression)
-        n_ops_loop: for (int NOps = NOpsMin; NOps <= NOpsMax; NOps = (NOps == 0) ? 32 : NOps * 2) begin
+        `wait_n_clk(1);
 
-          // Set read operational intensity
-          tb_tg_cfg_read.TrafficGenTrafficDim       = TrafficDim; // DMA payload size (hardwired)
-          tb_tg_cfg_read.TrafficGenComputeDim       = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
+        // Loop over burst length values of critical tasks (geometric progression)
+        critical_task_burst_length_loop: for (int CriticalBurstLength = CriticalBurstLengthMin; CriticalBurstLength <= CriticalBurstLengthMax; CriticalBurstLength = CriticalBurstLength * 2) begin
 
-          // Set write operational intensity
-          tb_tg_cfg_write.TrafficGenTrafficDim      = TrafficDim; // DMA payload size (hardwired)
-          tb_tg_cfg_write.TrafficGenComputeDim      = (NOps == 0) ? NOps : NOps + 1; // Compute time (variable)
-          `wait_n_clk(1);
+          // Loop over burst length values of interferer tasks (geometric progression)
+          interferer_task_burst_length_loop: for (int InterfBurstLength = InterfBurstLengthMin; InterfBurstLength <= InterfBurstLengthMax; InterfBurstLength = InterfBurstLength * 2) begin
 
-          // Loop over burst length values of critical tasks (geometric progression)
-          critical_task_burst_length_loop: for (int CriticalBurstLength = CriticalBurstLengthMin; CriticalBurstLength <= CriticalBurstLengthMax; CriticalBurstLength = CriticalBurstLength * 2) begin
+          	// Loop over budget values of critical tasks (geometric progression)
+          	critical_task_budget_loop: for (int CriticalBudget = CriticalBudgetMin; CriticalBudget <= CriticalBudgetMax; CriticalBudget = (CriticalBudget == 0) ? 1 : CriticalBudget * 2) begin
 
-            // Loop over burst length values of interferer tasks (geometric progression)
-            interferer_task_burst_length_loop: for (int InterfBurstLength = InterfBurstLengthMin; InterfBurstLength <= InterfBurstLengthMax; InterfBurstLength = InterfBurstLength * 2) begin
+          		// Loop over period values of critical tasks (geometric progression)
+          		critical_task_period_loop: for (int CriticalPeriod = CriticalPeriodMin; CriticalPeriod <= CriticalPeriodMax; CriticalPeriod = (CriticalPeriod == 0) ? 1 : CriticalPeriod * 2) begin
 
-            	// Loop over budget values of critical tasks (geometric progression)
-            	critical_task_budget_loop: for (int CriticalBudget = CriticalBudgetMin; CriticalBudget <= CriticalBudgetMax; CriticalBudget = (CriticalBudget == 0) ? 1 : CriticalBudget * 2) begin
+          			// Loop over budget values of interferer tasks (geometric progression)
+          			interferer_task_budget_loop: for (int InterfBudget = InterfBudgetMin; InterfBudget <= InterfBudgetMax; InterfBudget = (InterfBudget == 0) ? 1 : InterfBudget * 2) begin
 
-            		// Loop over period values of critical tasks (geometric progression)
-            		critical_task_period_loop: for (int CriticalPeriod = CriticalPeriodMin; CriticalPeriod <= CriticalPeriodMax; CriticalPeriod = (CriticalPeriod == 0) ? 1 : CriticalPeriod * 2) begin
-
-            			// Loop over budget values of interferer tasks (geometric progression)
-            			interferer_task_budget_loop: for (int InterfBudget = InterfBudgetMin; InterfBudget <= InterfBudgetMax; InterfBudget = (InterfBudget == 0) ? 1 : InterfBudget * 2) begin
-
-            				// Loop over period values of interferer tasks (geometric progression)
-            				interferer_task_period_loop: for (int InterfPeriod = InterfPeriodMin; InterfPeriod <= InterfPeriodMax; InterfPeriod = (InterfPeriod == 0) ? 1 : InterfPeriod * 2) begin
+          				// Loop over period values of interferer tasks (geometric progression)
+          				interferer_task_period_loop: for (int InterfPeriod = InterfPeriodMin; InterfPeriod <= InterfPeriodMax; InterfPeriod = (InterfPeriod == 0) ? 1 : InterfPeriod * 2) begin
 
 				              // Configure AXI-Realm for critical tasks
 				              realm_cfg_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
@@ -747,10 +720,10 @@ module tb_picobello_dse
 				                // Set burst length
 				                dse_realm_set_burst_length(tb_realm_cfg);
 
-                          // Enable IMTU
-                          if(CriticalBudgetPeriodActive) begin
+                        // Enable IMTU
+                        if(CriticalBudgetPeriodActive) begin
 				                  dse_realm_enable_imtu(tb_realm_cfg);
-                          end
+                        end
 
 				                // Enable real-time mode
 				                dse_realm_enable_rt(tb_realm_cfg);
@@ -820,10 +793,10 @@ module tb_picobello_dse
 				                // Set burst length
 				                dse_realm_set_burst_length(tb_realm_cfg);
 
-                          // Enable IMTU
-                          if(InterfBudgetPeriodActive) begin
+                        // Enable IMTU
+                        if(InterfBudgetPeriodActive) begin
 				                  dse_realm_enable_imtu(tb_realm_cfg);
-                          end
+                        end
 
 				                // Enable real-time mode
 				                dse_realm_enable_rt(tb_realm_cfg);
@@ -880,18 +853,13 @@ module tb_picobello_dse
 				              dma_in_start_first_loop_0: for (int i = 0; i < (CriticalFirst ? NumClustersActive : NumClustersInterfActive); i++) begin
 				                automatic int cl_id = CriticalFirst ? IdTestCl[i] : IdTestClInterf[i];
 
-				                if(DmaReadEnable) begin
-				                  dse_start_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
-				                if(DmaWriteEnable) begin
-				                  dse_start_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
+				                dse_start_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_start_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
+				                dse_start_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) i_dpi_dse.dma_read_start(cl_id, noc_plane_id);
-				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start(cl_id, noc_plane_id);
+				                  i_dpi_dse.dma_start(cl_id, noc_plane_id);
 				                end
 				              end
 
@@ -905,18 +873,13 @@ module tb_picobello_dse
 				              dma_in_start_second_loop_0: for (int i = 0; i < (CriticalFirst ? NumClustersInterfActive : NumClustersActive); i++) begin
 				                automatic int cl_id = CriticalFirst ? IdTestClInterf[i] : IdTestCl[i];
 
-				                if(DmaReadEnable) begin
-				                  dse_start_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
-				                if(DmaWriteEnable) begin
-				                  dse_start_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
+				                dse_start_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_start_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
+				                dse_start_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_start_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) i_dpi_dse.dma_read_start(cl_id, noc_plane_id);
-				                  if(DmaWriteEnable) i_dpi_dse.dma_write_start(cl_id, noc_plane_id);
+				                  i_dpi_dse.dma_start(cl_id, noc_plane_id);
 				                end
 				              end
 
@@ -933,12 +896,7 @@ module tb_picobello_dse
 				                end
 
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) begin
-				                    i_dpi_dse.dma_read_release(cl_id, noc_plane_id);
-				                  end
-				                  if(DmaWriteEnable) begin
-				                    i_dpi_dse.dma_write_release(cl_id, noc_plane_id);
-				                  end
+				                  i_dpi_dse.dma_release(cl_id, noc_plane_id);
 				                end
 				              end
 
@@ -950,12 +908,7 @@ module tb_picobello_dse
 
 				                // Wait for DMA idles
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) begin
-				                    i_dpi_dse.dma_read_wait_idle(cl_id, noc_plane_id);
-				                  end
-				                  if(DmaWriteEnable) begin
-				                    i_dpi_dse.dma_write_wait_idle(cl_id, noc_plane_id);
-				                  end
+				                  i_dpi_dse.dma_wait_idle(cl_id, noc_plane_id);
 				                end
 				              end
 
@@ -987,14 +940,10 @@ module tb_picobello_dse
 				              // Stop BW monitors for critical tasks
 				              critical_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersActive; i++) begin
 				                automatic int cl_id = IdTestCl[i];
-				                if(DmaReadEnable) begin
-				                  dse_stop_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
-				                if(DmaWriteEnable) begin
-				                  dse_stop_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
+				                dse_stop_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_stop_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
+				                dse_stop_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_stop_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Wait for interferer clusters to terminate
@@ -1002,12 +951,7 @@ module tb_picobello_dse
 				                automatic int cl_id = IdTestClInterf[i];
 				                // Wait for DMA idles
 				                for (int noc_plane_id = 0; noc_plane_id < NumNoCPlanes; noc_plane_id++) begin
-				                  if(DmaReadEnable) begin
-				                    i_dpi_dse.dma_read_wait_idle(cl_id, noc_plane_id);
-				                  end
-				                  if(DmaWriteEnable) begin
-				                    i_dpi_dse.dma_write_wait_idle(cl_id, noc_plane_id);
-				                  end
+				                  i_dpi_dse.dma_wait_idle(cl_id, noc_plane_id);
 				                end
 				              end  
 
@@ -1020,14 +964,10 @@ module tb_picobello_dse
 				              // Stop BW monitors for interferer tasks
 				              interferer_task_stop_bw_monitors_loop_0: for (int i = 0; i < NumClustersInterfActive; i++) begin
 				                automatic int cl_id = IdTestClInterf[i];
-				                if(DmaReadEnable) begin
-				                  dse_stop_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
-				                if(DmaWriteEnable) begin
-				                  dse_stop_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
-				                  dse_stop_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
-				                end
+				                dse_stop_bw_r_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_stop_bw_r_monitor(bw_noc_ni_narrow_cfg, cl_id);
+				                dse_stop_bw_w_monitor(bw_noc_ni_wide_cfg, cl_id);
+				                dse_stop_bw_w_monitor(bw_noc_ni_narrow_cfg, cl_id);
 				              end
 
 				              // Stop timer
@@ -1049,10 +989,6 @@ module tb_picobello_dse
 				              experimental_stats.router_fifo_out_depth    = picobello_pkg::RouterOutFifoDepth;
 				              experimental_stats.ni_max_oustanding_txns   = picobello_pkg::ChimneyL2Cfg.MaxTxns;
 				              experimental_stats.ni_max_unique_ids        = picobello_pkg::ChimneyL2Cfg.MaxUniqueIds;
-				              experimental_stats.read_traffic_dim         = tb_tg_cfg_read.TrafficGenTrafficDim;
-				              experimental_stats.read_compute_dim         = tb_tg_cfg_read.TrafficGenComputeDim;
-				              experimental_stats.write_traffic_dim        = tb_tg_cfg_write.TrafficGenTrafficDim;
-				              experimental_stats.write_compute_dim        = tb_tg_cfg_write.TrafficGenComputeDim;
 				              experimental_stats.t_exec_time_ck[0]        = t_total.t1 - t_total.t0;
 				              experimental_stats.t_exec_time_ck[1]        = t_critical.t1 - t_critical.t0;
 				              experimental_stats.t_exec_time_ck[2]        = t_interferer.t1 - t_interferer.t0;
@@ -1188,31 +1124,27 @@ module tb_picobello_dse
 				                  $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
 
 				                  // Latency (wide) - Write values
-				                  if(DmaReadEnable) begin
-				                    foreach (bw_noc_ni_wide_stats[cl_id].r_burst_t0[bi]) begin
-				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-				                        bi,
-				                        bw_noc_ni_wide_stats[cl_id].r_burst_t0[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].r_burst_t1[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].r_latency_val[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].r_bw_val[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].r_burst_n_beats[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].r_burst_dw[bi]
-				                      );
-				                    end
+				                  foreach (bw_noc_ni_wide_stats[cl_id].r_burst_t0[bi]) begin
+				                    $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+				                      bi,
+				                      bw_noc_ni_wide_stats[cl_id].r_burst_t0[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].r_burst_t1[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].r_latency_val[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].r_bw_val[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].r_burst_n_beats[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].r_burst_dw[bi]
+				                    );
 				                  end
-				                  if(DmaWriteEnable) begin
-				                    foreach (bw_noc_ni_wide_stats[cl_id].w_burst_t0[bi]) begin
-				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-				                        bi,
-				                        bw_noc_ni_wide_stats[cl_id].w_burst_t0[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].w_burst_t1[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].w_latency_val[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].w_bw_val[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].w_burst_n_beats[bi], 
-				                        bw_noc_ni_wide_stats[cl_id].w_burst_dw[bi]
-				                      );
-				                    end
+				                  foreach (bw_noc_ni_wide_stats[cl_id].w_burst_t0[bi]) begin
+				                    $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+				                      bi,
+				                      bw_noc_ni_wide_stats[cl_id].w_burst_t0[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].w_burst_t1[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].w_latency_val[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].w_bw_val[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].w_burst_n_beats[bi], 
+				                      bw_noc_ni_wide_stats[cl_id].w_burst_dw[bi]
+				                    );
 				                  end
 
 				                  // Latency (wide) - Close file
@@ -1226,31 +1158,27 @@ module tb_picobello_dse
 				                  $fwrite(fileDescriptor, "iter, t0, t1, lat, bw, n_beats, dw_bit\n");
 
 				                  // Latency (narrow) - Write values
-				                  if(DmaReadEnable) begin
-				                    foreach (bw_noc_ni_narrow_stats[cl_id].r_burst_t0[bi]) begin
-				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-				                        bi,
-				                        bw_noc_ni_narrow_stats[cl_id].r_burst_t0[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].r_burst_t1[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].r_latency_val[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].r_bw_val[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].r_burst_n_beats[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].r_burst_dw[bi]
-				                      );
-				                    end
+				                  foreach (bw_noc_ni_narrow_stats[cl_id].r_burst_t0[bi]) begin
+				                    $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+				                      bi,
+				                      bw_noc_ni_narrow_stats[cl_id].r_burst_t0[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].r_burst_t1[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].r_latency_val[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].r_bw_val[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].r_burst_n_beats[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].r_burst_dw[bi]
+				                    );
 				                  end
-				                  if(DmaWriteEnable) begin
-				                    foreach (bw_noc_ni_narrow_stats[cl_id].w_burst_t0[bi]) begin
-				                      $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
-				                        bi,
-				                        bw_noc_ni_narrow_stats[cl_id].w_burst_t0[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].w_burst_t1[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].w_latency_val[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].w_bw_val[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].w_burst_n_beats[bi], 
-				                        bw_noc_ni_narrow_stats[cl_id].w_burst_dw[bi]
-				                      );
-				                    end
+				                  foreach (bw_noc_ni_narrow_stats[cl_id].w_burst_t0[bi]) begin
+				                    $fwrite(fileDescriptor, "%0d, %0.2f, %0.2f, %0.2f, %0.2f, %0d, %0d\n", 
+				                      bi,
+				                      bw_noc_ni_narrow_stats[cl_id].w_burst_t0[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].w_burst_t1[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].w_latency_val[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].w_bw_val[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].w_burst_n_beats[bi], 
+				                      bw_noc_ni_narrow_stats[cl_id].w_burst_dw[bi]
+				                    );
 				                  end
 
 				                  // Latency (narrow) - Close file
@@ -1262,13 +1190,12 @@ module tb_picobello_dse
 				              NTest = NTest + 1;
 
 				              `wait_n_clk(1);
-            				end // interferer_task_period_loop
-            			end // interferer_task_budget_loop
-            		end // critical_task_period_loop
-            	end // critical_task_budget_loop
-            end // interferer_task_burst_length_loop
-          end // critical_task_burst_length_loop
-        end // n_ops_loop
+          				end // interferer_task_period_loop
+          			end // interferer_task_budget_loop
+          		end // critical_task_period_loop
+          	end // critical_task_budget_loop
+          end // interferer_task_burst_length_loop
+        end // critical_task_burst_length_loop
       end // n_clxmem_loop
     end // n_accxmem_loop
 

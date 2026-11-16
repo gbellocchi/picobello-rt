@@ -16,13 +16,9 @@ module dpi_dse (
   // hello world
   import "DPI-C" context task dpi_dse_hello_world();
 
-  // DMA read control
-  import "DPI-C" function void dpi_dse_dma_read_start(input int cl_id, input int noc_plane_id, input int value);
-  import "DPI-C" function int dpi_dse_dma_read_get_idle(input int cl_id, input int noc_plane_id);
-
-  // DMA write control
-  import "DPI-C" function void dpi_dse_dma_write_start(input int cl_id, input int noc_plane_id, input int value);
-  import "DPI-C" function int dpi_dse_dma_write_get_idle(input int cl_id, input int noc_plane_id);
+  // DMA control
+  import "DPI-C" function void dpi_dse_dma_start(input int cl_id, input int noc_plane_id, input int value);
+  import "DPI-C" function int dpi_dse_dma_get_idle(input int cl_id, input int noc_plane_id);
 
   // AXI-REALM control
   import "DPI-C" function void dpi_dse_realm_set_fragm_len(input int cl_id, input int value);
@@ -41,36 +37,19 @@ module dpi_dse (
   // DPI C++ handles signal monitoring
   // SystemVerilog side handles time advancement
 
-  // Start DMA read (force the start bit high)
-  task dma_read_start(input int cl_id, input int noc_plane_id);
-    dpi_dse_dma_read_start(cl_id, noc_plane_id, 1);
+  // Start the DMA (force the start bit high)
+  task dma_start(input int cl_id, input int noc_plane_id);
+    dpi_dse_dma_start(cl_id, noc_plane_id, 1);
   endtask
 
-  // Release the DMA read start (lower the forced start bit)
-  task dma_read_release(input int cl_id, input int noc_plane_id);
-    dpi_dse_dma_read_start(cl_id, noc_plane_id, 0);
+  // Release the DMA start (lower the forced start bit)
+  task dma_release(input int cl_id, input int noc_plane_id);
+    dpi_dse_dma_start(cl_id, noc_plane_id, 0);
   endtask
 
-  // Wait for DMA read to become idle 
-  task dma_read_wait_idle(input int cl_id, input int noc_plane_id);
-    while (dpi_dse_dma_read_get_idle(cl_id, noc_plane_id) != 1) begin
-      sv_wait_clocks(1);
-    end
-  endtask
-
-  // Start DMA write (force the start bit high)
-  task dma_write_start(input int cl_id, input int noc_plane_id);
-    dpi_dse_dma_write_start(cl_id, noc_plane_id, 1);
-  endtask
-
-  // Release the DMA write start (lower the forced start bit)
-  task dma_write_release(input int cl_id, input int noc_plane_id);
-    dpi_dse_dma_write_start(cl_id, noc_plane_id, 0);
-  endtask
-
-  // Wait for DMA write to become idle 
-  task dma_write_wait_idle(input int cl_id, input int noc_plane_id);
-    while (dpi_dse_dma_write_get_idle(cl_id, noc_plane_id) != 1) begin
+  // Wait for the DMA to become idle
+  task dma_wait_idle(input int cl_id, input int noc_plane_id);
+    while (dpi_dse_dma_get_idle(cl_id, noc_plane_id) != 1) begin
       sv_wait_clocks(1);
     end
   endtask

@@ -216,36 +216,31 @@ module traffic_gen_tile
   /////////////////////////////////////////////////////////////////////////////
 
   // Each traffic generator can be configured independently accessing the following register files:
-  // - Traffic generator read configuration
-  // - Traffic generator write configuration
   // - AXI-Realm configuration
+  // - Traffic generator control (start, done)
   //
   //                         +------+
   //                         |      |--> axi_tg_regfile[i][realm]
-  //   axi_traffic_gen[i] -->| XBAR |--> axi_tg_regfile[i][read]
-  //                         |      |--> axi_tg_regfile[i][write]
+  //   axi_traffic_gen[i] -->| XBAR |--> axi_tg_regfile[i][ctrl]
   //                         +------+
 
-  localparam int unsigned NumTrafficGenRegFiles = 3;
+  localparam int unsigned NumTrafficGenRegFiles = 2;
 
   // Number of address map rules
-  localparam int unsigned NumTrafficGenRegFileRules = 2;
+  localparam int unsigned NumTrafficGenRegFileRules = 1;
   localparam int unsigned NumAxiRealmRules = 1;
   localparam int unsigned NumRulesTg2RegFile = NumTrafficGenRegFileRules + NumAxiRealmRules;
 
   // Indices
-  localparam int unsigned IdxPortAxiRealm          = 0;
-  localparam int unsigned IdxPortTrafficGenRead    = 1;
-  localparam int unsigned IdxPortTrafficGenWrite   = 2;
+  localparam int unsigned IdxPortAxiRealm       = 0;
+  localparam int unsigned IdxPortTrafficGenCtrl = 1;
 
   // Traffic generator register files address map
   axi_narrow_out_addr_t cluster_rt_addr_dim = 32'h0000_1000;
-  axi_narrow_out_addr_t cluster_dma_r_addr_dim = 32'h0000_0100;
-  axi_narrow_out_addr_t cluster_dma_w_addr_dim = 32'h0000_0100;
+  axi_narrow_out_addr_t cluster_dma_ctrl_addr_dim = 32'h0000_0100;
 
   axi_narrow_out_addr_t cluster_rt_addr_offset = 32'h0000_0000;
-  axi_narrow_out_addr_t cluster_dma_r_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
-  axi_narrow_out_addr_t cluster_dma_w_addr_offset = cluster_dma_r_addr_offset + cluster_dma_r_addr_dim;
+  axi_narrow_out_addr_t cluster_dma_ctrl_addr_offset = cluster_rt_addr_offset + cluster_rt_addr_dim;
 
   // AXI4 traffic generator register files
   AXI_BUS #(
@@ -283,18 +278,11 @@ module traffic_gen_tile
       end_addr:   base_addr_i + i * traffic_gen_addr_space_dim + cluster_rt_addr_offset + cluster_rt_addr_dim
     };
 
-    // Read configuration
+    // DMA control
     assign tg2regfile_addr_map[i][1] = '{
-      idx:        IdxPortTrafficGenRead,
-      start_addr: base_addr_i + i * traffic_gen_addr_space_dim + cluster_dma_r_addr_offset,
-      end_addr:   base_addr_i + i * traffic_gen_addr_space_dim + cluster_dma_r_addr_offset + cluster_dma_r_addr_dim
-    };
-
-    // Write configuration
-    assign tg2regfile_addr_map[i][2] = '{
-      idx:        IdxPortTrafficGenWrite,
-      start_addr: base_addr_i + i * traffic_gen_addr_space_dim + cluster_dma_w_addr_offset,
-      end_addr:   base_addr_i + i * traffic_gen_addr_space_dim + cluster_dma_w_addr_offset + cluster_dma_w_addr_dim
+      idx:        IdxPortTrafficGenCtrl,
+      start_addr: base_addr_i + i * traffic_gen_addr_space_dim + cluster_dma_ctrl_addr_offset,
+      end_addr:   base_addr_i + i * traffic_gen_addr_space_dim + cluster_dma_ctrl_addr_offset + cluster_dma_ctrl_addr_dim
     };
 
     axi_xbar_intf #(
@@ -364,11 +352,8 @@ module traffic_gen_tile
   // Traffic generator register buses => Register buses per NoC plane //
   //////////////////////////////////////////////////////////////////////
 
-  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_read_regfile_req;
-  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_read_regfile_rsp;
-
-  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_write_regfile_req;
-  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_write_regfile_rsp;
+  axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_ctrl_regfile_req;
+  axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_ctrl_regfile_rsp;
 
   axi_rt_cfg_req_t [NumNoCPlanes-1:0] regbus_realm_regfile_req;
   axi_rt_cfg_rsp_t [NumNoCPlanes-1:0] regbus_realm_regfile_rsp;
@@ -378,11 +363,8 @@ module traffic_gen_tile
     assign regbus_realm_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortAxiRealm];
     assign regbus_tg_regfile_rsp[i][IdxPortAxiRealm] = regbus_realm_regfile_rsp[i];
 
-    assign regbus_read_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortTrafficGenRead];
-    assign regbus_tg_regfile_rsp[i][IdxPortTrafficGenRead] = regbus_read_regfile_rsp[i];
-
-    assign regbus_write_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortTrafficGenWrite];
-    assign regbus_tg_regfile_rsp[i][IdxPortTrafficGenWrite] = regbus_write_regfile_rsp[i];
+    assign regbus_ctrl_regfile_req[i] = regbus_tg_regfile_req[i][IdxPortTrafficGenCtrl];
+    assign regbus_tg_regfile_rsp[i][IdxPortTrafficGenCtrl] = regbus_ctrl_regfile_rsp[i];
   end
 
   //////////////////////////////////
@@ -414,10 +396,8 @@ module traffic_gen_tile
     .rst_ni                       ( rst_ni                                      ),
     .axi_out_req_o                ( cluster_rt_wide_out_req                     ),
     .axi_out_rsp_i                ( cluster_rt_wide_out_rsp                     ),
-    .regbus_read_regfile_req      ( regbus_read_regfile_req[IdxNoCPlaneWide]    ),
-    .regbus_read_regfile_rsp      ( regbus_read_regfile_rsp[IdxNoCPlaneWide]    ),
-    .regbus_write_regfile_req     ( regbus_write_regfile_req[IdxNoCPlaneWide]   ),
-    .regbus_write_regfile_rsp     ( regbus_write_regfile_rsp[IdxNoCPlaneWide]   )
+    .regbus_ctrl_regfile_req      ( regbus_ctrl_regfile_req[IdxNoCPlaneWide] ),
+    .regbus_ctrl_regfile_rsp      ( regbus_ctrl_regfile_rsp[IdxNoCPlaneWide] )
   );
 
   // Bind wide cluster outputs to AXI-Realm wide inputs
@@ -522,10 +502,8 @@ module traffic_gen_tile
     .rst_ni                       ( rst_ni                                        ),
     .axi_out_req_o                ( cluster_rt_narrow_out_req                     ),
     .axi_out_rsp_i                ( cluster_rt_narrow_out_rsp                     ),
-    .regbus_read_regfile_req      ( regbus_read_regfile_req[IdxNoCPlaneNarrow]  ),
-    .regbus_read_regfile_rsp      ( regbus_read_regfile_rsp[IdxNoCPlaneNarrow]  ),
-    .regbus_write_regfile_req     ( regbus_write_regfile_req[IdxNoCPlaneNarrow] ),
-    .regbus_write_regfile_rsp     ( regbus_write_regfile_rsp[IdxNoCPlaneNarrow] )
+    .regbus_ctrl_regfile_req      ( regbus_ctrl_regfile_req[IdxNoCPlaneNarrow] ),
+    .regbus_ctrl_regfile_rsp      ( regbus_ctrl_regfile_rsp[IdxNoCPlaneNarrow] )
   );
 
   // Bind narrow cluster outputs to AXI-Realm narrow inputs

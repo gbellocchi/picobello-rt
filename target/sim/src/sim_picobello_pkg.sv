@@ -86,11 +86,7 @@ package sim_picobello_pkg;
     int unsigned router_fifo_out_depth; // Router output FIFO depth
     int unsigned ni_max_oustanding_txns; // Network interface max outstanding transactions
     int unsigned ni_max_unique_ids; // Network interface max unique IDs
-    // Traffic-generator tile parameters
-    real read_traffic_dim; // Read traffic dimension
-    real read_compute_dim; // Read compute dimension
-    real write_traffic_dim; // Write traffic dimension
-    real write_compute_dim; // Write compute dimension
+    // Traffic parameters
     int unsigned burst_length; // Burst length
     // Results
     int unsigned t_exec_time_ck[$]; // Execution time [clock cycles]
@@ -181,25 +177,5 @@ package sim_picobello_pkg;
     // Configuration registers
     axi_rt_reg_pkg::axi_rt_reg2hw_t regfile_cfg;
   } realm_cfg_t;
-
-  ///////////////////////
-  // Traffic Generator //
-  ///////////////////////
-
-  // Traffic generator configuration struct
-  typedef struct packed {
-    // Port IDs
-    logic [3:0] traffic_gen_port_id;
-    logic [3:0] mem_port_id;
-    // Addresses and offsets
-    picobello_pkg::axi_host_addr_t traffic_gen_addr_base; // Traffic generator base address
-    picobello_pkg::axi_host_addr_t traffic_gen_addr_offset; // Traffic generator address offset
-    picobello_pkg::axi_host_addr_t mem_addr_base; // Memory base address
-    picobello_pkg::axi_host_addr_t mem_addr_offset; // Memory address offset
-    // Traffic generator parameters
-    picobello_pkg::axi_host_data_t TrafficGenTrafficDim; // Traffic dimension
-    picobello_pkg::axi_host_data_t TrafficGenComputeDim; // Compute dimension
-    picobello_pkg::axi_host_data_t TrafficGenIdx; // Index
-  } tg_cfg_t;
 
 endpackage
